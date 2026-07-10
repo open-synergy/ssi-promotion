@@ -1,0 +1,121 @@
+scenarios:
+  - name: "Create promotion type with fixed discount"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Fixed Voucher"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 10000.0
+          usage_limit: 5
+      - step: "Assert created"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          id:
+            type: "value"
+            operator: "is_truthy"
+          discount_type:
+            type: "value"
+            expected: "fixed"
+          discount_amount:
+            type: "value"
+            expected: 10000.0
+          usage_limit:
+            type: "value"
+            expected: 5
+
+  - name: "Create promotion type with percentage discount"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Percentage Voucher"
+          code: "/"
+          discount_type: "percentage"
+          discount_percentage: 10.0
+      - step: "Assert created"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          discount_type:
+            type: "value"
+            expected: "percentage"
+          discount_percentage:
+            type: "value"
+            expected: 10.0
+
+  - name: "Create promotion type with validity and python code"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Python Voucher"
+          code: "/"
+          discount_type: "python"
+          discount_python_code: "result = 5000"
+          has_validity: true
+          validity_duration: 30
+          validity_python_code: "result = True"
+      - step: "Assert created"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          discount_type:
+            type: "value"
+            expected: "python"
+          has_validity:
+            type: "value"
+            expected: true
+          validity_duration:
+            type: "value"
+            expected: 30
+
+  - name: "Edit promotion type name"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Original Name"
+          code: "/"
+      - step: "Write new name"
+        action: "write"
+        target: "ptype"
+        values:
+          name: "Updated Name"
+      - step: "Assert name updated"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          name:
+            type: "value"
+            expected: "Updated Name"
+
+  - name: "Delete promotion type"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "To Be Deleted"
+          code: "/"
+      - step: "Delete record"
+        action: "call"
+        target: "ptype"
+        method: "unlink"
+      - step: "Verify deleted"
+        action: "search"
+        model: "promotion_type"
+        domain: [["name", "=", "To Be Deleted"]]
+        save_as: "result"
+        expect_count: 0

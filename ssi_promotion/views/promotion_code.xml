@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="promotion_code_view_search" model="ir.ui.view">
+    <field name="name">promotion_code - search</field>
+    <field name="model">promotion_code</field>
+    <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_search"
+        />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="voucher_code" />
+                <field name="type_id" />
+                <field name="partner_id" />
+            </xpath>
+            <xpath expr="//group[@name='group_by']" position="inside">
+                <filter
+                        name="grp_type"
+                        string="Type"
+                        context="{'group_by':'type_id'}"
+                    />
+                <filter
+                        name="grp_partner"
+                        string="Referrer"
+                        context="{'group_by':'partner_id'}"
+                    />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_view_tree" model="ir.ui.view">
+    <field name="name">promotion_code - tree</field>
+    <field name="model">promotion_code</field>
+    <field name="inherit_id" ref="ssi_transaction_mixin.mixin_transaction_view_tree" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="voucher_code" />
+                <field name="type_id" />
+                <field name="partner_id" />
+                <field name="date_start" />
+                <field name="date_end" />
+                <field name="usage_count" />
+                <field name="usage_limit" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_view_form" model="ir.ui.view">
+    <field name="name">promotion_code - form</field>
+    <field name="model">promotion_code</field>
+    <field name="inherit_id" ref="ssi_transaction_mixin.mixin_transaction_view_form" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="voucher_code" />
+                <field name="type_id" />
+                <field name="partner_id" />
+            </xpath>
+            <xpath expr="//group[@name='header_right']" position="inside">
+                <field name="date_start" />
+                <field name="date_end" />
+            </xpath>
+            <xpath expr="//page[1]" position="before">
+                <page name="discount" string="Discount &amp; Usage">
+                    <group name="promotion_code_discount_group" string="Discount">
+                        <field name="discount_type" />
+                        <field
+                                name="discount_amount"
+                                attrs="{'invisible': [('discount_type', '!=', 'fixed')]}"
+                            />
+                        <field
+                                name="discount_percentage"
+                                attrs="{'invisible': [('discount_type', '!=', 'percentage')]}"
+                            />
+                    </group>
+                    <group name="promotion_code_usage_group" string="Usage">
+                        <field name="usage_limit" />
+                        <field name="usage_count" />
+                    </group>
+                    <field name="usage_ids" readonly="1">
+                        <tree>
+                            <field name="name" />
+                            <field name="partner_id" />
+                            <field name="date" />
+                            <field name="discount_amount" sum="Total" />
+                            <field name="state" />
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_action" model="ir.actions.act_window">
+    <field name="name">Promotion Codes</field>
+    <field name="res_model">promotion_code</field>
+    <field name="view_mode">tree,form</field>
+    <field
+            name="context"
+        >{'search_default_dom_draft':1,'search_default_dom_confirm':1,'search_default_dom_open':1}</field>
+</record>
+
+<menuitem
+        id="promotion_code_menu"
+        name="Codes"
+        parent="menu_root_promotion"
+        action="promotion_code_action"
+        groups="promotion_code_viewer_group"
+        sequence="10"
+    />
+</odoo>
