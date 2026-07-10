@@ -36,11 +36,19 @@ class TestPromotionCodeUsage(YamlTransactionCase):
         )
         return income_account, journal, product
 
+    def _confirm_and_approve(self, record):
+        admin = self.env.ref("base.user_admin")
+        record.with_user(admin).action_confirm()
+        # Force a fresh read of policy fields (confirm_ok/approve_ok/...):
+        # approval.approval records created by action_confirm() above are
+        # linked via a plain Integer res_id (not a Many2one), so Odoo's ORM
+        # cannot auto-invalidate the cached policy fields computed earlier
+        # in this same admin environment.
+        record.invalidate_cache()
+        record.with_user(admin).action_approve_approval()
+
     def _open_promotion_code(self, promotion_code):
-        promotion_code.with_user(self.env.ref("base.user_admin")).action_confirm()
-        promotion_code.with_user(
-            self.env.ref("base.user_admin")
-        ).action_approve_approval()
+        self._confirm_and_approve(promotion_code)
 
     def test_promotion_code_usage(self):
         self.run_yaml_scenario("test_data_promotion_code_usage.yaml")
@@ -107,8 +115,7 @@ class TestPromotionCodeUsage(YamlTransactionCase):
                 "partner_id": customer.id,
             }
         )
-        first_usage.with_user(self.env.ref("base.user_admin")).action_confirm()
-        first_usage.with_user(self.env.ref("base.user_admin")).action_approve_approval()
+        self._confirm_and_approve(first_usage)
         second_usage = self.env["promotion_code_usage"].create(
             {
                 "promotion_code_id": promotion_code.id,
@@ -175,9 +182,11 @@ class TestPromotionCodeUsage(YamlTransactionCase):
                 "partner_id": customer.id,
             }
         )
-        usage.with_user(self.env.ref("base.user_admin")).action_confirm()
+        admin = self.env.ref("base.user_admin")
+        usage.with_user(admin).action_confirm()
+        usage.invalidate_cache()
         with self.assertRaises(UserError):
-            usage.with_user(self.env.ref("base.user_admin")).action_approve_approval()
+            usage.with_user(admin).action_approve_approval()
 
     def test_credit_note_creation_is_not_duplicated_on_replay(self):
         """Calling the credit note creation hook again after approval must
@@ -207,8 +216,7 @@ class TestPromotionCodeUsage(YamlTransactionCase):
                 "partner_id": customer.id,
             }
         )
-        usage.with_user(self.env.ref("base.user_admin")).action_confirm()
-        usage.with_user(self.env.ref("base.user_admin")).action_approve_approval()
+        self._confirm_and_approve(usage)
         credit_note = usage.credit_note_id
         self.assertTrue(credit_note)
         move_domain = [("invoice_origin", "=", usage.name)]

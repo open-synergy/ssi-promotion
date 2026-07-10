@@ -22,7 +22,7 @@
         "ssi_transaction_partner_mixin",
         "ssi_transaction_date_duration_mixin",
         "ssi_localdict_mixin",
-        "account",
+        "ssi_financial_accounting",
     ],
     "data": [
         "security/ir_module_category_data.xml",

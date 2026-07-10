@@ -31,6 +31,14 @@ class PromotionCode(models.Model):
         "mixin.transaction_date_duration",
     ]
 
+    _sql_constraints = [
+        (
+            "voucher_code_unique",
+            "unique(voucher_code)",
+            "Voucher code must be unique!",
+        ),
+    ]
+
     # A. Multiple Approval Attributes
     _approval_from_state = "draft"
     _approval_to_state = "open"
