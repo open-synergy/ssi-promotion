@@ -150,6 +150,10 @@ scenarios:
           state:
             type: "value"
             expected: "open"
+      - step: "Invalidate cache before done (fresh policy field read)"
+        action: "call"
+        target: "code"
+        method: "invalidate_cache"
       - step: "Mark done"
         action: "call"
         target: "code"
