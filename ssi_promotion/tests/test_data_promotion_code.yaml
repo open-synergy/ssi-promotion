@@ -1,0 +1,181 @@
+scenarios:
+  - name: "Create promotion code in draft"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Draft Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 15000.0
+          usage_limit: 3
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "DRAFT-001"
+          type_id: "EVAL: registry['ptype'].id"
+      - step: "Assert created in draft"
+        action: "assert"
+        target: "code"
+        asserts:
+          id:
+            type: "value"
+            operator: "is_truthy"
+          voucher_code:
+            type: "value"
+            expected: "DRAFT-001"
+          state:
+            type: "value"
+            expected: "draft"
+
+  - name: "Create promotion code with referrer partner"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referral Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 20000.0
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Partner"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REF-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+      - step: "Assert referrer set"
+        action: "assert"
+        target: "code"
+        asserts:
+          partner_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name: "Workflow draft to open via approval"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Workflow Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 25000.0
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "WF-001"
+          type_id: "EVAL: registry['ptype'].id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert sequence number assigned"
+        action: "assert"
+        target: "code"
+        asserts:
+          name:
+            type: "value"
+            operator: "not_equals"
+            expected: "/"
+
+  - name: "Workflow open to done"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Done Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 12000.0
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "DONE-001"
+          type_id: "EVAL: registry['ptype'].id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Mark done"
+        action: "call"
+        target: "code"
+        method: "action_done"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+
+  - name: "Cancel promotion code from draft"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Cancel Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 8000.0
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "CANCEL-001"
+          type_id: "EVAL: registry['ptype'].id"
+      - step: "Cancel promotion code"
+        action: "call"
+        target: "code"
+        method: "action_cancel"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "cancel"

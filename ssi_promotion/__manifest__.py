@@ -1,0 +1,53 @@
+# Copyright 2026 OpenSynergy Indonesia
+# Copyright 2026 PT. Simetri Sinergi Indonesia
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+
+{
+    "name": "Promotion",
+    "version": "14.0.1.0.0",
+    "website": "https://simetri-sinergi.id",
+    "author": "OpenSynergy Indonesia, PT. Simetri Sinergi Indonesia",
+    "contributors": [
+        "Andhitia Rama <andhitia.r@gmail.com>",
+    ],
+    "license": "AGPL-3",
+    "installable": True,
+    "application": True,
+    "depends": [
+        "ssi_master_data_mixin",
+        "ssi_transaction_confirm_mixin",
+        "ssi_transaction_open_mixin",
+        "ssi_transaction_done_mixin",
+        "ssi_transaction_cancel_mixin",
+        "ssi_transaction_partner_mixin",
+        "ssi_transaction_date_duration_mixin",
+        "ssi_localdict_mixin",
+        "account",
+    ],
+    "data": [
+        "security/ir_module_category_data.xml",
+        "security/ir_module_category/promotion_code.xml",
+        "security/ir_module_category/promotion_code_usage.xml",
+        "security/res_groups/promotion_type.xml",
+        "security/res_groups/promotion_code.xml",
+        "security/res_groups/promotion_code_usage.xml",
+        "security/ir_model_access/promotion_type.xml",
+        "security/ir_model_access/promotion_code.xml",
+        "security/ir_model_access/promotion_code_usage.xml",
+        "security/ir_rule/promotion_code.xml",
+        "security/ir_rule/promotion_code_usage.xml",
+        "ir_sequence/promotion_code.xml",
+        "ir_sequence/promotion_code_usage.xml",
+        "sequence_template/promotion_code.xml",
+        "sequence_template/promotion_code_usage.xml",
+        "approval_template/promotion_code.xml",
+        "approval_template/promotion_code_usage.xml",
+        "policy_template/promotion_code.xml",
+        "policy_template/promotion_code_usage.xml",
+        "menu.xml",
+        "views/promotion_type.xml",
+        "views/promotion_code.xml",
+        "views/promotion_code_usage.xml",
+    ],
+    "demo": [],
+}
