@@ -177,6 +177,22 @@ class PromotionCode(models.Model):
                 record.usage_ids.filtered(lambda usage: usage.state in ("open", "done"))
             )
 
+    # Onchange only fires from the Form UI, not on programmatic create()
+    # (API, imports, tests) — default discount/usage_limit from type_id
+    # here too so those values are never silently left at zero.
+    @api.model
+    def create(self, values):
+        self._set_type_defaults(values)
+        return super().create(values)
+
+    def _set_type_defaults(self, values):
+        if not values.get("type_id"):
+            return
+        promotion_type = self.env["promotion_type"].browse(values["type_id"])
+        values.setdefault("discount_amount", promotion_type.discount_amount)
+        values.setdefault("discount_percentage", promotion_type.discount_percentage)
+        values.setdefault("usage_limit", promotion_type.usage_limit)
+
     # H. Onchange Methods
     @api.onchange(
         "type_id",

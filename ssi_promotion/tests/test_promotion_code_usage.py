@@ -55,8 +55,25 @@ class TestPromotionCodeUsage(YamlTransactionCase):
 
     def test_document_reference_disallowed_model_rejected(self):
         """Setting document_reference to a model not listed in the
-        promotion type's allowed_model_ids raises a ValidationError."""
+        usage's own promotion type's allowed_model_ids raises a
+        ValidationError, even when that model is allowed by some other
+        promotion type (and therefore appears in the field's global
+        selection list)."""
         _income_account, journal, product = self._setup_accounting()
+        model_res_partner = self.env["ir.model"].search(
+            [("model", "=", "res.partner")], limit=1
+        )
+        # Another promotion type allows res.partner, so it is part of the
+        # document_reference field's global selection list.
+        self.env["promotion_type"].create(
+            {
+                "name": "Allows Res Partner Type",
+                "code": "/",
+                "discount_type": "fixed",
+                "discount_amount": 1000.0,
+                "allowed_model_ids": [(6, 0, model_res_partner.ids)],
+            }
+        )
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Disallowed Model Type",
