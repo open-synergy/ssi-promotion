@@ -10,7 +10,12 @@
         <form string="Create Due Promotion Recognition">
             <group name="main" colspan="4" col="2">
                 <field name="date" />
-                <field name="usage_ids" widget="many2many_tags" colspan="2" />
+                <field
+                        name="usage_ids"
+                        widget="many2many_tags"
+                        colspan="2"
+                        force_save="1"
+                    />
             </group>
             <footer>
                 <button
