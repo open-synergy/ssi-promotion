@@ -118,6 +118,14 @@ odoo.define("ssi_promotion.promotion_code_usage_recognition_tour", function (req
             },
 
             // Flow 4 — Change the Note field.
+            // The Note tab is not the active tab by default (this
+            // model's Recognition Lines tab is inserted first): its
+            // pane stays display:none, hiding the textarea from the
+            // tour, until this tab is opened.
+            {
+                content: "Open the Note tab",
+                trigger: ".o_notebook .nav-link:contains(Note)",
+            },
             {
                 content: "Change the Note",
                 trigger: ".o_field_widget[name='note'] textarea",
@@ -358,16 +366,17 @@ odoo.define("ssi_promotion.promotion_code_usage_recognition_tour", function (req
                     // Assertion only.
                 },
             },
+            // Cancel_reason_id is rendered with widget="radio" by
+            // the Select Cancel Reason wizard view
+            // (ssi_transaction_cancel_mixin/wizards/
+            // base_select_cancel_reason_views.xml), so it is a radio
+            // item that gets clicked -- not a many2one autocomplete.
             {
                 content: "Select the cancellation reason",
-                trigger: ".o_field_many2one[name='cancel_reason_id'] input",
-                run: "text TOUR Cancel Reason",
-            },
-            {
-                content: "Pick the reason from the dropdown",
                 trigger:
-                    ".ui-autocomplete .ui-menu-item a:contains(TOUR Cancel Reason)",
-                in_modal: false,
+                    ".o_field_widget[name='cancel_reason_id'] " +
+                    ".o_radio_item:contains(TOUR Cancel Reason) input",
+                run: "click",
             },
 
             // Flow 5 — Click Confirm.
