@@ -237,7 +237,8 @@ scenarios:
         values:
           name: "Test Promotion OU Usage Rule Partner"
 
-      - step: "Create promotion.code.usage scoped to operating unit B, owned by a third user"
+      - step:
+          "Create promotion.code.usage scoped to operating unit B, owned by a third user"
         action: "create"
         model: "promotion_code_usage"
         save_as: "rule_usage"
