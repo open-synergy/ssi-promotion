@@ -1,0 +1,283 @@
+options:
+  auto_refresh: true
+
+setup:
+  steps:
+    - step: "Create partner for operating unit A"
+      action: "create"
+      model: "res.partner"
+      save_as: "ou_a_partner"
+      values:
+        name: "Test Promotion OU-A Partner"
+
+    - step: "Create operating unit A"
+      action: "create"
+      model: "operating.unit"
+      save_as: "ou_a"
+      values:
+        name: "EVAL: 'Test Promotion OU-A %d' % env['operating.unit'].search_count([])"
+        code: "EVAL: 'POUA%d' % env['operating.unit'].search_count([])"
+        partner_id: "REC: ou_a_partner.id"
+
+    - step: "Create partner for operating unit B"
+      action: "create"
+      model: "res.partner"
+      save_as: "ou_b_partner"
+      values:
+        name: "Test Promotion OU-B Partner"
+
+    - step: "Create operating unit B"
+      action: "create"
+      model: "operating.unit"
+      save_as: "ou_b"
+      values:
+        name: "EVAL: 'Test Promotion OU-B %d' % env['operating.unit'].search_count([])"
+        code: "EVAL: 'POUB%d' % env['operating.unit'].search_count([])"
+        partner_id: "REC: ou_b_partner.id"
+
+    # `setup:` replays before every scenario in the same transaction (no
+    # rollback in between), so a fixed `login` would collide with the
+    # previous scenario's user on the 2nd+ replay (unique across
+    # `res.users.login`). Generate a fresh, never-colliding value on
+    # each replay.
+    - step: "Create user assigned to operating unit A"
+      action: "create"
+      model: "res.users"
+      save_as: "user_a"
+      values:
+        name: "Promotion OU-A Rule User"
+        login: "EVAL: 'promotion_ou_a_rule_user_%d' % env['res.users'].search_count([])"
+        groups_id:
+          - - 6
+            - 0
+            - - "REF: base.group_user"
+              - "REF: ssi_promotion.promotion_code_user_group"
+              - "REF: ssi_promotion.promotion_code_usage_user_group"
+              - "REF: ssi_promotion_operating_unit.promotion_code_ou_group"
+              - "REF: ssi_promotion_operating_unit.promotion_code_usage_ou_group"
+        assigned_operating_unit_ids:
+          - - 6
+            - 0
+            - - "REC: ou_a.id"
+
+    - step: "Create user assigned to operating unit B"
+      action: "create"
+      model: "res.users"
+      save_as: "user_b"
+      values:
+        name: "Promotion OU-B Rule User"
+        login: "EVAL: 'promotion_ou_b_rule_user_%d' % env['res.users'].search_count([])"
+        groups_id:
+          - - 6
+            - 0
+            - - "REF: base.group_user"
+              - "REF: ssi_promotion.promotion_code_user_group"
+              - "REF: ssi_promotion.promotion_code_usage_user_group"
+              - "REF: ssi_promotion_operating_unit.promotion_code_ou_group"
+              - "REF: ssi_promotion_operating_unit.promotion_code_usage_ou_group"
+        assigned_operating_unit_ids:
+          - - 6
+            - 0
+            - - "REC: ou_b.id"
+
+scenarios:
+  - name: "Promotion Code - Operating Unit propagation"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "OU Propagation Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 5000.0
+
+      - step: "Create promotion code with operating_unit_id"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "OU-PROP-001"
+          type_id: "EVAL: registry['ptype'].id"
+          operating_unit_id: "REF: operating_unit.main_operating_unit"
+
+      - step: "Assert promotion_code operating_unit_id is set"
+        action: "assert"
+        target: "code"
+        asserts:
+          operating_unit_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name: "Promotion Code Usage - Operating Unit propagation"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype_usage"
+        values:
+          name: "OU Propagation Usage Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 3000.0
+
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_usage"
+        values:
+          voucher_code: "OU-PROP-002"
+          type_id: "EVAL: registry['ptype_usage'].id"
+
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "voucher_user"
+        values:
+          name: "Test Promotion OU Voucher User"
+
+      - step: "Create promotion code usage with operating_unit_id"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code_usage'].id"
+          partner_id: "EVAL: registry['voucher_user'].id"
+          operating_unit_id: "REF: operating_unit.main_operating_unit"
+
+      - step: "Assert promotion_code_usage operating_unit_id is set"
+        action: "assert"
+        target: "usage"
+        asserts:
+          operating_unit_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name: "Promotion Code - Operating unit record rule scopes visibility"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype_rule"
+        values:
+          name: "OU Rule Voucher Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 4000.0
+
+      - step: "Create promotion.code scoped to operating unit A, owned by a third user"
+        action: "create"
+        model: "promotion_code"
+        save_as: "rule_code"
+        values:
+          voucher_code: "OU-RULE-001"
+          type_id: "EVAL: registry['ptype_rule'].id"
+          operating_unit_id: "REC: ou_a.id"
+          user_id: "REF: base.user_admin"
+
+      - step: "Promotion code is scoped to operating unit A"
+        action: "assert"
+        target: "rule_code"
+        asserts:
+          operating_unit_id:
+            type: "m2o"
+            expected: "REC: ou_a"
+
+      - step: "Truth gate: the document owner is neither of the two test users"
+        action: "assert"
+        target: "rule_code"
+        asserts:
+          user_id:
+            type: "m2o"
+            expected_xml_id: "base.user_admin"
+
+      - step: "User of a different operating unit cannot see it"
+        action: "search"
+        model: "promotion_code"
+        as_user: "user_b"
+        domain:
+          - ["id", "=", "REC: rule_code.id"]
+        save_as: "code_seen_by_b"
+        expect_count: 0
+
+      - step: "User of the same operating unit can see it"
+        action: "search"
+        model: "promotion_code"
+        as_user: "user_a"
+        domain:
+          - ["id", "=", "REC: rule_code.id"]
+        save_as: "code_seen_by_a"
+        expect_count: 1
+
+  - name: "Promotion Code Usage - Operating unit record rule scopes visibility"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype_usage_rule"
+        values:
+          name: "OU Rule Usage Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 2000.0
+
+      - step: "Create promotion code for the usage rule scenario"
+        action: "create"
+        model: "promotion_code"
+        save_as: "usage_rule_code"
+        values:
+          voucher_code: "OU-RULE-002"
+          type_id: "EVAL: registry['ptype_usage_rule'].id"
+
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "usage_rule_partner"
+        values:
+          name: "Test Promotion OU Usage Rule Partner"
+
+      - step:
+          "Create promotion.code.usage scoped to operating unit B, owned by a third user"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "rule_usage"
+        values:
+          promotion_code_id: "EVAL: registry['usage_rule_code'].id"
+          partner_id: "EVAL: registry['usage_rule_partner'].id"
+          operating_unit_id: "REC: ou_b.id"
+          user_id: "REF: base.user_admin"
+
+      - step: "Promotion code usage is scoped to operating unit B"
+        action: "assert"
+        target: "rule_usage"
+        asserts:
+          operating_unit_id:
+            type: "m2o"
+            expected: "REC: ou_b"
+
+      - step: "Truth gate: the document owner is neither of the two test users"
+        action: "assert"
+        target: "rule_usage"
+        asserts:
+          user_id:
+            type: "m2o"
+            expected_xml_id: "base.user_admin"
+
+      - step: "User of a different operating unit cannot see it"
+        action: "search"
+        model: "promotion_code_usage"
+        as_user: "user_a"
+        domain:
+          - ["id", "=", "REC: rule_usage.id"]
+        save_as: "usage_seen_by_a"
+        expect_count: 0
+
+      - step: "User of the same operating unit can see it"
+        action: "search"
+        model: "promotion_code_usage"
+        as_user: "user_b"
+        domain:
+          - ["id", "=", "REC: rule_usage.id"]
+        save_as: "usage_seen_by_b"
+        expect_count: 1
