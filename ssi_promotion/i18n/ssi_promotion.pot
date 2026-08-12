@@ -16,7 +16,25 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__name
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__name
 msgid "# Document"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__recognition_id
+msgid "# Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__usage_id
+msgid "# Usage"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__amount_deferred
+msgid ""
+"'Amount To Recognize' still not released: 'Amount To Recognize' minus "
+"'Amount Recognized'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -38,8 +56,43 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__date
+msgid "Accounting date inherited from the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__date
+msgid ""
+"Accounting date of this recognition document. May not be earlier than the "
+"usage's own Usage Date."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__journal_id
+msgid "Accounting journal this document's own entry posts to."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__recognition_journal_id
+msgid ""
+"Accounting journal used by a promotion_code_usage_recognition document that "
+"releases a usage of this type's own Deferred Account. Defaulted onto each "
+"new usage of this type, but may still be overridden manually on the usage "
+"itself."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_journal_id
+msgid ""
+"Accounting journal used by promotion_code_usage_recognition documents "
+"created against this usage. Defaulted from the promotion type's own "
+"'Recognition Journal'."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_needaction
 msgid "Action Needed"
 msgstr ""
@@ -52,24 +105,28 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__active_approval_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__active_approval_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__active_approval_ids
 msgid "Active Approvals"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__active_approver_partner_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__active_approver_partner_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__active_approver_partner_ids
 msgid "Active Partners"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__active_approver_user_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__active_approver_user_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__active_approver_user_ids
 msgid "Active Users"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_ids
 msgid "Activities"
 msgstr ""
@@ -77,6 +134,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_exception_decoration
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_exception_decoration
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_exception_decoration
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_exception_decoration
 msgid "Activity Exception Decoration"
 msgstr ""
@@ -84,6 +142,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_state
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_state
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_state
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_state
 msgid "Activity State"
 msgstr ""
@@ -91,6 +150,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_type_icon
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_type_icon
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_type_icon
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_type_icon
 msgid "Activity Type Icon"
 msgstr ""
@@ -98,6 +158,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:res.groups,name:ssi_promotion.promotion_code_all_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_all_group
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_all_group
 msgid "All"
 msgstr ""
 
@@ -110,6 +171,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__allowed_policy_template_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__allowed_policy_template_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__allowed_policy_template_ids
 msgid "Allowed Policy Templates"
 msgstr ""
 
@@ -119,26 +181,51 @@ msgid "Allowed Reference Models"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__amount
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__amount
+msgid "Amount"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__amount_deferred
+msgid "Amount Deferred"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__amount_recognized
+msgid "Amount Recognized"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__amount_to_recognize
+msgid "Amount To Recognize"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__approval_template_id
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__approval_template_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__approval_template_id
 msgid "Approval Configuration"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__approval_template_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__approval_template_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__approval_template_id
 msgid "Approval Template"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__approval_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__approval_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__approval_ids
 msgid "Approvals"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__approve_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__approve_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__approve_ok
 msgid ""
 "Approve policy\n"
 "\n"
@@ -148,12 +235,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__approved
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__approved
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__approved
 msgid "Approved"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_attachment_count
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_attachment_count
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_attachment_count
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_attachment_count
 msgid "Attachment Count"
 msgstr ""
@@ -161,48 +250,56 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__approve_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__approve_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__approve_ok
 msgid "Can Approve"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__cancel_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__cancel_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__cancel_ok
 msgid "Can Cancel"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__confirm_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__confirm_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__confirm_ok
 msgid "Can Confirm"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__done_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__done_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__done_ok
 msgid "Can Finished"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__manual_number_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__manual_number_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__manual_number_ok
 msgid "Can Input Manual Document Number"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__reject_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__reject_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__reject_ok
 msgid "Can Reject"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__restart_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__restart_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__restart_ok
 msgid "Can Restart"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__restart_approval_ok
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__restart_approval_ok
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__restart_approval_ok
 msgid "Can Restart Approval"
 msgstr ""
 
@@ -215,12 +312,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__cancel_reason_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__cancel_reason_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__cancel_reason_id
 msgid "Cancel Reason"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__cancel_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__cancel_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__cancel_ok
 msgid ""
 "Cancel policy\n"
 "\n"
@@ -247,26 +346,48 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__company_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__company_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__company_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__company_id
 #: model:res.groups,name:ssi_promotion.promotion_code_company_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_company_group
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_company_group
 msgid "Company"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__company_currency_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__company_currency_id
+msgid "Company Currency"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__company_partner_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__company_partner_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__company_partner_id
 msgid "Company Partner"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:res.groups,name:ssi_promotion.promotion_code_company_child_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_company_child_group
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_company_child_group
 msgid "Company and All Child Companies"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__company_currency_id
+msgid "Company currency inherited from the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__company_id
+msgid "Company inherited from the parent Recognition document."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__company_id
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__company_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__company_id
 msgid ""
 "Company that own the document\n"
 "\n"
@@ -282,6 +403,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__confirm_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__confirm_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__confirm_ok
 msgid ""
 "Confirm policy\n"
 "\n"
@@ -297,6 +419,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__create_uid
 msgid "Created by"
 msgstr ""
@@ -304,8 +428,15 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__create_date
 msgid "Created on"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__credit_account_id
+msgid "Credit Account"
 msgstr ""
 
 #. module: ssi_promotion
@@ -349,9 +480,38 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__currency_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__currency_id
+msgid "Currency"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__currency_id
+msgid "Currency inherited from the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__currency_id
+msgid ""
+"Currency this document is expressed in. This document does not support a "
+"currency other than the Company Currency."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_recognition_line__line_type__customer
+msgid "Customer"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__credit_note_id
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
 msgid "Customer Credit Note"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__date
+msgid "Date"
 msgstr ""
 
 #. module: ssi_promotion
@@ -394,6 +554,11 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__debit_account_id
+msgid "Debit Account"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_method
 msgid ""
 "Defaulted from the promotion type's own 'Recognition Method', but may still "
@@ -415,8 +580,20 @@ msgid "Deferred Account"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__credit_account_id
+msgid ""
+"Deferred Account of the parent Recognition's own usage, credited by this "
+"Recognition Line."
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
 msgid "Deferred Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__usage_id
+msgid "Deferred promotion_code_usage this document releases."
 msgstr ""
 
 #. module: ssi_promotion
@@ -476,6 +653,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__display_name
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__display_name
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__display_name
 msgid "Display Name"
 msgstr ""
@@ -499,10 +678,19 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__done_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__done_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__done_ok
 msgid ""
 "Done policy\n"
 "\n"
 "* If active user can see and execute 'Done' button"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__debit_account_id
+msgid ""
+"Final Account of this line's own side of the discount, debited by this "
+"Recognition Line. Resolved from the usage's own ``_get_final_account`` when "
+"this line is generated."
 msgstr ""
 
 #. module: ssi_promotion
@@ -526,6 +714,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_follower_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_follower_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_follower_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_follower_ids
 msgid "Followers"
 msgstr ""
@@ -533,6 +722,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_channel_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_channel_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_channel_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_channel_ids
 msgid "Followers (Channels)"
 msgstr ""
@@ -540,6 +730,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_partner_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_partner_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_partner_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_partner_ids
 msgid "Followers (Partners)"
 msgstr ""
@@ -547,8 +738,19 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__activity_type_icon
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__activity_type_icon
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__activity_type_icon
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__activity_type_icon
 msgid "Font awesome icon e.g. fa-tasks"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__note
+msgid "Free-form note about this recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_recognition_view_search
+msgid "Group By"
 msgstr ""
 
 #. module: ssi_promotion
@@ -579,6 +781,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__id
 msgid "ID"
 msgstr ""
@@ -586,6 +790,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_exception_icon
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_exception_icon
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_exception_icon
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_exception_icon
 msgid "Icon"
 msgstr ""
@@ -593,6 +798,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__activity_exception_icon
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__activity_exception_icon
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__activity_exception_icon
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__activity_exception_icon
 msgid "Icon to indicate an exception activity."
 msgstr ""
@@ -609,6 +815,8 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__message_unread
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_needaction
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_unread
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_needaction
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_unread
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_needaction
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_unread
 msgid "If checked, new messages require your attention."
@@ -617,6 +825,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__message_has_error
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_has_error
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_has_error
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_has_error
 msgid "If checked, some messages have a delivery error."
 msgstr ""
@@ -637,13 +846,31 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_is_follower
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_is_follower
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_is_follower
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_is_follower
 msgid "Is Follower"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__journal_id
+msgid "Journal"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__move_id
+msgid "Journal entry generated when this document is Done."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__move_id
+msgid "Journal entry of the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage____last_update
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition____last_update
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type____last_update
 msgid "Last Modified on"
 msgstr ""
@@ -651,6 +878,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__write_uid
 msgid "Last Updated by"
 msgstr ""
@@ -658,6 +887,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__write_date
 msgid "Last Updated on"
 msgstr ""
@@ -668,8 +899,14 @@ msgid "Limits & Validity"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__line_type
+msgid "Line Type"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_main_attachment_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_main_attachment_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_main_attachment_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_main_attachment_id
 msgid "Main Attachment"
 msgstr ""
@@ -677,6 +914,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__manual_number_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__manual_number_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__manual_number_ok
 msgid ""
 "Manual number assignment policy\n"
 "\n"
@@ -722,6 +960,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_has_error
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_has_error
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_has_error
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_has_error
 msgid "Message Delivery error"
 msgstr ""
@@ -729,13 +968,21 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_ids
 msgid "Messages"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__move_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__move_id
+msgid "Move"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__my_activity_date_deadline
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__my_activity_date_deadline
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__my_activity_date_deadline
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__my_activity_date_deadline
 msgid "My Activity Deadline"
 msgstr ""
@@ -748,12 +995,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__need_validation
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__need_validation
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__need_validation
 msgid "Need Validation"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_date_deadline
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_date_deadline
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_date_deadline
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_date_deadline
 msgid "Next Activity Deadline"
 msgstr ""
@@ -761,6 +1010,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_summary
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_summary
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_summary
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_summary
 msgid "Next Activity Summary"
 msgstr ""
@@ -768,6 +1018,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_type_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_type_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_type_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_type_id
 msgid "Next Activity Type"
 msgstr ""
@@ -775,19 +1026,28 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__next_approval_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__next_approval_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__next_approval_ids
 msgid "Next Approvals"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_state__not_applicable
+msgid "Not Applicable"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__note
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__note
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__note
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__note
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_recognition_view_form
 msgid "Note"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction_counter
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_needaction_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_needaction_counter
 msgid "Number of Actions"
 msgstr ""
@@ -802,6 +1062,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_has_error_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_has_error_counter
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_has_error_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_has_error_counter
 msgid "Number of errors"
 msgstr ""
@@ -809,6 +1070,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__message_needaction_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_needaction_counter
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_needaction_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_needaction_counter
 msgid "Number of messages which requires an action"
 msgstr ""
@@ -816,6 +1078,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__message_has_error_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_has_error_counter
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_has_error_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_has_error_counter
 msgid "Number of messages with delivery error"
 msgstr ""
@@ -823,6 +1086,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__message_unread_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_unread_counter
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_unread_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_unread_counter
 msgid "Number of unread messages"
 msgstr ""
@@ -832,6 +1096,20 @@ msgstr ""
 msgid ""
 "Number of usages of this code currently in state open or done, counted "
 "against 'Usage Limit'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__recognition_line_ids
+msgid ""
+"One technical line per side of the usage's discount (customer, and referrer "
+"when the usage's promotion code has one), each carrying the debit/credit "
+"pair posted for it. Generated when this document is Done; cleared again if "
+"it is cancelled."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_state__partial
+msgid "Partially Recognized"
 msgstr ""
 
 #. module: ssi_promotion
@@ -847,6 +1125,11 @@ msgstr ""
 msgid ""
 "Partner who redeemed the promotion code. Receives the customer credit note "
 "when this usage is approved."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_state__pending
+msgid "Pending"
 msgstr ""
 
 #. module: ssi_promotion
@@ -871,7 +1154,23 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__policy_template_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__policy_template_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__policy_template_id
 msgid "Policy Template"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__amount
+msgid ""
+"Portion of the Recognition document's own Amount released for this side of "
+"the discount, already rounded to the currency's own precision."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__amount
+msgid ""
+"Portion of the usage's own Amount Deferred released by this document. The "
+"sum of every Done Recognition's Amount may not exceed the usage's own Amount"
+" To Recognize."
 msgstr ""
 
 #. module: ssi_promotion
@@ -888,6 +1187,15 @@ msgid ""
 "Product used on the credit note line created for the voucher user when a "
 "promotion_code_usage of this type is approved. Its income account is used "
 "when 'Credit Note Account' is not set."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_state
+msgid ""
+"Progress releasing this usage's own 'Amount To Recognize'. 'Not Applicable' "
+"while 'Recognition Method' is Immediate; otherwise 'Pending' until the first"
+" Done recognition, 'Partially Recognized' until 'Amount Recognized' reaches "
+"'Amount To Recognize', then 'Recognized'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -925,6 +1233,18 @@ msgstr ""
 #: model:ir.module.category,name:ssi_promotion.promotion_code_usage_data_ownership_module_category
 #: model:ir.module.category,name:ssi_promotion.promotion_code_usage_workflow_module_category
 msgid "Promotion Code Usage"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model,name:ssi_promotion.model_promotion_code_usage_recognition
+#: model:ir.module.category,name:ssi_promotion.promotion_code_usage_recognition_data_ownership_module_category
+#: model:ir.module.category,name:ssi_promotion.promotion_code_usage_recognition_workflow_module_category
+msgid "Promotion Code Usage Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model,name:ssi_promotion.model_promotion_code_usage_recognition_line
+msgid "Promotion Code Usage Recognition - Line"
 msgstr ""
 
 #. module: ssi_promotion
@@ -991,6 +1311,11 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__ratio
+msgid "Ratio"
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
 msgid "Recognition"
 msgstr ""
@@ -1001,9 +1326,42 @@ msgid "Recognition Date"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_journal_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__recognition_journal_id
+msgid "Recognition Journal"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__recognition_line_ids
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_recognition_view_form
+msgid "Recognition Lines"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_method
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__recognition_method
 msgid "Recognition Method"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_state
+msgid "Recognition State"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__recognition_id
+msgid "Recognition document this line belongs to."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_ids
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Recognitions"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_state__recognized
+msgid "Recognized"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1018,6 +1376,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__partner_id
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_recognition_line__line_type__referrer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_search
 msgid "Referrer"
 msgstr ""
@@ -1041,6 +1400,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__reject_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__reject_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__reject_ok
 msgid ""
 "Reject policy\n"
 "\n"
@@ -1050,18 +1410,21 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__rejected
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__rejected
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__rejected
 msgid "Rejected"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__user_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__user_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__user_id
 msgid "Responsible"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__activity_user_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__activity_user_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__activity_user_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__activity_user_id
 msgid "Responsible User"
 msgstr ""
@@ -1069,6 +1432,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__restart_approval_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__restart_approval_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__restart_approval_ok
 msgid ""
 "Restart approval policy\n"
 "\n"
@@ -1078,6 +1442,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__restart_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__restart_ok
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__restart_ok
 msgid ""
 "Restart policy\n"
 "\n"
@@ -1087,6 +1452,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__reviewer_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__reviewer_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__reviewer_id
 msgid "Reviewer"
 msgstr ""
 
@@ -1105,6 +1471,13 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__line_type
+msgid ""
+"Side of the usage's discount released by this line: the voucher user's own "
+"share, or the promotion code's referrer own share."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__open_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__open_ok
 msgid ""
@@ -1116,12 +1489,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__state
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__state
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__state
 msgid "State"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__activity_state
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__activity_state
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__activity_state
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__activity_state
 msgid ""
 "Status based on activities\n"
@@ -1131,14 +1506,38 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__amount_recognized
+msgid ""
+"Sum of 'Amount' of every Done promotion_code_usage_recognition document "
+"created against this usage."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__ratio
+msgid ""
+"This document's own Amount divided by the usage's own Amount To Recognize --"
+" the proportion of each Line released by this document."
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_tree
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 msgid "Total"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__amount_to_recognize
+msgid ""
+"Total amount this usage's credit note line(s) debited to Deferred Account, "
+"due to be released by promotion_code_usage_recognition documents: 'Discount "
+"Amount', doubled when this usage's promotion code has a referrer (both the "
+"customer and referrer credit note lines carry the same 'Discount Amount')."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__name
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__name
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__name
 msgid ""
 "Transaction/document number\n"
 "\n"
@@ -1159,6 +1558,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__activity_exception_decoration
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__activity_exception_decoration
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__activity_exception_decoration
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__activity_exception_decoration
 msgid "Type of the exception activity on record."
 msgstr ""
@@ -1171,6 +1571,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_unread
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_unread
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_unread
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_unread
 msgid "Unread Messages"
 msgstr ""
@@ -1178,11 +1579,13 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_unread_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_unread_counter
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_unread_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_unread_counter
 msgid "Unread Messages Counter"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_recognition_view_search
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 msgid "Usage"
 msgstr ""
@@ -1209,6 +1612,12 @@ msgid "Usage Limit"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.actions.act_window,name:ssi_promotion.promotion_code_usage_recognition_action
+#: model:ir.ui.menu,name:ssi_promotion.promotion_code_usage_recognition_menu
+msgid "Usage Recognitions"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__usage_ids
 msgid "Usage records created against this promotion code."
 msgstr ""
@@ -1220,6 +1629,7 @@ msgid "Usages"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_user_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_user_group
 #: model:res.groups,name:ssi_promotion.promotion_code_user_group
 msgid "User"
@@ -1228,6 +1638,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__user_id
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__user_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__user_id
 msgid ""
 "User that responsible for document\n"
 "\n"
@@ -1239,6 +1650,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__reviewer_id
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__reviewer_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__reviewer_id
 msgid ""
 "User that responsible to review document\n"
 "\n"
@@ -1248,10 +1660,12 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__active_approver_user_ids
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__active_approver_user_ids
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__active_approver_user_ids
 msgid "Users that can approve/reject document"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_validator_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_validator_group
 #: model:res.groups,name:ssi_promotion.promotion_code_validator_group
 msgid "Validator"
@@ -1268,6 +1682,7 @@ msgid "Validity Duration (Days)"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:res.groups,name:ssi_promotion.promotion_code_usage_recognition_viewer_group
 #: model:res.groups,name:ssi_promotion.promotion_code_usage_viewer_group
 #: model:res.groups,name:ssi_promotion.promotion_code_viewer_group
 msgid "Viewer"
@@ -1292,6 +1707,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__website_message_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__website_message_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__website_message_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__website_message_ids
 msgid "Website Messages"
 msgstr ""
@@ -1299,6 +1715,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__website_message_ids
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__website_message_ids
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__website_message_ids
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__website_message_ids
 msgid "Website communication history"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_ids
+msgid ""
+"promotion_code_usage_recognition documents created against this usage, "
+"releasing its own 'Amount Deferred' into their own Final Account(s)."
 msgstr ""
