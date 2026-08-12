@@ -128,7 +128,7 @@ odoo.define("ssi_promotion.promotion_code_usage_recognition_tour", function (req
             },
             {
                 content: "Change the Note",
-                trigger: ".o_field_widget[name='note'] textarea",
+                trigger: "textarea.o_field_widget[name='note']",
                 run: "text Edited via UI test tour.",
             },
 
