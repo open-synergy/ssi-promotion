@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="create_due_promotion_recognition_view_form" model="ir.ui.view">
+    <field name="name">create_due_promotion_recognition - form</field>
+    <field name="model">create_due_promotion_recognition</field>
+    <field name="arch" type="xml">
+        <form string="Create Due Promotion Recognition">
+            <group name="main" colspan="4" col="2">
+                <field name="date" />
+                <field name="usage_ids" widget="many2many_tags" colspan="2" />
+            </group>
+            <footer>
+                <button
+                        name="action_create_due_recognition"
+                        type="object"
+                        string="Create Due Recognition"
+                        class="btn-primary"
+                    />
+                <button string="Cancel" class="btn-default" special="cancel" />
+            </footer>
+        </form>
+    </field>
+</record>
+
+<record id="create_due_promotion_recognition_action" model="ir.actions.act_window">
+    <field name="name">Create Due Promotion Recognition</field>
+    <field name="type">ir.actions.act_window</field>
+    <field name="res_model">create_due_promotion_recognition</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+</record>
+</odoo>

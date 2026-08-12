@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<menuitem
+        id="create_due_promotion_recognition_menu"
+        name="Create Due Recognition"
+        parent="menu_root_promotion"
+        action="create_due_promotion_recognition_action"
+        groups="promotion_code_usage_user_group"
+        sequence="22"
+    />
+</odoo>
