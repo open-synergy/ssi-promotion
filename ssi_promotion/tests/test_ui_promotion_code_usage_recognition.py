@@ -108,7 +108,9 @@ class TestUiPromotionCodeUsageRecognition(HttpSavepointCase):
 
         # IK Pre-Condition of 10-cancel: a Cancellation Reason must exist
         # to be picked in the wizard.
-        cls.env["base.cancel_reason"].create({"name": "TOUR Cancel Reason"})
+        cls.env["base.cancel_reason"].create(
+            {"name": "TOUR Cancel Reason", "code": "TOURPCUR"}
+        )
 
     @classmethod
     def _create_recognition(cls, name):
