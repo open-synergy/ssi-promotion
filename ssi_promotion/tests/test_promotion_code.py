@@ -2,57 +2,34 @@
 # Copyright 2026 PT. Simetri Sinergi Indonesia
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from datetime import date, timedelta
-
+import psycopg2
 from odoo_yaml_test import YamlTransactionCase
 
-from odoo.tests import Form, tagged
+from odoo.tests import tagged
+from odoo.tools import mute_logger
 
 
 @tagged("post_install", "-at_install")
 class TestPromotionCode(YamlTransactionCase):
+    """Scenario tests for ``promotion_code``."""
+
     def test_promotion_code(self):
+        """Run the CRUD, workflow, and onchange scenarios."""
         self.run_yaml_scenario("test_data_promotion_code.yaml")
 
-    def test_onchange_type_id_sets_discount_and_limit(self):
-        """Selecting type_id copies discount and usage limit from the type."""
-        ptype = self.env["promotion_type"].create(
-            {
-                "name": "Fixed Voucher",
-                "code": "/",
-                "discount_type": "fixed",
-                "discount_amount": 10000.0,
-                "usage_limit": 5,
-            }
-        )
-        form = Form(self.env["promotion_code"])
-        form.voucher_code = "ONCHANGE-001"
-        form.type_id = ptype
-        self.assertEqual(form.discount_type, "fixed")
-        self.assertEqual(form.discount_amount, 10000.0)
-        self.assertEqual(form.usage_limit, 5)
-
-    def test_onchange_date_end_from_validity(self):
-        """date_end is computed from date_start + validity_duration when the
-        promotion type has a validity period."""
-        ptype = self.env["promotion_type"].create(
-            {
-                "name": "Validity Voucher",
-                "code": "/",
-                "discount_type": "fixed",
-                "discount_amount": 5000.0,
-                "has_validity": True,
-                "validity_duration": 30,
-            }
-        )
-        form = Form(self.env["promotion_code"])
-        form.voucher_code = "ONCHANGE-002"
-        form.date_start = date.today()
-        form.type_id = ptype
-        self.assertEqual(form.date_end, date.today() + timedelta(days=30))
-
+    @mute_logger("odoo.sql_db")
     def test_voucher_code_unique_constraint(self):
-        """Two promotion codes cannot share the same voucher_code."""
+        """Reject a duplicate ``voucher_code`` at database level.
+
+        Pure Python -- trigger P5 (L-22: ``psycopg2.IntegrityError``,
+        raised here by the ``voucher_code_unique`` entry in
+        ``_sql_constraints``, is outside the 12 error types
+        ``expect_error`` understands), odoo-development-unit-test
+        references/python-escape-hatch.md. ``mute_logger`` silences
+        the PostgreSQL ERROR line this intentionally triggers, so
+        ``oca_checklog_odoo`` does not fail CI even though the test
+        itself passes.
+        """
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Unique Voucher Type",
@@ -67,7 +44,7 @@ class TestPromotionCode(YamlTransactionCase):
                 "type_id": ptype.id,
             }
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(psycopg2.IntegrityError):
             with self.cr.savepoint():
                 self.env["promotion_code"].create(
                     {
