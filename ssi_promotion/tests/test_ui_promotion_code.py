@@ -70,9 +70,7 @@ class TestUiPromotionCode(HttpSavepointCase):
         # IK Pre-Condition of 13-reset-number: Status is Draft, with a
         # manually-assigned document number to reset back to "/" so
         # the tour can observe the change.
-        cls.code_reset = cls._create_code(
-            "TOUR-PC-RESET", name="TOUR-PC-RESET-MANUAL"
-        )
+        cls.code_reset = cls._create_code("TOUR-PC-RESET", name="TOUR-PC-RESET-MANUAL")
 
         # IK Pre-Condition of 14-restart-approval: Status is Waiting
         # for Approval. The shipped "Standard" policy.template has no
@@ -83,9 +81,7 @@ class TestUiPromotionCode(HttpSavepointCase):
         # policy_template/promotion_code.xml, scoped to this test
         # transaction only.
         cls._grant_restart_approval_ok()
-        cls.code_restart_approval = cls._create_code(
-            "TOUR-PC-RESTART-APPROVAL"
-        )
+        cls.code_restart_approval = cls._create_code("TOUR-PC-RESTART-APPROVAL")
         cls.code_restart_approval.with_user(cls.admin).action_confirm()
 
         # IK Pre-Condition of 10-cancel: a Cancellation Reason must
@@ -165,9 +161,7 @@ class TestUiPromotionCode(HttpSavepointCase):
             ],
             limit=1,
         )
-        validator_group = cls.env.ref(
-            "ssi_promotion.promotion_code_validator_group"
-        )
+        validator_group = cls.env.ref("ssi_promotion.promotion_code_validator_group")
         cls.env["policy.template_detail"].create(
             {
                 "template_id": template.id,
@@ -186,81 +180,63 @@ class TestUiPromotionCode(HttpSavepointCase):
 
         IK: docs/promotion_code/01-create.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_create", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_create", login="admin")
 
     def test_edit(self):
         """Run the edit tour for ``promotion_code``.
 
         IK: docs/promotion_code/02-edit.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_edit", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_edit", login="admin")
 
     def test_delete(self):
         """Run the delete tour for ``promotion_code``.
 
         IK: docs/promotion_code/03-delete.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_delete", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_delete", login="admin")
 
     def test_confirm(self):
         """Run the confirm tour for ``promotion_code``.
 
         IK: docs/promotion_code/04-confirm.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_confirm", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_confirm", login="admin")
 
     def test_approve(self):
         """Run the approve tour for ``promotion_code``.
 
         IK: docs/promotion_code/05-approve.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_approve", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_approve", login="admin")
 
     def test_reject(self):
         """Run the reject tour for ``promotion_code``.
 
         IK: docs/promotion_code/06-reject.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_reject", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_reject", login="admin")
 
     def test_finish(self):
         """Run the finish tour for ``promotion_code``.
 
         IK: docs/promotion_code/09-finish.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_finish", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_finish", login="admin")
 
     def test_cancel(self):
         """Run the cancel tour for ``promotion_code``.
 
         IK: docs/promotion_code/10-cancel.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_cancel", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_cancel", login="admin")
 
     def test_restart(self):
         """Run the restart tour for ``promotion_code``.
 
         IK: docs/promotion_code/12-restart.md
         """
-        self.start_tour(
-            "/web", "ssi_promotion_promotion_code_restart", login="admin"
-        )
+        self.start_tour("/web", "ssi_promotion_promotion_code_restart", login="admin")
 
     def test_reset_number(self):
         """Run the reset document number tour for ``promotion_code``.

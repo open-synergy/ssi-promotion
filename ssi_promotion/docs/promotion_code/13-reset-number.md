@@ -22,8 +22,8 @@
 
 1. Open the **Promotion ‣ Codes** menu.
 2. Open the record whose document number will be reset.
-3. Click the **Reset Document Number** button (or edit the number field and change it
-   to **/**).
+3. Click the **Reset Document Number** button (or edit the number field and change it to
+   **/**).
 4. Click **OK** on the confirmation dialog (only when the button was used).
 
 ## Post-Condition

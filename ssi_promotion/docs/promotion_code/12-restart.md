@@ -29,6 +29,6 @@
 ## Post-Condition
 
 - Status returns to **Draft**.
-- If this document had already been confirmed, all its approval records are removed
-  and its Approval Template is cleared. A later Confirm starts the approval process
-  from the beginning.
+- If this document had already been confirmed, all its approval records are removed and
+  its Approval Template is cleared. A later Confirm starts the approval process from the
+  beginning.

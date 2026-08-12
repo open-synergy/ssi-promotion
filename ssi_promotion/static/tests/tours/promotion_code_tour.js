@@ -214,15 +214,13 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // breadcrumb explicitly before asserting the list.
             {
                 content: "Click the Promotion Codes breadcrumb",
-                trigger:
-                    ".breadcrumb-item.o_back_button a:contains(Promotion Codes)",
+                trigger: ".breadcrumb-item.o_back_button a:contains(Promotion Codes)",
             },
 
             // Post-Condition — Back on the list, without the record.
             {
                 content: "Back to the list without the deleted record",
-                trigger:
-                    ".o_list_view:not(:has(.o_data_row:contains(TOUR-PC-DELETE)))",
+                trigger: ".o_list_view:not(:has(.o_data_row:contains(TOUR-PC-DELETE)))",
                 run: function () {
                     // Assertion only.
                 },
