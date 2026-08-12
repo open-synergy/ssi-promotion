@@ -22,6 +22,12 @@ class PromotionCodeUsage(models.Model):
     usage (state open) automatically creates a customer credit note for
     partner_id, and a referrer credit note for promotion_code_id.partner_id
     when the code has a referrer (see the post_open_action hook).
+
+    Recognition Method controls which account those credit note lines
+    debit: Immediate (the default, copied from the promotion type)
+    debits the Final Account right away; Deferred debits Deferred
+    Account instead, so the discount can be recognized later by a
+    separate document (out of scope for this module so far).
     """
 
     _name = "promotion_code_usage"
@@ -149,6 +155,43 @@ class PromotionCodeUsage(models.Model):
         "referrer (promotion_code_id.partner_id) when this usage is "
         "approved, if the promotion code has a referrer.",
     )
+    recognition_method = fields.Selection(
+        string="Recognition Method",
+        selection=[
+            ("immediate", "Immediate"),
+            ("deferred", "Deferred"),
+        ],
+        compute="_compute_recognition_method",
+        store=True,
+        readonly=False,
+        compute_sudo=True,
+        help="Defaulted from the promotion type's own 'Recognition "
+        "Method', but may still be overridden manually while this "
+        "usage is in Draft. Deferred routes the credit note line(s) "
+        "created on approval to 'Deferred Account' instead of their "
+        "Final Account.",
+    )
+    recognition_date = fields.Date(
+        string="Recognition Date",
+        compute="_compute_recognition_date",
+        store=True,
+        readonly=False,
+        compute_sudo=True,
+        help="Date the deferred amount is due to be recognized. "
+        "Defaulted to 'Usage Date', but may still be overridden "
+        "manually while this usage is in Draft.",
+    )
+    deferred_account_id = fields.Many2one(
+        string="Deferred Account",
+        comodel_name="account.account",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Account debited on the credit note line(s) created for "
+        "this usage instead of their Final Account, while this "
+        "usage's own 'Recognition Method' is Deferred. Defaulted from "
+        "the promotion type's own 'Deferred Account'. Required while "
+        "'Recognition Method' is Deferred.",
+    )
 
     # G. Compute Methods
     @api.model
@@ -212,6 +255,34 @@ class PromotionCodeUsage(models.Model):
         )
         return localdict
 
+    @api.depends("type_id.recognition_method")
+    def _compute_recognition_method(self):
+        """Default Recognition Method from the promotion type's config.
+
+        :return: nothing; assigns ``recognition_method``
+        """
+        for record in self:
+            result = "immediate"
+            if record.type_id:
+                result = record.type_id.recognition_method
+            record.recognition_method = result
+
+    @api.depends("date")
+    def _compute_recognition_date(self):
+        """Default Recognition Date to this usage's own Usage Date.
+
+        :return: nothing; assigns ``recognition_date``
+        """
+        for record in self:
+            record.recognition_date = record.date
+
+    # G2. Onchange Methods
+    @api.onchange("type_id")
+    def onchange_deferred_account_id(self):
+        self.deferred_account_id = False
+        if self.type_id:
+            self.deferred_account_id = self.type_id.deferred_account_id
+
     # H. Constrains
     @api.constrains(
         "document_reference",
@@ -240,6 +311,82 @@ Allowed Reference Models, or update that configuration
         model_name = self.document_reference._name
         allowed_models = self.type_id.allowed_model_ids.mapped("model")
         return model_name in allowed_models
+
+    @api.constrains(
+        "recognition_method",
+        "deferred_account_id",
+    )
+    def _check_deferred_account_required(self):
+        """Require Deferred Account whenever Recognition Method is
+        Deferred.
+
+        :raises ValidationError: when 'Recognition Method' is
+            ``deferred`` and 'Deferred Account' is empty.
+        """
+        for record in self:
+            if not record._check_deferred_account_required_condition():
+                error_message = """
+Context: Set recognition method on promotion code usage
+Database ID: %s
+Problem: Recognition Method is 'Deferred' but Deferred Account is empty
+Solution: Set 'Deferred Account' on this usage, or on its promotion \
+type so it defaults automatically
+""" % (
+                    record.id,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_deferred_account_required_condition(self):
+        """Check whether Deferred Account is set when required.
+
+        :return: ``True`` when 'Recognition Method' is not
+            ``deferred``, or when 'Deferred Account' is set
+        """
+        self.ensure_one()
+        if self.recognition_method != "deferred":
+            return True
+        return bool(self.deferred_account_id)
+
+    @api.constrains(
+        "recognition_method",
+        "recognition_date",
+        "date",
+    )
+    def _check_recognition_date_not_before_date(self):
+        """Require Recognition Date on/after Usage Date while Deferred.
+
+        :raises ValidationError: when 'Recognition Method' is
+            ``deferred`` and 'Recognition Date' falls before 'Usage
+            Date'.
+        """
+        for record in self:
+            if not record._check_recognition_date_not_before_date_condition():
+                error_message = """
+Context: Set recognition date on promotion code usage
+Database ID: %s
+Problem: Recognition Date (%s) is earlier than Usage Date (%s) while \
+Recognition Method is 'Deferred'
+Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
+""" % (
+                    record.id,
+                    record.recognition_date,
+                    record.date,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_recognition_date_not_before_date_condition(self):
+        """Check whether Recognition Date respects Usage Date.
+
+        :return: ``True`` when 'Recognition Method' is not
+            ``deferred``, or when 'Recognition Date' is not before
+            'Usage Date'
+        """
+        self.ensure_one()
+        if self.recognition_method != "deferred":
+            return True
+        if not self.recognition_date or not self.date:
+            return True
+        return self.recognition_date >= self.date
 
     # I. Validity Check (pre-confirm hook)
     def _check_validity(self):
@@ -347,7 +494,52 @@ referrer equivalents if applicable) on the promotion type
             )
             raise UserError(_(error_message))
 
+    def _get_final_account(self, referrer=False):
+        """Resolve the non-deferred account for a credit note line.
+
+        Extension point: override to change how the customer or
+        referrer credit note line's own Final Account is resolved,
+        independently of 'Recognition Method'.
+
+        :param referrer: resolve the referrer's Final Account instead
+            of the voucher user's
+        :return: an ``account.account`` record, possibly empty
+        """
+        self.ensure_one()
+        promotion_type = self.type_id
+        if referrer:
+            product = promotion_type.referrer_product_id or promotion_type.product_id
+            return product.property_account_income_id
+        return (
+            promotion_type.account_id
+            or promotion_type.product_id.property_account_income_id
+        )
+
+    def _get_credit_note_account(self, referrer=False):
+        """Resolve the account a credit note line of this usage debits.
+
+        Returns this usage's own 'Deferred Account' while
+        'Recognition Method' is ``deferred``; otherwise falls back to
+        ``_get_final_account``, keeping the Immediate behaviour
+        unchanged.
+
+        :param referrer: resolve the referrer's account instead of
+            the voucher user's
+        :return: an ``account.account`` record, possibly empty
+        """
+        self.ensure_one()
+        if self.recognition_method == "deferred":
+            return self.deferred_account_id
+        return self._get_final_account(referrer=referrer)
+
     def _prepare_customer_credit_note_data(self):
+        """Build the customer credit note ``account.move`` values.
+
+        The single line debits
+        ``_get_credit_note_account(referrer=False)``.
+
+        :return: dict of ``account.move`` values
+        """
         self.ensure_one()
         promotion_type = self.type_id
         return {
@@ -361,13 +553,21 @@ referrer equivalents if applicable) on the promotion type
                     0,
                     0,
                     self._prepare_credit_note_line_data(
-                        promotion_type.product_id, promotion_type.account_id
+                        promotion_type.product_id,
+                        self._get_credit_note_account(referrer=False),
                     ),
                 )
             ],
         }
 
     def _prepare_referrer_credit_note_data(self):
+        """Build the referrer credit note ``account.move`` values.
+
+        The single line debits
+        ``_get_credit_note_account(referrer=True)``.
+
+        :return: dict of ``account.move`` values
+        """
         self.ensure_one()
         promotion_type = self.type_id
         product = promotion_type.referrer_product_id or promotion_type.product_id
@@ -379,7 +579,13 @@ referrer equivalents if applicable) on the promotion type
             "journal_id": journal.id,
             "invoice_origin": self.name,
             "invoice_line_ids": [
-                (0, 0, self._prepare_credit_note_line_data(product, False))
+                (
+                    0,
+                    0,
+                    self._prepare_credit_note_line_data(
+                        product, self._get_credit_note_account(referrer=True)
+                    ),
+                )
             ],
         }
 

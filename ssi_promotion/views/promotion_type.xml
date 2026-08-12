@@ -97,6 +97,16 @@
                         <field name="referrer_journal_id" />
                         <field name="referrer_product_id" />
                     </group>
+                    <group
+                            name="accounting_deferred_group"
+                            string="Deferred Recognition"
+                        >
+                        <field name="recognition_method" />
+                        <field
+                                name="deferred_account_id"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                    </group>
                 </page>
             </xpath>
         </data>
