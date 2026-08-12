@@ -20,6 +20,24 @@ msgid "# Document"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__deferred_account_id
+msgid ""
+"Account debited on the credit note line(s) created for this usage instead of"
+" their Final Account, while this usage's own 'Recognition Method' is "
+"Deferred. Defaulted from the promotion type's own 'Deferred Account'. "
+"Required while 'Recognition Method' is Deferred."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__deferred_account_id
+msgid ""
+"Account debited on the credit note line(s) of a promotion_code_usage of this"
+" type instead of its Final Account, while that usage's own 'Recognition "
+"Method' is set to Deferred. Defaulted onto each new usage of this type, but "
+"may still be overridden manually on the usage itself."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_needaction
@@ -347,6 +365,13 @@ msgid "Date Start"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_date
+msgid ""
+"Date the deferred amount is due to be recognized. Defaulted to 'Usage Date',"
+" but may still be overridden manually while this usage is in Draft."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__date
 msgid ""
 "Date the promotion code was used. Checked against the promotion code's "
@@ -366,6 +391,32 @@ msgid ""
 "Date this promotion code expires. Computed from 'Date Start' and the "
 "promotion type's validity duration; required only when 'Promotion Type' has "
 "a validity period."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_method
+msgid ""
+"Defaulted from the promotion type's own 'Recognition Method', but may still "
+"be overridden manually while this usage is in Draft. Deferred routes the "
+"credit note line(s) created on approval to 'Deferred Account' instead of "
+"their Final Account."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_method__deferred
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__recognition_method__deferred
+msgid "Deferred"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__deferred_account_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__deferred_account_id
+msgid "Deferred Account"
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
+msgid "Deferred Recognition"
 msgstr ""
 
 #. module: ssi_promotion
@@ -515,6 +566,17 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__recognition_method
+msgid ""
+"How the discount granted by a promotion_code_usage of this type is booked on"
+" its credit note(s). Immediate = the customer and referrer credit note lines"
+" debit their Final Account (see 'Credit Note Account', falling back to the "
+"products' own income account) right away, exactly as before this field "
+"existed. Deferred = both lines debit 'Deferred Account' instead, so the "
+"discount can be recognized later by a separate document."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__id
@@ -557,6 +619,12 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__message_has_error
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_has_error
 msgid "If checked, some messages have a delivery error."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_method__immediate
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__recognition_method__immediate
+msgid "Immediate"
 msgstr ""
 
 #. module: ssi_promotion
@@ -920,6 +988,22 @@ msgid ""
 "Python code executed when a promotion_code_usage of this type is confirmed, "
 "in addition to the usage limit and validity period check. The code must "
 "assign True (valid) or False (invalid) to a variable named 'result'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_date
+msgid "Recognition Date"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_method
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__recognition_method
+msgid "Recognition Method"
 msgstr ""
 
 #. module: ssi_promotion
