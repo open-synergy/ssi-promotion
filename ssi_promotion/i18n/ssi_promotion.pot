@@ -14,6 +14,17 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: ssi_promotion
+#: code:addons/ssi_promotion/wizards/create_due_promotion_recognition.py:0
+#, python-format
+msgid ""
+"\n"
+"Context: Create due promotion recognition\n"
+"Database ID: %s\n"
+"Problem: No Usage is due for recognition as of the selected Date\n"
+"Solution: Pick a later Date, or check the usages' own Recognition Date\n"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__name
@@ -310,6 +321,11 @@ msgid "Can Start"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.create_due_promotion_recognition_view_form
+msgid "Cancel"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__cancel_reason_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__cancel_reason_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__cancel_reason_id
@@ -417,6 +433,20 @@ msgid "Contact"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.actions.act_window,name:ssi_promotion.create_due_promotion_recognition_action
+#: model:ir.model,name:ssi_promotion.model_create_due_promotion_recognition
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.create_due_promotion_recognition_view_form
+msgid "Create Due Promotion Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.ui.menu,name:ssi_promotion.create_due_promotion_recognition_menu
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.create_due_promotion_recognition_view_form
+msgid "Create Due Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_uid
@@ -426,6 +456,7 @@ msgid "Created by"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_date
@@ -509,6 +540,7 @@ msgid "Customer Credit Note"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__date
 msgid "Date"
@@ -597,6 +629,12 @@ msgid "Deferred promotion_code_usage this document releases."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_create_due_promotion_recognition__usage_ids
+msgid ""
+"Deferred usages due for recognition as of Date, computed automatically."
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
@@ -651,6 +689,7 @@ msgid "Discount computation mode copied from 'Promotion Type'."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__display_name
@@ -779,6 +818,7 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__id
@@ -867,6 +907,7 @@ msgid "Journal entry of the parent Recognition document."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition____last_update
@@ -876,6 +917,7 @@ msgid "Last Modified on"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_uid
@@ -885,6 +927,7 @@ msgid "Last Updated by"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_date
@@ -1354,6 +1397,14 @@ msgid "Recognition document this line belongs to."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_create_due_promotion_recognition__date
+msgid ""
+"Recognition documents are created for every usage whose own Recognition Date"
+" falls on or before this date, and this is also the Date of every document "
+"created."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_ids
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
 msgid "Recognitions"
@@ -1623,6 +1674,7 @@ msgid "Usage records created against this promotion code."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__usage_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__usage_ids
 #: model:ir.ui.menu,name:ssi_promotion.promotion_code_usage_menu
 msgid "Usages"
