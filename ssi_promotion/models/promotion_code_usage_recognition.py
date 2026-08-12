@@ -226,7 +226,7 @@ class PromotionCodeUsageRecognition(models.Model):
                 lambda recognition: recognition.state == "done"
             )
             total_recognized = sum(done_recognitions.mapped("amount"))
-            precision = usage.company_currency_id.decimal_places
+            precision = record.company_currency_id.decimal_places
             if (
                 float_compare(
                     total_recognized,

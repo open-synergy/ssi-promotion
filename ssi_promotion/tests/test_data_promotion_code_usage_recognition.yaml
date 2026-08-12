@@ -74,6 +74,10 @@ scenarios:
         target: "code"
         method: "action_confirm"
         as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
       - step: "Approve promotion code"
         action: "call"
         target: "code"
@@ -100,6 +104,10 @@ scenarios:
         target: "usage"
         method: "action_confirm"
         as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
       - step: "Approve usage"
         action: "call"
         target: "usage"
@@ -362,6 +370,10 @@ scenarios:
         target: "code_immediate"
         method: "action_confirm"
         as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
       - step: "Approve promotion code"
         action: "call"
         target: "code_immediate"
