@@ -40,6 +40,7 @@
         "security/ir_model_access/promotion_code_usage.xml",
         "security/ir_model_access/promotion_code_usage_recognition.xml",
         "security/ir_model_access/promotion_code_usage_recognition_line.xml",
+        "security/ir_model_access/create_due_promotion_recognition.xml",
         "security/ir_rule/promotion_code.xml",
         "security/ir_rule/promotion_code_usage.xml",
         "security/ir_rule/promotion_code_usage_recognition.xml",
@@ -60,6 +61,11 @@
         "views/promotion_code.xml",
         "views/promotion_code_usage.xml",
         "views/promotion_code_usage_recognition.xml",
+        # wizard ini HARUS di atas create_due_promotion_recognition_menu.xml:
+        # menu itu memanggil name="create_due_promotion_recognition_action"
+        # pada menuitem-nya
+        "wizards/create_due_promotion_recognition.xml",
+        "views/create_due_promotion_recognition_menu.xml",
     ],
     "demo": [],
 }
