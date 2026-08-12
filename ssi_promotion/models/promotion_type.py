@@ -15,6 +15,10 @@ class PromotionType(models.Model):
     which document models a usage may reference, the Python rule used to
     validate a usage, and the accounting configuration used to generate
     the customer (and optional referrer) credit note automatically.
+
+    Also configures whether a usage of this type recognizes its
+    discount immediately or defers it: see 'Recognition Method' and
+    'Deferred Account'.
     """
 
     _name = "promotion_type"
@@ -132,4 +136,31 @@ class PromotionType(models.Model):
         domain=[("type", "=", "sale")],
         help="Sales journal used to create the referrer credit note. If "
         "left empty, 'Credit Note Journal' is reused.",
+    )
+    recognition_method = fields.Selection(
+        string="Recognition Method",
+        selection=[
+            ("immediate", "Immediate"),
+            ("deferred", "Deferred"),
+        ],
+        default="immediate",
+        required=True,
+        help="How the discount granted by a promotion_code_usage of this "
+        "type is booked on its credit note(s). Immediate = the customer "
+        "and referrer credit note lines debit their Final Account (see "
+        "'Credit Note Account', falling back to the products' own "
+        "income account) right away, exactly as before this field "
+        "existed. Deferred = both lines debit 'Deferred Account' "
+        "instead, so the discount can be recognized later by a "
+        "separate document.",
+    )
+    deferred_account_id = fields.Many2one(
+        string="Deferred Account",
+        comodel_name="account.account",
+        ondelete="restrict",
+        help="Account debited on the credit note line(s) of a "
+        "promotion_code_usage of this type instead of its Final "
+        "Account, while that usage's own 'Recognition Method' is set "
+        "to Deferred. Defaulted onto each new usage of this type, but "
+        "may still be overridden manually on the usage itself.",
     )

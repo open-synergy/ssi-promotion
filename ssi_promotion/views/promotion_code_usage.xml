@@ -81,6 +81,17 @@
                         <field name="discount_amount" />
                     </group>
                     <group
+                            name="promotion_code_usage_recognition_group"
+                            string="Recognition"
+                        >
+                        <field name="recognition_method" />
+                        <field name="recognition_date" />
+                        <field
+                                name="deferred_account_id"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                    </group>
+                    <group
                             name="promotion_code_usage_credit_note_group"
                             string="Credit Note"
                         >
