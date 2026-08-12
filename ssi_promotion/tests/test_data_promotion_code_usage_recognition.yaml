@@ -395,6 +395,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code_immediate.id"
           partner_id: "REC: customer2.id"
+          date: 2024-06-01
       - step: "Recognizing an Immediate usage is rejected"
         action: "create"
         model: "promotion_code_usage_recognition"
