@@ -11,6 +11,10 @@
     <xpath expr="." position="inside">
         <script
                 type="text/javascript"
+                src="/ssi_promotion/static/tests/tours/promotion_code_tour.js"
+            />
+        <script
+                type="text/javascript"
                 src="/ssi_promotion/static/tests/tours/promotion_code_usage_recognition_tour.js"
             />
         <script
