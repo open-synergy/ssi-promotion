@@ -5,3 +5,4 @@
 from . import test_promotion_type
 from . import test_promotion_code
 from . import test_promotion_code_usage
+from . import test_promotion_code_usage_recognition

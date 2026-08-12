@@ -1,0 +1,415 @@
+# Copyright 2026 OpenSynergy Indonesia
+# Copyright 2026 PT. Simetri Sinergi Indonesia
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+
+from datetime import date as datetime_date
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+from odoo.tools.float_utils import float_compare, float_round
+
+from odoo.addons.ssi_decorator import ssi_decorator
+
+
+class PromotionCodeUsageRecognition(models.Model):
+    """
+    Represents one release of a promotion_code_usage's deferred
+    discount into its own Final Account(s).
+
+    A usage whose own 'Recognition Method' is 'Deferred' books its
+    credit note line(s) to Deferred Account instead of their own
+    Final Account. This document later moves 'Amount' -- once for
+    the full 'Amount Deferred', or several times -- from Deferred
+    Account to each credit note's own Final Account: one Line for
+    the customer, and a second Line for the referrer when the usage's
+    promotion code has one.
+    """
+
+    _name = "promotion_code_usage_recognition"
+    _inherit = [
+        "mixin.transaction_cancel",
+        "mixin.transaction_done",
+        "mixin.transaction_confirm",
+        "mixin.company_currency",
+        "mixin.account_move",
+    ]
+    _description = "Promotion Code Usage Recognition"
+    _order = "date, id"
+
+    # Multiple Approval Attribute
+    _approval_from_state = "draft"
+    _approval_to_state = "done"
+    _approval_state = "confirm"
+    _after_approved_method = "action_done"
+
+    # Attributes related to add element on view automatically
+    _automatically_insert_view_element = True
+    _automatically_insert_done_policy_fields = False
+    _automatically_insert_done_button = False
+
+    _statusbar_visible_label = "draft,confirm,done"
+    _policy_field_order = [
+        "confirm_ok",
+        "approve_ok",
+        "reject_ok",
+        "restart_approval_ok",
+        "done_ok",
+        "cancel_ok",
+        "restart_ok",
+        "manual_number_ok",
+    ]
+    _header_button_order = [
+        "action_confirm",
+        "action_approve_approval",
+        "action_reject_approval",
+        "%(ssi_transaction_cancel_mixin.base_select_cancel_reason_action)d",
+        "action_restart",
+    ]
+
+    # Attributes related to add element on search view automatically
+    _state_filter_order = [
+        "dom_draft",
+        "dom_confirm",
+        "dom_reject",
+        "dom_done",
+        "dom_cancel",
+    ]
+
+    # Sequence attribute
+    _create_sequence_state = "done"
+
+    # Accounting Entry Header Mixin (``mixin.account_move``)
+    _journal_id_field_name = "journal_id"
+    _move_id_field_name = "move_id"
+    _accounting_date_field_name = "date"
+    _currency_id_field_name = "currency_id"
+    _company_currency_id_field_name = "company_currency_id"
+
+    usage_id = fields.Many2one(
+        string="# Usage",
+        comodel_name="promotion_code_usage",
+        required=True,
+        ondelete="restrict",
+        readonly=True,
+        states={
+            "draft": [
+                ("readonly", False),
+            ],
+        },
+        help="Deferred promotion_code_usage this document releases.",
+    )
+    date = fields.Date(
+        string="Date",
+        default=lambda r: datetime_date.today(),
+        required=True,
+        readonly=True,
+        states={
+            "draft": [
+                ("readonly", False),
+            ],
+        },
+        help="Accounting date of this recognition document. May not "
+        "be earlier than the usage's own Usage Date.",
+    )
+    amount = fields.Monetary(
+        string="Amount",
+        currency_field="currency_id",
+        required=True,
+        readonly=True,
+        states={
+            "draft": [
+                ("readonly", False),
+            ],
+        },
+        help="Portion of the usage's own Amount Deferred released by "
+        "this document. The sum of every Done Recognition's Amount "
+        "may not exceed the usage's own Amount To Recognize.",
+    )
+    ratio = fields.Float(
+        string="Ratio",
+        compute="_compute_ratio",
+        help="This document's own Amount divided by the usage's own "
+        "Amount To Recognize -- the proportion of each Line released "
+        "by this document.",
+    )
+    journal_id = fields.Many2one(
+        string="Journal",
+        comodel_name="account.journal",
+        required=True,
+        ondelete="restrict",
+        readonly=True,
+        states={
+            "draft": [
+                ("readonly", False),
+            ],
+        },
+        help="Accounting journal this document's own entry posts to.",
+    )
+    currency_id = fields.Many2one(
+        string="Currency",
+        comodel_name="res.currency",
+        related="company_currency_id",
+        store=True,
+        help="Currency this document is expressed in. This document "
+        "does not support a currency other than the Company "
+        "Currency.",
+    )
+    move_id = fields.Many2one(
+        string="Move",
+        comodel_name="account.move",
+        readonly=True,
+        copy=False,
+        help="Journal entry generated when this document is Done.",
+    )
+    recognition_line_ids = fields.One2many(
+        string="Recognition Lines",
+        comodel_name="promotion_code_usage_recognition_line",
+        inverse_name="recognition_id",
+        readonly=True,
+        copy=False,
+        help="One technical line per side of the usage's discount "
+        "(customer, and referrer when the usage's promotion code has "
+        "one), each carrying the debit/credit pair posted for it. "
+        "Generated when this document is Done; cleared again if it "
+        "is cancelled.",
+    )
+    note = fields.Text(
+        string="Note",
+        help="Free-form note about this recognition document.",
+    )
+
+    @api.depends("amount", "usage_id.amount_to_recognize")
+    def _compute_ratio(self):
+        """Compute the proportion of the usage released by this document.
+
+        :return: nothing; assigns ``ratio``
+        """
+        for record in self:
+            ratio = 0.0
+            if record.usage_id.amount_to_recognize:
+                ratio = record.amount / record.usage_id.amount_to_recognize
+            record.ratio = ratio
+
+    @api.onchange("usage_id")
+    def onchange_amount(self):
+        """Default Amount from the usage's own Amount Deferred.
+
+        :return: nothing
+        """
+        self.amount = 0.0
+        if self.usage_id:
+            self.amount = self.usage_id.amount_deferred
+
+    @api.onchange("usage_id")
+    def onchange_journal_id(self):
+        """Default Journal from the usage's own Recognition Journal.
+
+        :return: nothing
+        """
+        self.journal_id = False
+        if self.usage_id:
+            self.journal_id = self.usage_id.recognition_journal_id
+
+    @api.constrains("amount", "date", "state")
+    def _check_amount_not_exceed_to_recognize(self):
+        """Forbid Done Recognitions of a usage exceeding its total.
+
+        :raises ValidationError: when the sum of every Done
+            Recognition's Amount on the same usage exceeds that
+            usage's own Amount To Recognize.
+        """
+        for record in self:
+            if record.state != "done":
+                continue
+            usage = record.usage_id
+            done_recognitions = usage.recognition_ids.filtered(
+                lambda recognition: recognition.state == "done"
+            )
+            total_recognized = sum(done_recognitions.mapped("amount"))
+            precision = usage.company_currency_id.decimal_places
+            if (
+                float_compare(
+                    total_recognized,
+                    usage.amount_to_recognize,
+                    precision_digits=precision,
+                )
+                > 0
+            ):
+                error_message = """
+Document Type: %s
+Context: Configure recognition amount
+Database ID: %s
+Problem: Total Done Recognition amount %s exceeds the usage's own Amount To Recognize %s
+Solution: Lower this document's own Amount so the total stays within Amount To Recognize
+""" % (
+                    record._description,
+                    record.id,
+                    total_recognized,
+                    usage.amount_to_recognize,
+                )
+                raise ValidationError(_(error_message))
+
+    @api.constrains("date")
+    def _check_date_not_before_usage(self):
+        """Forbid a Date earlier than the usage's own Usage Date.
+
+        :raises ValidationError: when ``date`` is earlier than
+            ``usage_id.date``.
+        """
+        for record in self:
+            if (
+                record.date
+                and record.usage_id.date
+                and (record.date < record.usage_id.date)
+            ):
+                error_message = """
+Document Type: %s
+Context: Configure recognition date
+Database ID: %s
+Problem: Date %s is earlier than the usage's own Usage Date %s
+Solution: Select a Date on or after the usage's own Usage Date
+""" % (
+                    record._description,
+                    record.id,
+                    record.date,
+                    record.usage_id.date,
+                )
+                raise ValidationError(_(error_message))
+
+    @api.constrains("usage_id")
+    def _check_usage_recognition_method_deferred(self):
+        """Forbid recognizing a usage whose Recognition Method is not
+        Deferred.
+
+        :raises ValidationError: when ``usage_id.recognition_method``
+            is not ``deferred``.
+        """
+        for record in self:
+            if record.usage_id and record.usage_id.recognition_method != "deferred":
+                error_message = """
+Document Type: %s
+Context: Select usage to recognize
+Database ID: %s
+Problem: Usage '%s' own Recognition Method is not 'Deferred'
+Solution: Select a usage whose own Recognition Method is 'Deferred'
+""" % (
+                    record._description,
+                    record.id,
+                    record.usage_id.display_name,
+                )
+                raise ValidationError(_(error_message))
+
+    @ssi_decorator.post_done_action()
+    def _10_create_accounting_entry(self):
+        """Create and post this document's ``account.move``.
+
+        Creates the header move, one
+        ``promotion_code_usage_recognition_line`` for the customer
+        side (always) and a second one for the referrer side (only
+        when the usage's promotion code has a referrer), rounded to
+        the currency's own precision with the rounding remainder
+        charged to the last line so the move stays balanced, then
+        posts the move.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        self._create_standard_move()
+        self._create_recognition_lines()
+        for recognition_line in self.recognition_line_ids:
+            recognition_line._create_standard_ml()
+        self._post_standard_move()
+
+    def _create_recognition_lines(self):
+        """Create one Recognition Line per side of the usage's discount.
+
+        :return: the created
+            ``promotion_code_usage_recognition_line`` recordset
+        """
+        self.ensure_one()
+        Line = self.env["promotion_code_usage_recognition_line"]
+        has_referrer = bool(self.usage_id.promotion_code_id.partner_id)
+        line_types = ["customer", "referrer"] if has_referrer else ["customer"]
+        precision = self.company_currency_id.decimal_places
+        discount_amount = self.usage_id.discount_amount
+        amounts = [
+            float_round(discount_amount * self.ratio, precision_digits=precision)
+            for _line_type in line_types
+        ]
+        remainder = float_round(self.amount - sum(amounts), precision_digits=precision)
+        amounts[-1] = float_round(amounts[-1] + remainder, precision_digits=precision)
+        lines = Line
+        for line_type, amount in zip(line_types, amounts):
+            lines |= Line.create(self._prepare_recognition_line(line_type, amount))
+        return lines
+
+    def _prepare_recognition_line(self, line_type, amount):
+        """Build one Recognition Line's create values.
+
+        :param line_type: ``'customer'`` or ``'referrer'``
+        :param amount: this Recognition Line's own share of
+            ``amount``, already rounded
+        :return: dict of ``promotion_code_usage_recognition_line``
+            values
+        """
+        self.ensure_one()
+        referrer = line_type == "referrer"
+        return {
+            "recognition_id": self.id,
+            "line_type": line_type,
+            "amount": amount,
+            "debit_account_id": self.usage_id._get_final_account(referrer=referrer).id,
+        }
+
+    @ssi_decorator.post_cancel_action()
+    def _10_delete_accounting_entry(self):
+        """Delete this document's ``account.move``.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        self._delete_standard_move()
+
+    @ssi_decorator.post_cancel_action()
+    def _20_delete_recognition_lines(self):
+        """Delete this document's own Recognition Lines.
+
+        Regenerated from scratch by ``_create_recognition_lines`` the
+        next time this document reaches Done.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        self.recognition_line_ids.unlink()
+
+    @ssi_decorator.insert_on_form_view()
+    def _insert_form_element(self, view_arch):
+        """Reconfigure the statusbar's visible states on the form view.
+
+        :param view_arch: the parsed form view architecture
+        :return: the (possibly modified) view architecture
+        """
+        if self._automatically_insert_view_element:
+            view_arch = self._reconfigure_statusbar_visible(view_arch)
+        return view_arch
+
+    @api.model
+    def _get_policy_field(self):
+        """Register this model's policy fields for ``mixin.policy``.
+
+        :return: the base policy fields of the standard three-mixin
+            workflow combo
+        """
+        res = super()._get_policy_field()
+        policy_field = [
+            "confirm_ok",
+            "approve_ok",
+            "done_ok",
+            "cancel_ok",
+            "reject_ok",
+            "restart_ok",
+            "restart_approval_ok",
+            "manual_number_ok",
+        ]
+        res += policy_field
+        return res

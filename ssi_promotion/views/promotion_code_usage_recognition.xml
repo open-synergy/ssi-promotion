@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="promotion_code_usage_recognition_view_search" model="ir.ui.view">
+    <field name="name">promotion_code_usage_recognition - search</field>
+    <field name="model">promotion_code_usage_recognition</field>
+    <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_search"
+        />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//search" position="inside">
+                <field name="usage_id" />
+                <group expand="0" string="Group By">
+                    <filter
+                            name="group_by_usage_id"
+                            string="Usage"
+                            context="{'group_by': 'usage_id'}"
+                        />
+                </group>
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_usage_recognition_view_tree" model="ir.ui.view">
+    <field name="name">promotion_code_usage_recognition - tree</field>
+    <field name="model">promotion_code_usage_recognition</field>
+    <field name="mode">primary</field>
+    <field name="inherit_id" ref="ssi_transaction_mixin.mixin_transaction_view_tree" />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="date" />
+                <field name="usage_id" />
+                <field name="amount" widget="monetary" />
+                <field name="ratio" widget="percentage" />
+                <field name="move_id" />
+                <field name="currency_id" invisible="1" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_usage_recognition_view_form" model="ir.ui.view">
+    <field name="name">promotion_code_usage_recognition - form</field>
+    <field name="model">promotion_code_usage_recognition</field>
+    <field name="mode">primary</field>
+    <field name="inherit_id" ref="ssi_transaction_mixin.mixin_transaction_view_form" />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="usage_id" />
+                <field name="journal_id" />
+            </xpath>
+            <xpath expr="//group[@name='header_right']" position="inside">
+                <field name="date" />
+                <field name="currency_id" invisible="1" />
+                <field name="company_currency_id" invisible="1" />
+                <field
+                        name="amount"
+                        widget="monetary"
+                        options="{'currency_field': 'currency_id'}"
+                    />
+                <field name="ratio" widget="percentage" />
+                <field name="move_id" />
+            </xpath>
+            <xpath expr="//page[1]" position="before">
+                <page name="recognition_line" string="Recognition Lines">
+                    <field name="recognition_line_ids" colspan="4" nolabel="1">
+                        <tree create="false" edit="false" delete="false">
+                            <field name="line_type" />
+                            <field name="debit_account_id" />
+                            <field name="credit_account_id" />
+                            <field name="amount" widget="monetary" />
+                            <field name="company_currency_id" invisible="1" />
+                        </tree>
+                        <form>
+                            <group col="2">
+                                <field name="line_type" />
+                                <field name="debit_account_id" />
+                                <field name="credit_account_id" />
+                                <field name="amount" widget="monetary" />
+                                <field name="company_currency_id" invisible="1" />
+                            </group>
+                        </form>
+                    </field>
+                </page>
+                <page name="note" string="Note">
+                    <field name="note" colspan="4" nolabel="1" />
+                </page>
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="promotion_code_usage_recognition_action" model="ir.actions.act_window">
+    <field name="name">Usage Recognitions</field>
+    <field name="type">ir.actions.act_window</field>
+    <field name="res_model">promotion_code_usage_recognition</field>
+    <field name="view_mode">tree,form</field>
+</record>
+
+<menuitem
+        id="promotion_code_usage_recognition_menu"
+        name="Usage Recognitions"
+        parent="menu_root_promotion"
+        action="promotion_code_usage_recognition_action"
+        groups="promotion_code_usage_recognition_viewer_group"
+        sequence="21"
+    />
+</odoo>

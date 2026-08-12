@@ -6,6 +6,7 @@ from datetime import date
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools.float_utils import float_compare, float_is_zero
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.addons.ssi_decorator import ssi_decorator
@@ -26,8 +27,11 @@ class PromotionCodeUsage(models.Model):
     Recognition Method controls which account those credit note lines
     debit: Immediate (the default, copied from the promotion type)
     debits the Final Account right away; Deferred debits Deferred
-    Account instead, so the discount can be recognized later by a
-    separate document (out of scope for this module so far).
+    Account instead, so the discount can be recognized later by one
+    or more promotion_code_usage_recognition documents. 'Amount To
+    Recognize', 'Amount Recognized', 'Amount Deferred', and
+    'Recognition State' track that release; they stay 'Not
+    Applicable' while Recognition Method is Immediate.
     """
 
     _name = "promotion_code_usage"
@@ -192,6 +196,72 @@ class PromotionCodeUsage(models.Model):
         "the promotion type's own 'Deferred Account'. Required while "
         "'Recognition Method' is Deferred.",
     )
+    recognition_journal_id = fields.Many2one(
+        string="Recognition Journal",
+        comodel_name="account.journal",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Accounting journal used by promotion_code_usage_"
+        "recognition documents created against this usage. "
+        "Defaulted from the promotion type's own 'Recognition "
+        "Journal'.",
+    )
+    amount_to_recognize = fields.Float(
+        string="Amount To Recognize",
+        compute="_compute_amount_to_recognize",
+        store=True,
+        compute_sudo=True,
+        help="Total amount this usage's credit note line(s) debited "
+        "to Deferred Account, due to be released by "
+        "promotion_code_usage_recognition documents: 'Discount "
+        "Amount', doubled when this usage's promotion code has a "
+        "referrer (both the customer and referrer credit note lines "
+        "carry the same 'Discount Amount').",
+    )
+    amount_recognized = fields.Float(
+        string="Amount Recognized",
+        compute="_compute_amount_recognized",
+        store=True,
+        compute_sudo=True,
+        help="Sum of 'Amount' of every Done "
+        "promotion_code_usage_recognition document created against "
+        "this usage.",
+    )
+    amount_deferred = fields.Float(
+        string="Amount Deferred",
+        compute="_compute_amount_deferred",
+        store=True,
+        compute_sudo=True,
+        help="'Amount To Recognize' still not released: 'Amount To "
+        "Recognize' minus 'Amount Recognized'.",
+    )
+    recognition_state = fields.Selection(
+        string="Recognition State",
+        selection=[
+            ("not_applicable", "Not Applicable"),
+            ("pending", "Pending"),
+            ("partial", "Partially Recognized"),
+            ("recognized", "Recognized"),
+        ],
+        compute="_compute_recognition_state",
+        store=True,
+        compute_sudo=True,
+        help="Progress releasing this usage's own 'Amount To "
+        "Recognize'. 'Not Applicable' while 'Recognition Method' is "
+        "Immediate; otherwise 'Pending' until the first Done "
+        "recognition, 'Partially Recognized' until 'Amount "
+        "Recognized' reaches 'Amount To Recognize', then "
+        "'Recognized'.",
+    )
+    recognition_ids = fields.One2many(
+        string="Recognitions",
+        comodel_name="promotion_code_usage_recognition",
+        inverse_name="usage_id",
+        readonly=True,
+        help="promotion_code_usage_recognition documents created "
+        "against this usage, releasing its own 'Amount Deferred' "
+        "into their own Final Account(s).",
+    )
 
     # G. Compute Methods
     @api.model
@@ -276,12 +346,107 @@ class PromotionCodeUsage(models.Model):
         for record in self:
             record.recognition_date = record.date
 
+    @api.depends(
+        "discount_amount",
+        "promotion_code_id.partner_id",
+    )
+    def _compute_amount_to_recognize(self):
+        """Compute the total amount due to be released by recognitions.
+
+        Doubles 'Discount Amount' when this usage's promotion code
+        has a referrer, since the customer and referrer credit note
+        lines both carry the same 'Discount Amount'.
+
+        :return: nothing; assigns ``amount_to_recognize``
+        """
+        for record in self:
+            result = record.discount_amount
+            if record.promotion_code_id.partner_id:
+                result = 2 * record.discount_amount
+            record.amount_to_recognize = result
+
+    @api.depends(
+        "recognition_ids.state",
+        "recognition_ids.amount",
+    )
+    def _compute_amount_recognized(self):
+        """Sum the Amount of every Done recognition of this usage.
+
+        :return: nothing; assigns ``amount_recognized``
+        """
+        for record in self:
+            done_recognitions = record.recognition_ids.filtered(
+                lambda recognition: recognition.state == "done"
+            )
+            record.amount_recognized = sum(done_recognitions.mapped("amount"))
+
+    @api.depends(
+        "amount_to_recognize",
+        "amount_recognized",
+    )
+    def _compute_amount_deferred(self):
+        """Compute the remaining amount still not recognized.
+
+        :return: nothing; assigns ``amount_deferred``
+        """
+        for record in self:
+            record.amount_deferred = (
+                record.amount_to_recognize - record.amount_recognized
+            )
+
+    @api.depends(
+        "recognition_method",
+        "amount_to_recognize",
+        "amount_recognized",
+    )
+    def _compute_recognition_state(self):
+        """Compute the recognition progress state.
+
+        :return: nothing; assigns ``recognition_state``
+        """
+        for record in self:
+            record.recognition_state = record._get_recognition_state()
+
+    def _get_recognition_state(self):
+        """Resolve this usage's own recognition progress state.
+
+        :return: ``'not_applicable'``, ``'pending'``, ``'partial'``,
+            or ``'recognized'``
+        """
+        self.ensure_one()
+        if self.recognition_method != "deferred":
+            return "not_applicable"
+        precision = self.env.company.currency_id.decimal_places
+        if float_is_zero(self.amount_recognized, precision_digits=precision):
+            return "pending"
+        if (
+            float_compare(
+                self.amount_recognized,
+                self.amount_to_recognize,
+                precision_digits=precision,
+            )
+            >= 0
+        ):
+            return "recognized"
+        return "partial"
+
     # G2. Onchange Methods
     @api.onchange("type_id")
     def onchange_deferred_account_id(self):
         self.deferred_account_id = False
         if self.type_id:
             self.deferred_account_id = self.type_id.deferred_account_id
+
+    @api.onchange("type_id")
+    def onchange_recognition_journal_id(self):
+        """Default Recognition Journal from the promotion type's own
+        Recognition Journal.
+
+        :return: nothing
+        """
+        self.recognition_journal_id = False
+        if self.type_id:
+            self.recognition_journal_id = self.type_id.recognition_journal_id
 
     # H. Constrains
     @api.constrains(

@@ -90,6 +90,26 @@
                                 name="deferred_account_id"
                                 attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
                             />
+                        <field
+                                name="recognition_journal_id"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                        <field
+                                name="amount_to_recognize"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                        <field
+                                name="amount_recognized"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                        <field
+                                name="amount_deferred"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
+                        <field
+                                name="recognition_state"
+                                attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                            />
                     </group>
                     <group
                             name="promotion_code_usage_credit_note_group"
@@ -98,6 +118,32 @@
                         <field name="credit_note_id" />
                         <field name="referrer_credit_note_id" />
                     </group>
+                </page>
+                <page
+                        name="recognitions"
+                        string="Recognitions"
+                        attrs="{'invisible': [('recognition_method', '!=', 'deferred')]}"
+                    >
+                    <field name="recognition_ids" colspan="4" nolabel="1">
+                        <tree create="false" edit="false" delete="false">
+                            <field name="date" />
+                            <field name="amount" widget="monetary" />
+                            <field name="ratio" widget="percentage" />
+                            <field name="state" />
+                            <field name="currency_id" invisible="1" />
+                        </tree>
+                        <form create="false" edit="false" delete="false">
+                            <group col="2">
+                                <field name="date" />
+                                <field name="amount" widget="monetary" />
+                                <field name="ratio" widget="percentage" />
+                                <field name="journal_id" />
+                                <field name="move_id" />
+                                <field name="state" />
+                                <field name="currency_id" invisible="1" />
+                            </group>
+                        </form>
+                    </field>
                 </page>
             </xpath>
         </data>
