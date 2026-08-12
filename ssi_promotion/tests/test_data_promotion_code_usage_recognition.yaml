@@ -69,6 +69,7 @@ scenarios:
         values:
           voucher_code: "RECOG-001"
           type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
         target: "code"
@@ -99,6 +100,7 @@ scenarios:
           date: 2024-07-01
           deferred_account_id: "REC: deferred_account.id"
           recognition_journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
@@ -365,6 +367,7 @@ scenarios:
         values:
           voucher_code: "RECOG-IMM-001"
           type_id: "REC: ptype_immediate.id"
+          user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
         target: "code_immediate"
