@@ -86,11 +86,24 @@ scenarios:
         values:
           voucher_code: "WF-001"
           type_id: "EVAL: registry['ptype'].id"
+          # WAJIB: record rule promotion_code_internal_user_rule hanya
+          # meloloskan pemiliknya sendiri; tanpa ini record mewarisi
+          # superuser lewat _default_user_id() dan step ber-as_user di
+          # bawah gagal AccessError begitu auto_refresh membacanya ulang
+          # (jebakan T-05, skill odoo-development-unit-test).
+          user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
         target: "code"
         method: "action_confirm"
         as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
         asserts:
           state:
             type: "value"
@@ -131,16 +144,33 @@ scenarios:
         values:
           voucher_code: "DONE-001"
           type_id: "EVAL: registry['ptype'].id"
+          # WAJIB: lihat catatan T-05 di skenario "Workflow draft to open
+          # via approval" di atas.
+          user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
         target: "code"
         method: "action_confirm"
         as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
       - step: "Approve promotion code"
         action: "call"
         target: "code"
         method: "action_approve_approval"
         as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Refresh code before done (fresh policy field read)"
+        action: "assert"
+        target: "code"
         asserts:
           state:
             type: "value"
@@ -173,6 +203,9 @@ scenarios:
         values:
           voucher_code: "CANCEL-001"
           type_id: "EVAL: registry['ptype'].id"
+          # WAJIB: lihat catatan T-05 di skenario "Workflow draft to open
+          # via approval" di atas.
+          user_id: "REF: base.user_admin"
       - step: "Cancel promotion code"
         action: "call"
         target: "code"
