@@ -2,7 +2,8 @@
 
 > **Module:** ssi_promotion
 >
-> **Model:** `promotion_code_usage` (wizard `create_due_promotion_recognition`)
+> **Model:** `promotion_code_usage` (wizard `create_due_promotion_recognition`, action
+> `action_create_due_recognition`)
 >
 > **Menu:** Promotion ‣ Create Due Recognition
 >
