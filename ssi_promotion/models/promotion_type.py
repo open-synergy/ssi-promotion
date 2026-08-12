@@ -17,8 +17,9 @@ class PromotionType(models.Model):
     the customer (and optional referrer) credit note automatically.
 
     Also configures whether a usage of this type recognizes its
-    discount immediately or defers it: see 'Recognition Method' and
-    'Deferred Account'.
+    discount immediately or defers it: see 'Recognition Method',
+    'Deferred Account', and the journal used to release that deferral
+    later, 'Recognition Journal'.
     """
 
     _name = "promotion_type"
@@ -163,4 +164,14 @@ class PromotionType(models.Model):
         "Account, while that usage's own 'Recognition Method' is set "
         "to Deferred. Defaulted onto each new usage of this type, but "
         "may still be overridden manually on the usage itself.",
+    )
+    recognition_journal_id = fields.Many2one(
+        string="Recognition Journal",
+        comodel_name="account.journal",
+        ondelete="restrict",
+        help="Accounting journal used by a promotion_code_usage_"
+        "recognition document that releases a usage of this type's "
+        "own Deferred Account. Defaulted onto each new usage of this "
+        "type, but may still be overridden manually on the usage "
+        "itself.",
     )

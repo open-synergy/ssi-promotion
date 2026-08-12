@@ -1,0 +1,410 @@
+options:
+  auto_refresh: true
+scenarios:
+  - name: "Full recognition, onchange, cancel, then partial and excess guard"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PCUR-INC1"
+          name: "Recognition Income 1"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PCUR-DEF1"
+          name: "Recognition Deferred Asset 1"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Recognition Sales Journal 1"
+          code: "PCURJ1"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Recognition Product 1"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create deferred promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Recognition Deferred Type 1"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 8000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "RECOG-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Recognition Flow Customer"
+      - step: "Create deferred promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          date: 2024-07-01
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the usage starts fully deferred and pending"
+        action: "assert"
+        target: "usage"
+        asserts:
+          amount_to_recognize:
+            type: "value"
+            expected: 8000.0
+          amount_deferred:
+            type: "value"
+            expected: 8000.0
+          recognition_state:
+            type: "value"
+            expected: "pending"
+      - step: "Fill a new Recognition form and select the usage"
+        action: form
+        model: "promotion_code_usage_recognition"
+        save: false
+        values:
+          usage_id: "REC: usage"
+        asserts:
+          amount:
+            type: "value"
+            expected: 8000.0
+          journal_id:
+            type: "m2o"
+            expected: "REC: journal"
+      - step: "Create the full recognition"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        save_as: "recognition_full"
+        values:
+          usage_id: "REC: usage.id"
+          date: 2024-07-10
+          amount: 8000.0
+          journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the full recognition"
+        action: "call"
+        target: "recognition_full"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the full recognition"
+        action: "call"
+        target: "recognition_full"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+      - step: "Assert the usage is fully recognized"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          amount_deferred:
+            type: "value"
+            expected: 0.0
+          recognition_state:
+            type: "value"
+            expected: "recognized"
+      - step: "Create the cancellation reason"
+        action: "create"
+        model: "base.cancel_reason"
+        save_as: "reason"
+        values:
+          name: "Recognition Cancel Reason"
+          code: "PCURCR"
+      - step: "Cancel the full recognition via the wizard"
+        action: "wizard"
+        model: "base.select_cancel_reason"
+        target: "recognition_full"
+        as_user: "base.user_admin"
+        values:
+          cancel_reason_id: "REC: reason.id"
+        method: "action_confirm"
+        asserts:
+          state:
+            type: "value"
+            expected: "cancel"
+      - step: "Assert cancelling deleted the move and restored amount_recognized"
+        action: "assert"
+        target: "recognition_full"
+        refresh: true
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_falsy"
+          recognition_line_ids:
+            type: "o2m"
+            check: "count"
+            expected_count: 0
+      - step: "Assert the usage reflects the cancellation"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          amount_recognized:
+            type: "value"
+            expected: 0.0
+          amount_deferred:
+            type: "value"
+            expected: 8000.0
+          recognition_state:
+            type: "value"
+            expected: "pending"
+      - step: "Create a partial recognition (half the deferred amount)"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        save_as: "recognition_partial"
+        values:
+          usage_id: "REC: usage.id"
+          date: 2024-07-15
+          amount: 4000.0
+          journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the partial recognition"
+        action: "call"
+        target: "recognition_partial"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the partial recognition"
+        action: "call"
+        target: "recognition_partial"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+      - step: "Assert the usage is partially recognized"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          amount_recognized:
+            type: "value"
+            expected: 4000.0
+          amount_deferred:
+            type: "value"
+            expected: 4000.0
+          recognition_state:
+            type: "value"
+            expected: "partial"
+      - step: "Create an excess recognition beyond the remaining deferred amount"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        save_as: "recognition_excess"
+        values:
+          usage_id: "REC: usage.id"
+          date: 2024-07-20
+          amount: 5000.0
+          journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the excess recognition"
+        action: "call"
+        target: "recognition_excess"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving the excess recognition is rejected -- exceeds the total"
+        action: "call"
+        target: "recognition_excess"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "exceeds"
+      - step: "Recognizing a usage dated before its own usage date is rejected"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "earlier"
+        values:
+          usage_id: "REC: usage.id"
+          date: 2024-06-01
+          amount: 100.0
+          journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+
+  - name: "Recognizing an Immediate usage is rejected"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal2"
+        values:
+          name: "Recognition Sales Journal 2"
+          code: "PCURJ2"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type2"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account2"
+        values:
+          code: "PCUR-INC2"
+          name: "Recognition Income 2"
+          user_type_id: "REC: acc_type2.id"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product2"
+        values:
+          name: "Recognition Product 2"
+          type: "service"
+          property_account_income_id: "REC: income_account2.id"
+      - step: "Create immediate promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype_immediate"
+        values:
+          name: "Recognition Immediate Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 1000.0
+          journal_id: "REC: journal2.id"
+          product_id: "REC: product2.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_immediate"
+        values:
+          voucher_code: "RECOG-IMM-001"
+          type_id: "REC: ptype_immediate.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code_immediate"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code_immediate"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer2"
+        values:
+          name: "Recognition Immediate Customer"
+      - step: "Create an immediate promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage_immediate"
+        values:
+          promotion_code_id: "REC: code_immediate.id"
+          partner_id: "REC: customer2.id"
+          date: 2024-06-01
+      - step: "Recognizing an Immediate usage is rejected"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "Deferred"
+        values:
+          usage_id: "REC: usage_immediate.id"
+          date: 2024-07-01
+          amount: 100.0
+          journal_id: "REC: journal2.id"
+          user_id: "REF: base.user_admin"

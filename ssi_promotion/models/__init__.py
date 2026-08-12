@@ -5,3 +5,5 @@
 from . import promotion_type  # noqa: F401
 from . import promotion_code  # noqa: F401
 from . import promotion_code_usage  # noqa: F401
+from . import promotion_code_usage_recognition  # noqa: F401
+from . import promotion_code_usage_recognition_line  # noqa: F401

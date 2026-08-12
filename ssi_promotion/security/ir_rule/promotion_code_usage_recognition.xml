@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="promotion_code_usage_recognition_internal_user_rule" model="ir.rule">
+    <field name="name">Promotion Code Usage Recognition - Internal Users</field>
+    <field name="model_id" ref="model_promotion_code_usage_recognition" />
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+    <field name="domain_force">[('user_id','=',user.id)]</field>
+    <field name="perm_unlink" eval="1" />
+    <field name="perm_write" eval="1" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_create" eval="1" />
+</record>
+
+<record id="promotion_code_usage_recognition_company_rule" model="ir.rule">
+    <field
+            name="name"
+        >Promotion Code Usage Recognition - Responsible to company data</field>
+    <field name="model_id" ref="model_promotion_code_usage_recognition" />
+    <field
+            name="groups"
+            eval="[(4, ref('promotion_code_usage_recognition_company_group'))]"
+        />
+    <field name="domain_force">[('company_id','=',user.company_id.id)]</field>
+    <field name="perm_unlink" eval="1" />
+    <field name="perm_write" eval="1" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_create" eval="1" />
+</record>
+
+<record id="promotion_code_usage_recognition_companies_rule" model="ir.rule">
+    <field
+            name="name"
+        >Promotion Code Usage Recognition - Responsible to company and all child companies data</field>
+    <field name="model_id" ref="model_promotion_code_usage_recognition" />
+    <field
+            name="groups"
+            eval="[(4, ref('promotion_code_usage_recognition_company_child_group'))]"
+        />
+    <field name="domain_force">[('company_id','in',user.company_ids.ids)]</field>
+    <field name="perm_unlink" eval="1" />
+    <field name="perm_write" eval="1" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_create" eval="1" />
+</record>
+
+<record id="promotion_code_usage_recognition_all_rule" model="ir.rule">
+    <field name="name">Promotion Code Usage Recognition - All</field>
+    <field name="model_id" ref="model_promotion_code_usage_recognition" />
+    <field
+            name="groups"
+            eval="[(4, ref('promotion_code_usage_recognition_all_group'))]"
+        />
+    <field name="domain_force">[(1,'=',1)]</field>
+    <field name="perm_unlink" eval="1" />
+    <field name="perm_write" eval="1" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_create" eval="1" />
+</record>
+</odoo>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record
+        id="promotion_code_usage_recognition_workflow_module_category"
+        model="ir.module.category"
+    >
+    <field name="name">Promotion Code Usage Recognition</field>
+    <field name="parent_id" ref="promotion_workflow_module_category" />
+</record>
+
+<record
+        id="promotion_code_usage_recognition_data_ownership_module_category"
+        model="ir.module.category"
+    >
+    <field name="name">Promotion Code Usage Recognition</field>
+    <field name="parent_id" ref="promotion_data_ownership_module_category" />
+</record>
+</odoo>
