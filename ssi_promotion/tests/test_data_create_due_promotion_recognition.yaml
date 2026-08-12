@@ -297,20 +297,44 @@ scenarios:
               - "REC: usage_due_1"
               - "REC: usage_due_2"
       - step: "Changing Date in the form refreshes usage_ids"
+        # NB: cannot use `values:` + top-level `asserts:` with
+        # `type: "m2m", check: "exact"` here -- odoo-yaml-test's
+        # `_coerce_to_ids` only understands recordsets / list / tuple /
+        # set, and an unsaved Form's m2m field is Odoo's `M2MProxy`
+        # (a `collections.abc.Sequence`, no `.ids` attribute), so it
+        # raises "Cannot interpret <M2MProxy> as a record reference".
+        # `check: "count"` (uses plain `len()`) and `operator: "contains"`
+        # (uses `in`, backed by `M2MProxy.__contains__`) both work on an
+        # unsaved Form, so the same exact-set assertion is reconstructed
+        # as a count check plus one containment check per expected
+        # record via `ops:`.
         action: "form"
         model: "create_due_promotion_recognition"
         save: false
         as_user: "base.user_admin"
-        values:
-          date: "EVAL: date.today() + timedelta(days=5)"
-        asserts:
-          usage_ids:
-            type: "m2m"
-            check: "exact"
-            expected_records:
-              - "REC: usage_due_1"
-              - "REC: usage_due_2"
-              - "REC: usage_future"
+        ops:
+          - set:
+              date: "EVAL: date.today() + timedelta(days=5)"
+          - assert:
+              usage_ids:
+                type: "m2m"
+                check: "count"
+                expected_count: 3
+          - assert:
+              usage_ids:
+                type: "value"
+                operator: "contains"
+                expected: "REC: usage_due_1"
+          - assert:
+              usage_ids:
+                type: "value"
+                operator: "contains"
+                expected: "REC: usage_due_2"
+          - assert:
+              usage_ids:
+                type: "value"
+                operator: "contains"
+                expected: "REC: usage_future"
       - step: "Open the wizard on a Date that catches nothing"
         action: "form"
         model: "create_due_promotion_recognition"
