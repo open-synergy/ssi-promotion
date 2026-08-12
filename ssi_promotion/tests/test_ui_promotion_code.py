@@ -48,11 +48,26 @@ class TestUiPromotionCode(HttpSavepointCase):
 
         # IK Pre-Condition of 05-approve / 06-reject: Status is
         # Waiting for Approval.
+        #
+        # ``invalidate_cache()`` after each ``action_confirm()`` is
+        # required, not defensive: reading ``confirm_ok`` inside
+        # ``action_confirm()``'s own pre-check computes the *whole*
+        # ``mixin.policy`` field group at once (``confirm_ok``,
+        # ``approve_ok``, ``reject_ok``, ...) while state is still
+        # "draft", and that stale group stays cached across the
+        # ``write()`` that moves state to "confirm" -- ``_compute_policy``
+        # only depends on ``policy_template_id``, not ``state``. Without
+        # the refresh, the tour's own read of ``approve_ok``/
+        # ``reject_ok`` can return the pre-confirm ``False`` and hide
+        # the button (jebakan T-04, skill odoo-development-unit-test,
+        # test-traps.md).
         cls.code_approve = cls._create_code("TOUR-PC-APPROVE")
         cls.code_approve.with_user(cls.admin).action_confirm()
+        cls.code_approve.invalidate_cache()
 
         cls.code_reject = cls._create_code("TOUR-PC-REJECT")
         cls.code_reject.with_user(cls.admin).action_confirm()
+        cls.code_reject.invalidate_cache()
 
         # IK Pre-Condition of 09-finish: Status is Open.
         cls.code_finish = cls._create_code("TOUR-PC-FINISH")
@@ -64,8 +79,14 @@ class TestUiPromotionCode(HttpSavepointCase):
         cls.code_cancel = cls._create_code("TOUR-PC-CANCEL")
 
         # IK Pre-Condition of 12-restart: Status is Cancelled.
+        #
+        # Same cache-staleness hazard as above (jebakan T-04):
+        # ``action_cancel()``'s pre-check reads ``cancel_ok``, caching
+        # ``restart_ok`` as ``False`` while state is still "draft" --
+        # stale after the write to "cancel" unless refreshed.
         cls.code_restart = cls._create_code("TOUR-PC-RESTART")
         cls.code_restart.with_user(cls.admin).action_cancel()
+        cls.code_restart.invalidate_cache()
 
         # IK Pre-Condition of 13-reset-number: Status is Draft, with a
         # manually-assigned document number to reset back to "/" so
@@ -80,9 +101,14 @@ class TestUiPromotionCode(HttpSavepointCase):
         # mirroring the shape of the existing rows in
         # policy_template/promotion_code.xml, scoped to this test
         # transaction only.
+        # Same cache-staleness hazard as above (jebakan T-04) --
+        # ``restart_approval_ok`` belongs to the same computed field
+        # group and would otherwise be read stale (cached ``False``
+        # from before this ``action_confirm()``'s write to "confirm").
         cls._grant_restart_approval_ok()
         cls.code_restart_approval = cls._create_code("TOUR-PC-RESTART-APPROVAL")
         cls.code_restart_approval.with_user(cls.admin).action_confirm()
+        cls.code_restart_approval.invalidate_cache()
 
         # IK Pre-Condition of 10-cancel: a Cancellation Reason must
         # exist to be picked in the wizard. ``global_use`` is required
