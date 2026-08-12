@@ -281,10 +281,27 @@ class PromotionCodeUsage(models.Model):
         "document_reference",
     )
     def _compute_discount_amount(self):
+        """Compute the discount amount granted by this usage.
+
+        Delegates to ``_get_discount_amount`` for the actual rule.
+
+        :return: nothing; assigns ``discount_amount``
+        """
         for record in self:
             record.discount_amount = record._get_discount_amount()
 
     def _get_discount_amount(self):
+        """Resolve the discount amount per the promotion type's rule.
+
+        Fixed returns the promotion code's own 'Discount Amount'.
+        Percentage applies the promotion code's 'Discount Percentage'
+        to ``_get_reference_base_amount``. Python evaluates the
+        promotion type's ``discount_python_code`` via
+        ``_evaluate_discount_python_code``.
+
+        :return: the discount amount, ``0.0`` when the promotion
+            code is empty or the discount type is unrecognized
+        """
         self.ensure_one()
         if not self.promotion_code_id:
             return 0.0
@@ -299,6 +316,11 @@ class PromotionCodeUsage(models.Model):
         return 0.0
 
     def _get_reference_base_amount(self):
+        """Resolve the base amount a percentage discount applies to.
+
+        :return: 'Reference Document' ``amount_total`` when that
+            field exists on the document, else ``0.0``
+        """
         self.ensure_one()
         if not self.document_reference:
             return 0.0
@@ -307,6 +329,17 @@ class PromotionCodeUsage(models.Model):
         return 0.0
 
     def _evaluate_discount_python_code(self):
+        """Evaluate the promotion type's discount Python code.
+
+        Runs ``type_id.discount_python_code`` with the localdict from
+        ``_get_localdict`` (``promotion_code``, ``promotion_type``,
+        ``reference_document``, plus the base variables provided by
+        ``mixin.localdict``). The code is expected to assign the
+        discount amount to a ``result`` variable.
+
+        :return: ``localdict["result"]``, or ``0.0`` when the code
+            does not set it
+        """
         self.ensure_one()
         localdict = self._get_localdict()
         code = self.promotion_code_id.type_id.discount_python_code
@@ -314,6 +347,15 @@ class PromotionCodeUsage(models.Model):
         return localdict.get("result", 0.0)
 
     def _get_localdict(self):
+        """Build the safe-eval context for this usage's Python code.
+
+        Extends ``_get_default_localdict`` (``mixin.localdict``) with
+        ``promotion_code``, ``promotion_type``, and
+        ``reference_document``, shared by the discount and validity
+        Python code fields.
+
+        :return: dict passed as ``localdict`` to ``safe_eval``
+        """
         self.ensure_one()
         localdict = self._get_default_localdict()
         localdict.update(
@@ -454,6 +496,12 @@ class PromotionCodeUsage(models.Model):
         "promotion_code_id",
     )
     def _check_document_reference_model(self):
+        """Require 'Reference Document' model to be allowed by the type.
+
+        :raises ValidationError: when 'Reference Document' is set and
+            its model is not listed in the promotion type's 'Allowed
+            Reference Models'
+        """
         for record in self.sudo():
             if not record._check_document_reference_model_condition():
                 error_message = """
@@ -470,6 +518,12 @@ Allowed Reference Models, or update that configuration
                 raise ValidationError(_(error_message))
 
     def _check_document_reference_model_condition(self):
+        """Check whether 'Reference Document' model is allowed.
+
+        :return: ``True`` when 'Reference Document' is empty, or its
+            model is listed in the promotion type's 'Allowed
+            Reference Models'
+        """
         self.ensure_one()
         if not self.document_reference:
             return True
@@ -555,6 +609,13 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
 
     # I. Validity Check (pre-confirm hook)
     def _check_validity(self):
+        """Check every validity rule before this usage can confirm.
+
+        Combines the usage-limit, validity-period, and validity
+        Python code checks; used by the ``_10_check_validity`` hook.
+
+        :return: ``True`` only when all three checks pass
+        """
         self.ensure_one()
         return (
             self._check_validity_usage_limit()
@@ -563,6 +624,11 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
         )
 
     def _check_validity_usage_limit(self):
+        """Check the promotion code has not reached its usage limit.
+
+        :return: ``True`` when 'Usage Limit' is ``0`` (unlimited), or
+            the promotion code's current 'Usage Count' is below it
+        """
         self.ensure_one()
         limit = self.promotion_code_id.usage_limit
         if limit <= 0:
@@ -570,6 +636,12 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
         return self.promotion_code_id.usage_count < limit
 
     def _check_validity_period(self):
+        """Check 'Usage Date' falls within the promotion code's period.
+
+        :return: ``True`` when the promotion type has no validity
+            period, or 'Usage Date' is on/after 'Date Start' and
+            on/before 'Date End' of the promotion code
+        """
         self.ensure_one()
         code = self.promotion_code_id
         if not code.type_id.has_validity:
@@ -581,6 +653,17 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
         return True
 
     def _check_validity_python_code(self):
+        """Evaluate the promotion type's validity Python code.
+
+        Runs ``type_id.validity_python_code`` with the localdict from
+        ``_get_localdict`` (``promotion_code``, ``promotion_type``,
+        ``reference_document``, plus the base variables provided by
+        ``mixin.localdict``). The code is expected to assign a
+        boolean to a ``result`` variable.
+
+        :return: ``True`` when the code is empty, or
+            ``localdict["result"]``, defaulting to ``True``
+        """
         self.ensure_one()
         code = self.type_id.validity_python_code
         if not code:
@@ -591,6 +674,13 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
 
     @ssi_decorator.pre_confirm_check()
     def _10_check_validity(self):
+        """Block confirming a usage that fails ``_check_validity``.
+
+        Runs on the pre-check of the draft-to-confirm transition
+        (``action_confirm``), before the state actually changes.
+
+        :raises UserError: when ``_check_validity`` returns falsy
+        """
         if not self._check_validity():
             error_message = """
 Context: Confirm promotion code usage
@@ -607,10 +697,24 @@ code configured on promotion type '%s'
     # L. Credit Note Creation (post-open hook)
     @ssi_decorator.post_open_action()
     def _10_create_credit_note(self):
+        """Create the credit note(s) for a newly approved usage.
+
+        Runs after the confirm-to-open transition (approval,
+        ``action_open``) completes. Always creates the customer
+        credit note; also creates the referrer credit note when the
+        promotion code has a referrer ('partner_id' set).
+        """
         self._create_customer_credit_note()
         self._create_referrer_credit_note()
 
     def _create_customer_credit_note(self):
+        """Create the customer credit note for this usage, once.
+
+        No-op when 'Customer Credit Note' is already set.
+
+        :raises UserError: via ``_check_credit_note_configuration``
+            when the promotion type's journal/product are incomplete
+        """
         self.ensure_one()
         if self.credit_note_id:
             return
@@ -621,6 +725,14 @@ code configured on promotion type '%s'
         self.write({"credit_note_id": move.id})
 
     def _create_referrer_credit_note(self):
+        """Create the referrer credit note for this usage, once.
+
+        No-op when 'Referrer Credit Note' is already set, or when
+        the promotion code has no referrer ('partner_id' empty).
+
+        :raises UserError: via ``_check_credit_note_configuration``
+            when the promotion type's journal/product are incomplete
+        """
         self.ensure_one()
         if self.referrer_credit_note_id:
             return
@@ -633,6 +745,13 @@ code configured on promotion type '%s'
         self.write({"referrer_credit_note_id": move.id})
 
     def _check_credit_note_configuration(self, referrer=False):
+        """Require a complete credit note configuration on the type.
+
+        :param referrer: check the referrer journal/product instead
+            of the voucher user's
+        :raises UserError: when the resolved journal or product is
+            empty
+        """
         self.ensure_one()
         promotion_type = self.type_id
         journal = (
@@ -755,6 +874,13 @@ referrer equivalents if applicable) on the promotion type
         }
 
     def _prepare_credit_note_line_data(self, product, account):
+        """Build one ``account.move.line`` values dict.
+
+        :param product: product recorded on the credit note line
+        :param account: account debited by the line; falls back to
+            ``product.property_account_income_id`` when empty
+        :return: dict of ``account.move.line`` values
+        """
         self.ensure_one()
         account_id = account.id if account else product.property_account_income_id.id
         return {

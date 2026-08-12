@@ -172,6 +172,10 @@ class PromotionCode(models.Model):
         "usage_ids.state",
     )
     def _compute_usage_count(self):
+        """Count usages of this code currently in state open or done.
+
+        :return: nothing; assigns ``usage_count``
+        """
         for record in self:
             record.usage_count = len(
                 record.usage_ids.filtered(lambda usage: usage.state in ("open", "done"))
@@ -182,10 +186,29 @@ class PromotionCode(models.Model):
     # here too so those values are never silently left at zero.
     @api.model
     def create(self, values):
+        """Default discount/usage_limit fields from 'Promotion Type'.
+
+        Overridden because ``onchange_discount_amount``,
+        ``onchange_discount_percentage``, and ``onchange_usage_limit``
+        only fire from the Form UI and never run on a programmatic
+        create() (API calls, imports, tests), which would otherwise
+        leave those fields silently at zero.
+
+        :param values: ``create()`` values, mutated in place by
+            ``_set_type_defaults``
+        :return: the created ``promotion_code`` record
+        """
         self._set_type_defaults(values)
         return super().create(values)
 
     def _set_type_defaults(self, values):
+        """Fill missing discount/usage_limit values from 'type_id'.
+
+        Only sets a key when it is absent from ``values``, so a
+        value already present is never overridden.
+
+        :param values: ``create()`` values, mutated in place
+        """
         if not values.get("type_id"):
             return
         promotion_type = self.env["promotion_type"].browse(values["type_id"])
