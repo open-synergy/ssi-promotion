@@ -86,9 +86,7 @@ class TestCreateDuePromotionRecognition(YamlTransactionCase):
         unit-test references/python-escape-hatch.md.
         """
         admin = self.env.ref("base.user_admin")
-        income, deferred_account, journal, product = self._setup_accounting(
-            "CDPRPY"
-        )
+        income, deferred_account, journal, product = self._setup_accounting("CDPRPY")
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Create Due Recognition Python Type",
@@ -164,6 +162,4 @@ class TestCreateDuePromotionRecognition(YamlTransactionCase):
             self.assertEqual(recognition.date, today)
             self.assertEqual(recognition.journal_id, journal)
             self.assertEqual(recognition.state, "draft")
-            self.assertEqual(
-                recognition.amount, recognition.usage_id.amount_deferred
-            )
+            self.assertEqual(recognition.amount, recognition.usage_id.amount_deferred)
