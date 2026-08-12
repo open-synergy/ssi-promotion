@@ -13,6 +13,13 @@ Odoo document. Approving a usage automatically creates a customer credit
 note, and a referrer credit note when the code has a referrer partner.
 
 
+Work Instruction
+================
+
+* `Promotion Code Usage Recognition <docs/promotion_code_usage_recognition/index.html>`_
+* `Promotion Code Usage <docs/promotion_code_usage/index.html>`_
+
+
 Installation
 ============
 
