@@ -107,9 +107,17 @@ class TestUiPromotionCodeUsageRecognition(HttpSavepointCase):
         cls.recognition_approve.with_user(cls.admin).action_confirm()
 
         # IK Pre-Condition of 10-cancel: a Cancellation Reason must exist
-        # to be picked in the wizard.
+        # to be picked in the wizard. ``global_use`` is required for it
+        # to appear in the wizard's radio list -- without it, the
+        # reason is only offered on models explicitly linked via
+        # ``ir.model.cancel_reason_ids`` (see
+        # ssi_transaction_cancel_mixin/models/base_cancel_reason.py).
         cls.env["base.cancel_reason"].create(
-            {"name": "TOUR Cancel Reason", "code": "TOURPCUR"}
+            {
+                "name": "TOUR Cancel Reason",
+                "code": "TOURPCUR",
+                "global_use": True,
+            }
         )
 
     @classmethod

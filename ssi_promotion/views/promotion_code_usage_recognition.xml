@@ -90,9 +90,6 @@
                         </form>
                     </field>
                 </page>
-                <page name="note" string="Note">
-                    <field name="note" colspan="4" nolabel="1" />
-                </page>
             </xpath>
         </data>
     </field>
