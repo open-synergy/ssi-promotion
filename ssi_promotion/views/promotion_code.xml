@@ -88,13 +88,22 @@
                         <field name="usage_count" />
                     </group>
                     <field name="usage_ids" readonly="1">
-                        <tree>
+                        <tree create="false" edit="false" delete="false">
                             <field name="name" />
                             <field name="partner_id" />
                             <field name="date" />
                             <field name="discount_amount" sum="Total" />
                             <field name="state" />
                         </tree>
+                        <form create="false" edit="false" delete="false">
+                            <group col="2">
+                                <field name="name" />
+                                <field name="partner_id" />
+                                <field name="date" />
+                                <field name="discount_amount" />
+                                <field name="state" />
+                            </group>
+                        </form>
                     </field>
                 </page>
             </xpath>

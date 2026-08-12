@@ -13,6 +13,6 @@
         id="menu_promotion_configuration"
         name="Configuration"
         parent="menu_root_promotion"
-        sequence="99"
+        sequence="999"
     />
 </odoo>
