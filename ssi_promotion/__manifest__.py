@@ -25,6 +25,7 @@
         "ssi_financial_accounting",
         "ssi_accounting_entry_mixin",
         "ssi_company_currency_mixin",
+        "web_tour",
     ],
     "data": [
         "security/ir_module_category_data.xml",
@@ -66,6 +67,7 @@
         # pada menuitem-nya
         "wizards/create_due_promotion_recognition.xml",
         "views/create_due_promotion_recognition_menu.xml",
+        "views/assets.xml",
     ],
     "demo": [],
 }
