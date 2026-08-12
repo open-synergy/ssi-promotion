@@ -1,3 +1,6 @@
+options:
+  auto_refresh: true
+
 scenarios:
   - name: "Create promotion code in draft"
     steps:
@@ -92,10 +95,6 @@ scenarios:
           state:
             type: "value"
             expected: "confirm"
-      - step: "Invalidate cache before approval (fresh policy field read)"
-        action: "call"
-        target: "code"
-        method: "invalidate_cache"
       - step: "Approve promotion code"
         action: "call"
         target: "code"
@@ -137,10 +136,6 @@ scenarios:
         target: "code"
         method: "action_confirm"
         as_user: "base.user_admin"
-      - step: "Invalidate cache before approval (fresh policy field read)"
-        action: "call"
-        target: "code"
-        method: "invalidate_cache"
       - step: "Approve promotion code"
         action: "call"
         target: "code"
@@ -150,10 +145,6 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Invalidate cache before done (fresh policy field read)"
-        action: "call"
-        target: "code"
-        method: "invalidate_cache"
       - step: "Mark done"
         action: "call"
         target: "code"
@@ -191,3 +182,59 @@ scenarios:
           state:
             type: "value"
             expected: "cancel"
+
+  - name: "Onchange type_id sets discount and usage limit"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Fixed Voucher"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 10000.0
+          usage_limit: 5
+      - step: "Fill form and check discount/limit onchange"
+        action: "form"
+        model: "promotion_code"
+        save: false
+        values:
+          voucher_code: "ONCHANGE-001"
+          type_id: "REC: ptype"
+        asserts:
+          discount_type:
+            type: "value"
+            expected: "fixed"
+          discount_amount:
+            type: "value"
+            expected: 10000.0
+          usage_limit:
+            type: "value"
+            expected: 5
+
+  - name: "Onchange date_end computed from date_start and validity duration"
+    steps:
+      - step: "Create promotion type with validity period"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Validity Voucher"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 5000.0
+          has_validity: true
+          validity_duration: 30
+      - step: "Fill form and check date_end onchange"
+        action: "form"
+        model: "promotion_code"
+        save: false
+        values:
+          voucher_code: "ONCHANGE-002"
+          date_start: 2024-07-01
+          type_id: "REC: ptype"
+        asserts:
+          date_end:
+            type: "value"
+            expected: 2024-07-31
