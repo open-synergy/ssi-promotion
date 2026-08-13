@@ -22,9 +22,13 @@
 ## Flow
 
 1. Open the **Promotion ‣ Codes** menu.
-2. Open the record to restart.
-3. Click the **Restart** button.
-4. Click **OK** on the confirmation dialog.
+2. Enable the **Cancel** filter (or **Reject**, matching this document's status) in the
+   search bar. The default view only shows Draft, Waiting for Approval, and In Progress
+   documents, so a Cancelled or Rejected document stays hidden until this filter is
+   enabled.
+3. Open the record to restart.
+4. Click the **Restart** button.
+5. Click **OK** on the confirmation dialog.
 
 ## Post-Condition
 

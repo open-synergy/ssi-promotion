@@ -105,8 +105,15 @@ class TestUiPromotionCode(HttpSavepointCase):
         # ``restart_approval_ok`` belongs to the same computed field
         # group and would otherwise be read stale (cached ``False``
         # from before this ``action_confirm()``'s write to "confirm").
+        # Named "REAPPROVAL", not "RESTART-APPROVAL": the latter shares
+        # the "TOUR-PC-RESTART" prefix with ``code_restart``'s voucher
+        # code above, and the tour's ``:contains(TOUR-PC-RESTART)``
+        # trigger for that other tour does a *substring* match -- it
+        # would silently open this record instead once both are made
+        # visible by the same search filter (see promotion_code_tour.js
+        # 12-restart, "Enable the Cancel filter").
         cls._grant_restart_approval_ok()
-        cls.code_restart_approval = cls._create_code("TOUR-PC-RESTART-APPROVAL")
+        cls.code_restart_approval = cls._create_code("TOUR-PC-REAPPROVAL")
         cls.code_restart_approval.with_user(cls.admin).action_confirm()
         cls.code_restart_approval.invalidate_cache()
 
