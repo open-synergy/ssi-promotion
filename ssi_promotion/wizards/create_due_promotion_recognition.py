@@ -21,7 +21,7 @@ class CreateDuePromotionRecognition(models.TransientModel):
     date = fields.Date(
         string="Date",
         required=True,
-        default=fields.Date.context_today,
+        default=fields.Date.today,
         help="Recognition documents are created for every usage "
         "whose own Recognition Date falls on or before this date, "
         "and this is also the Date of every document created.",

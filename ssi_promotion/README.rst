@@ -16,6 +16,7 @@ note, and a referrer credit note when the code has a referrer partner.
 Work Instruction
 ================
 
+* `Promotion Code <docs/promotion_code/index.html>`_
 * `Promotion Code Usage Recognition <docs/promotion_code_usage_recognition/index.html>`_
 * `Promotion Code Usage <docs/promotion_code_usage/index.html>`_
 
