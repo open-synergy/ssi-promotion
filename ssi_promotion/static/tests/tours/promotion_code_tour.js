@@ -514,39 +514,25 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             url: "/web",
         },
         [].concat(openCodesMenuSteps, [
-            // Flow 2 — Enable the Cancel filter in the search bar. The
-            // default view (search_default_dom_draft/confirm/open on
-            // promotion_code_action) only shows Draft, Waiting for
-            // Approval, and In Progress documents -- a Cancelled
-            // document like this tour's fixture stays hidden until
-            // this filter is enabled.
+            // Flow 2 — Remove the default state filter facet from the
+            // search bar. The default view (search_default_dom_draft/
+            // confirm/open on promotion_code_action) only shows Draft,
+            // Waiting for Approval, and In Progress documents -- a
+            // Cancelled document like this tour's fixture stays hidden
+            // until that facet is removed. Removing the facet (instead
+            // of opening the Filters dropdown to toggle a Cancel
+            // filter) avoids the Owl FilterMenu dropdown, whose open
+            // state is not reliably set by a synthetic click in 14.0
+            // (odoo-development-ui-test, patterns.md §I/§J); the facet
+            // chip's remove icon is a plain DOM element with no such
+            // hazard, and this exact idiom is already proven by other
+            // SSI tours (e.g. school_grade_tour.js).
             {
-                content: "Open the Filters menu",
-                trigger: ".o_filter_menu .o_dropdown_toggler_btn",
-                // 14.0: the Filters dropdown is an Owl component that
-                // does not always open on a synthetic click
-                // (odoo-development-ui-test, patterns.md §I/§J).
-                run: function () {
-                    this.$anchor[0].click();
-                },
-            },
-            {
-                content: "Enable the Cancel filter",
-                trigger: ".o_filter_menu .o_menu_item a:contains(Cancel)",
-                run: function () {
-                    this.$anchor[0].click();
-                },
-            },
-            {
-                // Gerbang: `aria-checked` is the real HTML attribute
-                // Owl toggles synchronously -- wait for it before the
-                // list is trusted to include the Cancelled row.
-                content: "Cancel filter is checked",
-                trigger:
-                    ".o_filter_menu .o_menu_item a:contains(Cancel)[aria-checked='true']",
-                run: function () {
-                    // Assertion only.
-                },
+                content:
+                    "Remove the default state filter to reveal " +
+                    "Cancelled documents",
+                trigger: ".o_searchview_facet .o_facet_remove",
+                run: "click",
             },
 
             // Flow 3 — Open the record to restart.
