@@ -23,8 +23,8 @@
 
 1. Open the **Promotion ‣ Codes** menu.
 2. Remove the default state filter (Draft / Waiting for Approval / In Progress) from the
-   search bar. The default view only shows those three states, so a Cancelled or Rejected
-   document stays hidden until this filter is removed.
+   search bar. The default view only shows those three states, so a Cancelled or
+   Rejected document stays hidden until this filter is removed.
 3. Open the record to restart.
 4. Click the **Restart** button.
 5. Click **OK** on the confirmation dialog.

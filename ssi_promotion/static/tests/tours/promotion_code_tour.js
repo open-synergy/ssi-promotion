@@ -526,13 +526,37 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // (odoo-development-ui-test, patterns.md §I/§J); the facet
             // chip's remove icon is a plain DOM element with no such
             // hazard, and this exact idiom is already proven by other
-            // SSI tours (e.g. school_grade_tour.js).
+            // SSI tours (e.g. school_grade_tour.js) -- there, though,
+            // the removal always happens well after the list's first
+            // real data fetch has settled. Here it is the very first
+            // interaction after navigating in, so explicitly wait for
+            // one of the default-filtered rows (TOUR-PC-EDIT, a Draft
+            // fixture) before touching the facet, to rule out clicking
+            // a transient pre-settle render of the search bar.
+            {
+                content: "Default-filtered list has settled",
+                trigger: ".o_data_row:contains(TOUR-PC-EDIT)",
+                extra_trigger: ".o_list_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
             {
                 content:
                     "Remove the default state filter to reveal " +
                     "Cancelled documents",
                 trigger: ".o_searchview_facet .o_facet_remove",
                 run: "click",
+            },
+            {
+                // Gerbang: don't just assume the click "took" -- wait
+                // for the facet chip to actually be gone before relying
+                // on the list containing every state.
+                content: "Default state filter is removed",
+                trigger: "body:not(:has(.o_searchview_facet))",
+                run: function () {
+                    // Assertion only.
+                },
             },
 
             // Flow 3 — Open the record to restart.
