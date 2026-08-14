@@ -670,8 +670,7 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             // process for.
             {
                 content: "Open the record",
-                trigger:
-                    ".o_data_row:contains(TOUR-PCU-REAPPROVAL) .o_data_cell:first",
+                trigger: ".o_data_row:contains(TOUR-PCU-REAPPROVAL) .o_data_cell:first",
                 extra_trigger: ".o_list_view",
             },
             {

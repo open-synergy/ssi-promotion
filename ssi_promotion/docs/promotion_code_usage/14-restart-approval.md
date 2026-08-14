@@ -33,14 +33,14 @@
 - Status remains **Waiting for Approval**.
 
 > **Note:** the shipped "Standard" `policy.template` for `promotion_code_usage`
-> (`policy_template/promotion_code_usage.xml`) does not include a `policy.template_detail`
-> row for `restart_approval_ok` at all — unlike `confirm_ok`, `approve_ok`, `reject_ok`,
-> `done_ok`, `cancel_ok`, `restart_ok`, and `manual_number_ok`, which all have one.
-> Because `_compute_policy` initializes every field in `_get_policy_field()` to `False`
-> and only a matching `policy.template_detail` row overrides it, `restart_approval_ok`
-> evaluates to **False** for every user under the default configuration, so the
-> **Restart Approval Process** button is present in the form (gate G1/G2 both pass at
-> the code level — see the class attribute
+> (`policy_template/promotion_code_usage.xml`) does not include a
+> `policy.template_detail` row for `restart_approval_ok` at all — unlike `confirm_ok`,
+> `approve_ok`, `reject_ok`, `done_ok`, `cancel_ok`, `restart_ok`, and
+> `manual_number_ok`, which all have one. Because `_compute_policy` initializes every
+> field in `_get_policy_field()` to `False` and only a matching `policy.template_detail`
+> row overrides it, `restart_approval_ok` evaluates to **False** for every user under
+> the default configuration, so the **Restart Approval Process** button is present in
+> the form (gate G1/G2 both pass at the code level — see the class attribute
 > `_automatically_insert_restart_approval_button` and `_policy_field_order`) but not
 > clickable out of the box. An administrator must add a `policy.template_detail` row for
 > `restart_approval_ok` (mirroring the shape of the existing rows) before this button
