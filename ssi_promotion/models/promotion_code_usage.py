@@ -807,7 +807,7 @@ residual amount
                 move_line.display_name,
             )
             raise UserError(_(error_message))
-        if move_line.currency_id:
+        if move_line.currency_id != move_line.company_currency_id:
             error_message = """
 Context: Open promotion code usage
 Database ID: %s
