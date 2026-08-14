@@ -1,0 +1,1032 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "action_populate_allocation fills one row from the reference document"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-S1-INC"
+          name: "Populate Allocation Basic Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation Basic Journal"
+          code: "POPALS1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation Basic Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation Basic Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation Basic Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALS1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Populate Allocation Basic Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a draft usage referencing the invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
+      - step: "Run Populate Allocation"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "Exactly one allocation row is created"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step: "Assert the row targets the invoice's own receivable line"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          source:
+            type: "value"
+            expected: "customer"
+          move_line_id:
+            type: "m2o"
+            expected: "REC: move_line"
+
+  - name: "action_populate_allocation run twice stays idempotent"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-S2-INC"
+          name: "Populate Allocation Idempotent Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation Idempotent Journal"
+          code: "POPALS2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation Idempotent Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation Idempotent Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation Idempotent Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALS2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Populate Allocation Idempotent Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Create a draft usage referencing the invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
+      - step: "Run Populate Allocation the first time"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "Run Populate Allocation a second time"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "The row count stays at one"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "final_alloc_rows"
+        expect_count: 1
+
+  - name: "action_populate_allocation skips a fully reconciled journal item"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get receivable account type"
+        action: "ref"
+        xml_id: "account.data_account_type_receivable"
+        save_as: "recv_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-S3-INC"
+          name: "Populate Allocation Filter Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create a reconcilable receivable account"
+        action: "create"
+        model: "account.account"
+        save_as: "recv_account"
+        values:
+          code: "POPAL-S3-RECV"
+          name: "Populate Allocation Filter Receivable"
+          user_type_id: "REC: recv_type.id"
+          reconcile: true
+      - step: "Create the reference document's own journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation Filter Journal"
+          code: "POPALS3"
+          type: "general"
+      - step: "Create the settlement entry's own journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "misc_journal"
+        values:
+          name: "Populate Allocation Filter Misc Journal"
+          code: "POPALS3M"
+          type: "general"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation Filter Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation Filter Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation Filter Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALS3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create the reference document with two receivable lines"
+        action: "create"
+        model: "account.move"
+        save_as: "document"
+        values:
+          move_type: "entry"
+          journal_id: "REC: journal.id"
+          line_ids:
+            - - 0
+              - 0
+              - account_id: "REC: recv_account.id"
+                partner_id: "REC: customer.id"
+                name: "Populate Allocation Filter Line Paid"
+                debit: 300000.0
+                credit: 0.0
+            - - 0
+              - 0
+              - account_id: "REC: recv_account.id"
+                partner_id: "REC: customer.id"
+                name: "Populate Allocation Filter Line Residual"
+                debit: 200000.0
+                credit: 0.0
+            - - 0
+              - 0
+              - account_id: "REC: income_account.id"
+                name: "Populate Allocation Filter Balance"
+                debit: 0.0
+                credit: 500000.0
+      - step: "Post the reference document"
+        action: "call"
+        target: "document"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the line to be paid off"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: document.id"],
+            ["name", "=", "Populate Allocation Filter Line Paid"],
+          ]
+        save_as: "move_line_paid"
+        limit: 1
+        expect_count: 1
+      - step: "Find the line that should keep its residual"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: document.id"],
+            ["name", "=", "Populate Allocation Filter Line Residual"],
+          ]
+        save_as: "move_line_residual"
+        limit: 1
+        expect_count: 1
+      - step: "Create the settlement entry offsetting the first line"
+        action: "create"
+        model: "account.move"
+        save_as: "settlement"
+        values:
+          move_type: "entry"
+          journal_id: "REC: misc_journal.id"
+          line_ids:
+            - - 0
+              - 0
+              - account_id: "REC: recv_account.id"
+                partner_id: "REC: customer.id"
+                name: "Populate Allocation Filter Settlement"
+                debit: 0.0
+                credit: 300000.0
+            - - 0
+              - 0
+              - account_id: "REC: income_account.id"
+                name: "Populate Allocation Filter Settlement Balance"
+                debit: 300000.0
+                credit: 0.0
+      - step: "Post the settlement entry"
+        action: "call"
+        target: "settlement"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the settlement's own offsetting line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: settlement.id"],
+            ["name", "=", "Populate Allocation Filter Settlement"],
+          ]
+        save_as: "settle_line"
+        limit: 1
+        expect_count: 1
+      - step: "Find both lines to reconcile against each other"
+        action: "search"
+        model: "account.move.line"
+        domain: [["id", "in", ["REC: move_line_paid.id", "REC: settle_line.id"]]]
+        save_as: "reconcile_pair"
+        expect_count: 2
+      - step: "Reconcile the paid line against the settlement"
+        action: "call"
+        target: "reconcile_pair"
+        method: "reconcile"
+        as_user: "base.user_admin"
+      - step: "Assert the paid line has no residual left"
+        action: "assert"
+        target: "move_line_paid"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 0.0
+      - step: "Assert the other line still has its residual"
+        action: "assert"
+        target: "move_line_residual"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 200000.0
+      - step: "Create a draft usage referencing the document"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference: "EVAL: 'account.move,%d' % registry['document'].id"
+      - step: "Run Populate Allocation"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "Only the still-outstanding line becomes an allocation row"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_rows"
+        expect_count: 1
+      - step: "Assert the allocation row targets the residual line"
+        action: "assert"
+        target: "alloc_rows"
+        asserts:
+          move_line_id:
+            type: "m2o"
+            expected: "REC: move_line_residual"
+
+  - name: "action_populate_allocation on a non-Draft usage is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-N1-INC"
+          name: "Populate Allocation State Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation State Journal"
+          code: "POPALN1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation State Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation State Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation State Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALN1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Populate Allocation State Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Create a usage referencing the invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
+      - step: "Confirm the usage, leaving Draft"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Populate Allocation on a non-Draft usage must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "action_populate_allocation with an empty Reference Document is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-N2-INC"
+          name: "Populate Allocation Empty Ref Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation Empty Ref Journal"
+          code: "POPALN2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation Empty Ref Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation Empty Ref Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation Empty Ref Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALN2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a draft usage WITHOUT a Reference Document"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+      - step: "Populate Allocation with an empty Reference Document must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "action_populate_allocation on a document without the mixin is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-N3-INC"
+          name: "Populate Allocation No Mixin Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation No Mixin Journal"
+          code: "POPALN3"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation No Mixin Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find res.partner model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "res.partner"]]
+        save_as: "res_partner_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing res.partner as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation No Mixin Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: res_partner_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation No Mixin Customer"
+      - step: "Create the reference partner (does not carry the mixin)"
+        action: "create"
+        model: "res.partner"
+        save_as: "reference_partner"
+        values:
+          name: "Populate Allocation No Mixin Reference"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALN3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a draft usage referencing the partner"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference:
+            "EVAL: 'res.partner,%d' % registry['reference_partner'].id"
+      - step: "Populate Allocation on a document without the mixin must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "action_populate_allocation with no eligible journal item is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "POPAL-N4-INC"
+          name: "Populate Allocation No Eligible Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Populate Allocation No Eligible Journal"
+          code: "POPALN4"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Populate Allocation No Eligible Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Populate Allocation No Eligible Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Populate Allocation No Eligible Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "POPALN4-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a receivable invoice but do NOT post it"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Populate Allocation No Eligible Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Assert the invoice is still Draft (not posted)"
+        action: "assert"
+        target: "invoice"
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+      - step: "Create a draft usage referencing the unposted invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
+      - step: "Populate Allocation with no eligible journal item must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"

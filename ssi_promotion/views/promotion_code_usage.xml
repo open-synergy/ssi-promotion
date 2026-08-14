@@ -122,6 +122,14 @@
                     </group>
                 </page>
                 <page name="allocation" string="Allocation">
+                    <button
+                            name="action_populate_allocation"
+                            string="Populate Allocation"
+                            class="oe_highlight"
+                            icon="fa-magic"
+                            type="object"
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"
+                        />
                     <field
                             name="allocation_ids"
                             colspan="4"

@@ -9,6 +9,8 @@
 > **Actor:** user in group _Usages — User_
 >
 > **State:** `—` → `draft`
+>
+> **Inline Actions:** `action_populate_allocation` (Populate Allocation)
 
 ## Pre-Condition
 
@@ -45,12 +47,21 @@
      Automatically filled from **Promotion Code**'s own Promotion Type once **Promotion
      Code** is selected. Change if needed.
 5. Optional: open the **Allocation** tab to list receivable journal items this usage's
-   own credit note should be reconciled against once approved. Add a row and fill in:
-   - **Source** _(required)_: **Voucher User** or **Referrer** — which of this usage's
-     own two credit notes is consumed against this row. Defaults to **Voucher User**.
-   - **Journal Item** _(required)_: Select the receivable `account.move.line` to reduce.
-   - **Sequence**: Order this row is consumed in among rows sharing the same **Source**.
-     Defaults to 5.
+   own credit note should be reconciled against once approved. Two ways to fill it in:
+   - Click **Populate Allocation** to fill it automatically from **Reference
+     Document**'s own outstanding receivable journal item(s) (skipping any journal item
+     already listed). This only works while **Reference Document** is set to a document
+     whose own model supports it (e.g. a posted `account.move`); otherwise it fails with
+     an error explaining why. Without it, **Allocations** stays whatever was entered
+     manually — approving this usage still works, but its own credit note is only
+     reconciled against the rows actually present.
+   - Or add a row manually and fill in:
+     - **Source** _(required)_: **Voucher User** or **Referrer** — which of this usage's
+       own two credit notes is consumed against this row. Defaults to **Voucher User**.
+     - **Journal Item** _(required)_: Select the receivable `account.move.line` to
+       reduce.
+     - **Sequence**: Order this row is consumed in among rows sharing the same
+       **Source**. Defaults to 5.
 6. Click **Save**.
 
 ## Post-Condition

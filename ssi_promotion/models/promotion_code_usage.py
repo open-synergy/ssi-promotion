@@ -737,6 +737,104 @@ code configured on promotion type '%s'
             )
             raise UserError(_(error_message))
 
+    # K1. Populate Allocation (button, inline action)
+    def action_populate_allocation(self):
+        """Fill 'Allocations' from the reference document's own
+        eligible journal items.
+
+        Delegates to
+        ``document_reference._get_promotion_move_lines()`` for the
+        eligible ``account.move.line`` recordset, walking it in the
+        order it is returned and skipping any journal item already
+        present on 'Allocations'. Every new row is created with
+        'Source' 'Voucher User'. Wired to a button on the
+        'Allocation' page -- an inline action documented as a Flow
+        step in ``docs/promotion_code_usage/01-create.md`` and
+        ``docs/promotion_code_usage/02-edit.md``, not a file of its
+        own.
+
+        :raises UserError: via ``_check_populate_allocation`` when
+            this usage cannot be populated yet
+        :return: ``True``
+        """
+        self.ensure_one()
+        self._check_populate_allocation()
+        Allocation = self.env[  # pylint: disable=invalid-name
+            "promotion_code_usage_allocation"
+        ]
+        existing_move_line_ids = self.allocation_ids.mapped("move_line_id").ids
+        move_lines = self.document_reference._get_promotion_move_lines()
+        sequence = 5
+        for move_line in move_lines:
+            if move_line.id in existing_move_line_ids:
+                continue
+            Allocation.create(
+                {
+                    "usage_id": self.id,
+                    "move_line_id": move_line.id,
+                    "source": "customer",
+                    "sequence": sequence,
+                }
+            )
+            sequence += 5
+        return True
+
+    def _check_populate_allocation(self):
+        """Validate this usage can run ``action_populate_allocation``.
+
+        :raises UserError: when 'Status' is not 'Draft', 'Reference
+            Document' is empty, the reference document's own model
+            does not carry ``mixin.promotion_object``, or the
+            reference document has no eligible journal item at all
+        """
+        self.ensure_one()
+        if self.state != "draft":
+            error_message = """
+Context: Populate allocation from reference document
+Database ID: %s
+Problem: Status is not 'Draft'
+Solution: Only a Draft usage can populate its own 'Allocations'
+""" % (
+                self.id,
+            )
+            raise UserError(_(error_message))
+        if not self.document_reference:
+            error_message = """
+Context: Populate allocation from reference document
+Database ID: %s
+Problem: 'Reference Document' is empty
+Solution: Set 'Reference Document' before populating 'Allocations'
+""" % (
+                self.id,
+            )
+            raise UserError(_(error_message))
+        if "promotion_usage_ids" not in self.document_reference._fields:
+            error_message = """
+Context: Populate allocation from reference document
+Database ID: %s
+Problem: Reference document model '%s' does not support automatic \
+allocation (it does not carry mixin.promotion_object)
+Solution: Choose a reference document whose model inherits \
+mixin.promotion_object, or add rows to 'Allocations' manually
+""" % (
+                self.id,
+                self.document_reference._name,
+            )
+            raise UserError(_(error_message))
+        if not self.document_reference._get_promotion_move_lines():
+            error_message = """
+Context: Populate allocation from reference document
+Database ID: %s
+Problem: Reference document '%s' has no eligible journal item to \
+allocate (reconcilable account, posted move, positive residual)
+Solution: Post the reference document, or wait until it has an \
+outstanding receivable balance
+""" % (
+                self.id,
+                self.document_reference.display_name,
+            )
+            raise UserError(_(error_message))
+
     # K2. Allocation Check (pre-open hook)
     @ssi_decorator.pre_open_action()
     def _15_check_allocation(self):

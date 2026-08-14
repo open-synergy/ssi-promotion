@@ -126,6 +126,16 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
                 "property_account_income_id": pcu_income_account.id,
             }
         )
+        # Allowed Reference Models must list account.move: the
+        # 01-create/02-edit tours set Reference Document to a posted
+        # account.move so they can exercise the "Populate Allocation"
+        # inline action (mixin.promotion_object,
+        # open-synergy/ssi-promotion#30) -- without it, saving the
+        # usage with that Reference Document would fail
+        # ``_check_document_reference_model``.
+        account_move_model = cls.env["ir.model"].search(
+            [("model", "=", "account.move")], limit=1
+        )
         cls.promotion_type_pcu = cls.env["promotion_type"].create(
             {
                 "name": "TOUR PCUW Type",
@@ -135,6 +145,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
                 "journal_id": pcu_journal.id,
                 "product_id": pcu_product.id,
                 "account_id": pcu_income_account.id,
+                "allowed_model_ids": [(6, 0, account_move_model.ids)],
             }
         )
 
@@ -157,16 +168,18 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             {"name": "TOUR PCU Create Customer"}
         )
 
-        # Fixture for the Allocation tab step of the 01-create tour: a
-        # posted receivable invoice for cls.customer_pcu, given a fixed
-        # document number since the sequence-generated one is not
-        # predictable at test-authoring time (same rationale as
-        # cls.code_pcu's own number override below). The auto-created
-        # receivable term line's own 'name'/'product_id' are both
-        # empty, so its own display name resolves to just the move's
-        # own number (account.move.line name_get, account_move.py) --
-        # that number is what the tour types into the Journal Item
-        # autocomplete.
+        # Fixture for the Allocation tab step of the 01-create/02-edit
+        # tours: a posted receivable invoice for cls.customer_pcu,
+        # given a fixed document number since the sequence-generated
+        # one is not predictable at test-authoring time (same
+        # rationale as cls.code_pcu's own number override below). The
+        # tours pick this invoice as the usage's own Reference
+        # Document, then click "Populate Allocation" -- the auto-
+        # created receivable term line's own 'name'/'product_id' are
+        # both empty, so its own display name resolves to just the
+        # move's own number (account.move.line name_get,
+        # account_move.py), which is what the tour looks for in the
+        # resulting allocation row.
         alloc_invoice = cls.env["account.move"].create(
             {
                 "name": "TOUR-PCU-ALLOC-INV",

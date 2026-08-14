@@ -79,29 +79,51 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 in_modal: false,
             },
 
-            // Flow 5 — Open the Allocation tab and add one row.
+            // Flow 3 (cont.) — Select the Reference Document, needed
+            // below by the "Populate Allocation" inline action.
+            {
+                content: "Choose the Reference Document model",
+                trigger: ".o_field_widget[name='document_reference'] select",
+                run: "text account.move",
+            },
+            {
+                content: "Select the Reference Document",
+                trigger: ".o_field_widget[name='document_reference'] input",
+                run: "text TOUR-PCU-ALLOC-INV",
+            },
+            {
+                content: "Pick the reference document from the dropdown",
+                trigger:
+                    ".ui-autocomplete .ui-menu-item a:contains(TOUR-PCU-ALLOC-INV)",
+                in_modal: false,
+            },
+
+            // Flow 5 — Open the Allocation tab and click Populate
+            // Allocation (an inline action documented in
+            // docs/promotion_code_usage/01-create.md, not a tour of
+            // its own -- see odoo-development-instruksi-kerja,
+            // action-placement.md).
             {
                 content: "Open the Allocation tab",
                 trigger: ".o_notebook .nav-link:contains(Allocation)",
             },
             {
-                content: "Add an allocation row",
+                content: "Click Populate Allocation",
+                trigger: "button[name='action_populate_allocation']",
+                extra_trigger: ".o_form_view",
+            },
+            {
+                // Gerbang: the Allocation tab starts empty, so a data
+                // row naming the reference invoice can only appear
+                // once action_populate_allocation has actually run
+                // (patterns.md §P).
+                content: "Allocation row is populated from the reference document",
                 trigger:
                     ".o_field_widget[name='allocation_ids'] " +
-                    ".o_field_x2many_list_row_add a",
-            },
-            {
-                content: "Select the Journal Item",
-                trigger:
-                    ".o_field_widget[name='allocation_ids'] .o_selected_row " +
-                    ".o_field_many2one[name='move_line_id'] input",
-                run: "text TOUR-PCU-ALLOC-INV",
-            },
-            {
-                content: "Pick the journal item from the dropdown",
-                trigger:
-                    ".ui-autocomplete .ui-menu-item a:contains(TOUR-PCU-ALLOC-INV)",
-                in_modal: false,
+                    ".o_data_row:contains(TOUR-PCU-ALLOC-INV)",
+                run: function () {
+                    // Assertion only.
+                },
             },
 
             // Flow 6 — Click Save.
@@ -158,14 +180,59 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 },
             },
 
-            // Flow 4 — Change the Usage Date field.
+            // Flow 4 — Change the Usage Date field, and set Reference
+            // Document (needed below by "Populate Allocation").
             {
                 content: "Change the Usage Date",
                 trigger: ".o_field_widget[name='date'] input",
                 run: "text 01/15/2026",
             },
+            {
+                content: "Choose the Reference Document model",
+                trigger: ".o_field_widget[name='document_reference'] select",
+                run: "text account.move",
+            },
+            {
+                content: "Select the Reference Document",
+                trigger: ".o_field_widget[name='document_reference'] input",
+                run: "text TOUR-PCU-ALLOC-INV",
+            },
+            {
+                content: "Pick the reference document from the dropdown",
+                trigger:
+                    ".ui-autocomplete .ui-menu-item a:contains(TOUR-PCU-ALLOC-INV)",
+                in_modal: false,
+            },
 
-            // Flow 5 — Click Save.
+            // Flow 5 — Open the Allocation tab and click Populate
+            // Allocation (an inline action documented in
+            // docs/promotion_code_usage/02-edit.md, not a tour of its
+            // own -- see odoo-development-instruksi-kerja,
+            // action-placement.md).
+            {
+                content: "Open the Allocation tab",
+                trigger: ".o_notebook .nav-link:contains(Allocation)",
+            },
+            {
+                content: "Click Populate Allocation",
+                trigger: "button[name='action_populate_allocation']",
+                extra_trigger: ".o_form_view",
+            },
+            {
+                // Gerbang: the Allocation tab starts empty, so a data
+                // row naming the reference invoice can only appear
+                // once action_populate_allocation has actually run
+                // (patterns.md §P).
+                content: "Allocation row is populated from the reference document",
+                trigger:
+                    ".o_field_widget[name='allocation_ids'] " +
+                    ".o_data_row:contains(TOUR-PCU-ALLOC-INV)",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+
+            // Flow 6 — Click Save.
             {
                 content: "Save the record",
                 trigger: ".o_form_button_save",
