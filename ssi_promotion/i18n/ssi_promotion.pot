@@ -751,7 +751,9 @@ msgid "Discount computation mode copied from 'Promotion Type'."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_move__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__display_name
+#: model:ir.model.fields,field_description:ssi_promotion.field_mixin_promotion_object__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__display_name
@@ -890,7 +892,9 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_move__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__id
+#: model:ir.model.fields,field_description:ssi_promotion.field_mixin_promotion_object__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__id
@@ -970,6 +974,7 @@ msgid "Journal"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model,name:ssi_promotion.model_account_move
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__move_id
 msgid "Journal Entry"
 msgstr ""
@@ -995,7 +1000,9 @@ msgid "Journal entry of the parent Recognition document."
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_move____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition____last_update
+#: model:ir.model.fields,field_description:ssi_promotion.field_mixin_promotion_object____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation____last_update
@@ -1178,6 +1185,14 @@ msgid "Note"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_bank_statement_line__promotion_usage_count
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_move__promotion_usage_count
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_payment__promotion_usage_count
+#: model:ir.model.fields,field_description:ssi_promotion.field_mixin_promotion_object__promotion_usage_count
+msgid "Num. of Promotion Code Usages"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction_counter
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_needaction_counter
@@ -1214,6 +1229,14 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__message_has_error_counter
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__message_has_error_counter
 msgid "Number of messages with delivery error"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_account_bank_statement_line__promotion_usage_count
+#: model:ir.model.fields,help:ssi_promotion.field_account_move__promotion_usage_count
+#: model:ir.model.fields,help:ssi_promotion.field_account_payment__promotion_usage_count
+#: model:ir.model.fields,help:ssi_promotion.field_mixin_promotion_object__promotion_usage_count
+msgid "Number of records in 'Promotion Code Usages'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1314,6 +1337,11 @@ msgid "Policy Template"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Populate Allocation"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__amount
 msgid ""
 "Portion of the Recognition document's own Amount released for this side of "
@@ -1408,13 +1436,24 @@ msgid "Promotion Code Usage Recognition - Line"
 msgstr ""
 
 #. module: ssi_promotion
+#: code:addons/ssi_promotion/models/mixin_promotion_object.py:0
 #: model:ir.actions.act_window,name:ssi_promotion.promotion_code_usage_action
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_bank_statement_line__promotion_usage_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_move__promotion_usage_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_account_payment__promotion_usage_ids
+#: model:ir.model.fields,field_description:ssi_promotion.field_mixin_promotion_object__promotion_usage_ids
+#, python-format
 msgid "Promotion Code Usages"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.actions.act_window,name:ssi_promotion.promotion_code_action
 msgid "Promotion Codes"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model,name:ssi_promotion.model_mixin_promotion_object
+msgid "Promotion Object Mixin"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1957,6 +1996,16 @@ msgid ""
 "Which of the usage's own two credit notes is reconciled against 'Journal "
 "Item': the voucher user's own ('Voucher User'), or the promotion code's "
 "referrer own ('Referrer')."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_account_bank_statement_line__promotion_usage_ids
+#: model:ir.model.fields,help:ssi_promotion.field_account_move__promotion_usage_ids
+#: model:ir.model.fields,help:ssi_promotion.field_account_payment__promotion_usage_ids
+#: model:ir.model.fields,help:ssi_promotion.field_mixin_promotion_object__promotion_usage_ids
+msgid ""
+"promotion_code_usage records whose own 'Reference Document' points back to "
+"this record."
 msgstr ""
 
 #. module: ssi_promotion
