@@ -992,6 +992,14 @@ receivable account of the '%s' source for this usage
     def _reconcile_allocation_source(self, source):
         """Consume one source's own credit note against its rows.
 
+        A credit note's own receivable line sits on the credit side
+        of its journal entry, so its own 'Amount Residual' is
+        negative (``balance = debit - credit``) -- unlike an
+        allocation row's own target line, which sits on the debit
+        side and is checked for a positive residual instead (see
+        ``_check_allocation_line``). Exhaustion is therefore read
+        off a zero residual, not a positive one.
+
         :param source: ``'customer'`` or ``'referrer'``
         :return: nothing
         """
@@ -999,12 +1007,13 @@ receivable account of the '%s' source for this usage
         credit_move_line = self._get_allocation_credit_move_line(source)
         if not credit_move_line:
             return
+        precision = self.env.company.currency_id.decimal_places
         lines = self.allocation_ids.filtered(
             lambda allocation: allocation.source == source
         )
         for line in lines:
-            if credit_move_line.reconciled or not (
-                credit_move_line.amount_residual > 0
+            if credit_move_line.reconciled or float_is_zero(
+                credit_move_line.amount_residual, precision_digits=precision
             ):
                 break
             line._reconcile(credit_move_line)
