@@ -157,6 +157,42 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             {"name": "TOUR PCU Create Customer"}
         )
 
+        # Fixture for the Allocation tab step of the 01-create tour: a
+        # posted receivable invoice for cls.customer_pcu, given a fixed
+        # document number since the sequence-generated one is not
+        # predictable at test-authoring time (same rationale as
+        # cls.code_pcu's own number override below). The auto-created
+        # receivable term line's own 'name'/'product_id' are both
+        # empty, so its own display name resolves to just the move's
+        # own number (account.move.line name_get, account_move.py) --
+        # that number is what the tour types into the Journal Item
+        # autocomplete.
+        alloc_invoice = cls.env["account.move"].create(
+            {
+                "name": "TOUR-PCU-ALLOC-INV",
+                "move_type": "out_invoice",
+                "partner_id": cls.customer_pcu.id,
+                "journal_id": pcu_journal.id,
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": pcu_product.id,
+                            "quantity": 1,
+                            "price_unit": 1000000.0,
+                            "name": "TOUR PCU Allocation Invoice Line",
+                            "account_id": pcu_income_account.id,
+                        },
+                    )
+                ],
+            }
+        )
+        alloc_invoice.action_post()
+        cls.move_line_pcu = alloc_invoice.line_ids.filtered(
+            lambda line: line.account_id.internal_type == "receivable"
+        )
+
         # IK Pre-Condition of 02-edit / 04-confirm: Status is Draft.
         cls.usage_edit = cls._create_usage("TOUR-PCU-EDIT")
         # IK Pre-Condition of 03-delete: Status is Draft and the

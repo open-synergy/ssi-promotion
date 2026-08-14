@@ -13,6 +13,9 @@
 ## Pre-Condition
 
 - **Data:** An existing `promotion_code` whose own Status is **Open**.
+- **Data:** A posted `account.move.line` receivable journal item to allocate —
+  reconcilable account, not yet fully reconciled, positive residual, in the company
+  currency — if a row is to be added on the **Allocation** tab.
 - **Access:** User is in group _Usages — User_.
 
 ## Flow
@@ -41,7 +44,14 @@
    - **Recognition Journal**: Shown only when **Recognition Method** is **Deferred**.
      Automatically filled from **Promotion Code**'s own Promotion Type once **Promotion
      Code** is selected. Change if needed.
-5. Click **Save**.
+5. Optional: open the **Allocation** tab to list receivable journal items this usage's
+   own credit note should be reconciled against once approved. Add a row and fill in:
+   - **Source** _(required)_: **Voucher User** or **Referrer** — which of this usage's
+     own two credit notes is consumed against this row. Defaults to **Voucher User**.
+   - **Journal Item** _(required)_: Select the receivable `account.move.line` to reduce.
+   - **Sequence**: Order this row is consumed in among rows sharing the same **Source**.
+     Defaults to 5.
+6. Click **Save**.
 
 ## Post-Condition
 

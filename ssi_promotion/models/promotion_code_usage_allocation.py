@@ -1,0 +1,219 @@
+# Copyright 2026 OpenSynergy Indonesia
+# Copyright 2026 PT. Simetri Sinergi Indonesia
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class PromotionCodeUsageAllocation(models.Model):
+    """
+    Represents one receivable journal item (``account.move.line``) a
+    ``promotion_code_usage`` wants reduced by one of its own credit
+    notes.
+
+    'Source' selects which of the usage's own two credit notes is
+    consumed against 'Journal Item': the voucher user's own
+    ('customer') or the promotion code's referrer own ('referrer').
+    Opening the usage runs its own '_30_reconcile' hook, which
+    reconciles each row's own credit note receivable line against
+    'Journal Item' in '_order' (grouped by 'Source'), stores the
+    first ``account.partial.reconcile`` created on 'Partial
+    Reconcile', and stops consuming a given credit note once that
+    credit note's own residual reaches zero -- rows reached
+    afterwards keep an empty 'Partial Reconcile' and a zero
+    'Amount Reconciled'. Cancelling the usage undoes every
+    reconciliation created this way and clears 'Partial Reconcile'
+    again (see the usage's own '_05_unreconcile' hook).
+    """
+
+    _name = "promotion_code_usage_allocation"
+    _description = "Promotion Code Usage - Allocation"
+    _order = "usage_id, sequence, id"
+
+    usage_id = fields.Many2one(
+        string="# Usage",
+        comodel_name="promotion_code_usage",
+        required=True,
+        ondelete="cascade",
+        help="Promotion code usage this allocation row belongs to.",
+    )
+    sequence = fields.Integer(
+        string="Sequence",
+        required=True,
+        default=5,
+        help="Order this row's own 'Journal Item' is consumed in, "
+        "among the rows sharing the same 'Source', when the usage "
+        "opens.",
+    )
+    source = fields.Selection(
+        string="Source",
+        selection=[
+            ("customer", "Voucher User"),
+            ("referrer", "Referrer"),
+        ],
+        default="customer",
+        required=True,
+        help="Which of the usage's own two credit notes is "
+        "reconciled against 'Journal Item': the voucher user's own "
+        "('Voucher User'), or the promotion code's referrer own "
+        "('Referrer').",
+    )
+    move_line_id = fields.Many2one(
+        string="Journal Item",
+        comodel_name="account.move.line",
+        required=True,
+        ondelete="restrict",
+        domain=[
+            ("account_id.reconcile", "=", True),
+            ("parent_state", "=", "posted"),
+            ("reconciled", "=", False),
+            ("amount_residual", ">", 0),
+        ],
+        help="Receivable journal item to reduce with this usage's "
+        "own credit note. Only posted, reconcilable, not yet fully "
+        "reconciled journal items with a positive residual amount "
+        "are selectable.",
+    )
+    move_id = fields.Many2one(
+        string="Journal Entry",
+        comodel_name="account.move",
+        related="move_line_id.move_id",
+        help="Journal entry 'Journal Item' belongs to.",
+    )
+    account_id = fields.Many2one(
+        string="Account",
+        comodel_name="account.account",
+        related="move_line_id.account_id",
+        help="Account of 'Journal Item'.",
+    )
+    partner_id = fields.Many2one(
+        string="Partner",
+        comodel_name="res.partner",
+        related="move_line_id.partner_id",
+        help="Partner of 'Journal Item'.",
+    )
+    currency_id = fields.Many2one(
+        string="Currency",
+        comodel_name="res.currency",
+        related="move_line_id.currency_id",
+        store=True,
+        help="Currency of 'Journal Item', empty when it is posted "
+        "in the company currency. Allocations of a "
+        "foreign-currency 'Journal Item' are rejected when the "
+        "usage opens.",
+    )
+    company_currency_id = fields.Many2one(
+        string="Company Currency",
+        comodel_name="res.currency",
+        related="move_line_id.company_currency_id",
+        store=True,
+        help="Company currency of 'Journal Item', also the "
+        "currency 'Amount Residual' and 'Amount Reconciled' are "
+        "expressed in.",
+    )
+    amount_residual = fields.Monetary(
+        string="Amount Residual",
+        currency_field="company_currency_id",
+        related="move_line_id.amount_residual",
+        help="Residual amount still due on 'Journal Item', before "
+        "this usage's own reconciliation runs.",
+    )
+    partial_reconcile_id = fields.Many2one(
+        string="Partial Reconcile",
+        comodel_name="account.partial.reconcile",
+        readonly=True,
+        copy=False,
+        help="First ``account.partial.reconcile`` created by the "
+        "usage's own '_30_reconcile' hook when this row's own "
+        "'Journal Item' was reconciled against the credit note. "
+        "Empty while the usage has not opened yet, or when the "
+        "credit note ran out of residual before reaching this row.",
+    )
+    amount_reconciled = fields.Monetary(
+        string="Amount Reconciled",
+        currency_field="company_currency_id",
+        compute="_compute_amount_reconciled",
+        store=True,
+        compute_sudo=True,
+        help="Amount actually reconciled against 'Journal Item': "
+        "'Partial Reconcile''s own 'Amount', or zero while empty.",
+    )
+
+    @api.depends("partial_reconcile_id.amount")
+    def _compute_amount_reconciled(self):
+        """Compute the amount actually reconciled by this row.
+
+        :return: nothing; assigns ``amount_reconciled``
+        """
+        for record in self:
+            result = 0.0
+            if record.partial_reconcile_id:
+                result = record.partial_reconcile_id.amount
+            record.amount_reconciled = result
+
+    @api.constrains(
+        "usage_id",
+        "move_line_id",
+        "source",
+    )
+    def _check_move_line_unique(self):
+        """Reject a 'Journal Item' allocated twice under one 'Source'.
+
+        :raises ValidationError: when another row of the same
+            '# Usage' and 'Source' already targets the same
+            'Journal Item'
+        """
+        for record in self:
+            if not record._check_move_line_unique_condition():
+                error_message = """
+Context: Set journal item on promotion code usage allocation
+Database ID: %s
+Problem: Journal item '%s' is already allocated under Source '%s' \
+for this usage
+Solution: Choose a different journal item, or remove the duplicate \
+allocation row
+""" % (
+                    record.id,
+                    record.move_line_id.display_name,
+                    record.source,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_move_line_unique_condition(self):
+        """Check no sibling row duplicates this row's own key.
+
+        :return: ``True`` when no other row of the same '# Usage'
+            and 'Source' targets the same 'Journal Item'
+        """
+        self.ensure_one()
+        domain = [
+            ("id", "!=", self.id),
+            ("usage_id", "=", self.usage_id.id),
+            ("source", "=", self.source),
+            ("move_line_id", "=", self.move_line_id.id),
+        ]
+        return self.search_count(domain) == 0
+
+    def _reconcile(self, credit_move_line):
+        """Reconcile this row's own 'Journal Item' against a credit
+        note receivable line.
+
+        No-op when 'Partial Reconcile' is already set. Combines
+        'Journal Item' with ``credit_move_line`` and calls
+        ``account.move.line.reconcile()``, then stores the first
+        ``account.partial.reconcile`` it created on 'Partial
+        Reconcile'.
+
+        :param credit_move_line: the credit note's own receivable
+            ``account.move.line`` to reconcile 'Journal Item'
+            against
+        :return: nothing
+        """
+        self.ensure_one()
+        if self.partial_reconcile_id:
+            return
+        result = (self.move_line_id + credit_move_line).reconcile()
+        partials = result.get("partials")
+        if partials:
+            self.partial_reconcile_id = partials[:1]

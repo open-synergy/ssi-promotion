@@ -79,7 +79,32 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 in_modal: false,
             },
 
-            // Flow 5 — Click Save.
+            // Flow 5 — Open the Allocation tab and add one row.
+            {
+                content: "Open the Allocation tab",
+                trigger: ".o_notebook .nav-link:contains(Allocation)",
+            },
+            {
+                content: "Add an allocation row",
+                trigger:
+                    ".o_field_widget[name='allocation_ids'] " +
+                    ".o_field_x2many_list_row_add a",
+            },
+            {
+                content: "Select the Journal Item",
+                trigger:
+                    ".o_field_widget[name='allocation_ids'] .o_selected_row " +
+                    ".o_field_many2one[name='move_line_id'] input",
+                run: "text TOUR-PCU-ALLOC-INV",
+            },
+            {
+                content: "Pick the journal item from the dropdown",
+                trigger:
+                    ".ui-autocomplete .ui-menu-item a:contains(TOUR-PCU-ALLOC-INV)",
+                in_modal: false,
+            },
+
+            // Flow 6 — Click Save.
             {
                 content: "Save the record",
                 trigger: ".o_form_button_save",

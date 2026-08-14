@@ -37,6 +37,15 @@ class PromotionCodeUsage(models.Model):
     Recognize', 'Amount Recognized', 'Amount Deferred', and
     'Recognition State' track that release; they stay 'Not
     Applicable' while Recognition Method is Immediate.
+
+    allocation_ids lists receivable account.move.line records this
+    usage's own credit note(s) should reduce instead of only adding
+    to the source partner's credit balance. Opening a usage first
+    validates every row (see '_15_check_allocation'), then
+    reconciles each source's own credit note receivable line
+    against its own allocation rows in order (see '_30_reconcile').
+    Cancelling the usage undoes that reconciliation before its own
+    credit note(s) are deleted (see '_05_unreconcile').
     """
 
     _name = "promotion_code_usage"
@@ -284,6 +293,17 @@ class PromotionCodeUsage(models.Model):
         help="promotion_code_usage_recognition documents created "
         "against this usage, releasing its own 'Amount Deferred' "
         "into their own Final Account(s).",
+    )
+    allocation_ids = fields.One2many(
+        string="Allocations",
+        comodel_name="promotion_code_usage_allocation",
+        inverse_name="usage_id",
+        copy=False,
+        help="Receivable journal items this usage's own credit "
+        "note(s) should be reconciled against once this usage "
+        "opens (see the '_30_reconcile' hook). Journal items "
+        "reached after their own source credit note runs out of "
+        "residual keep an empty 'Partial Reconcile'.",
     )
 
     # G. Compute Methods
@@ -717,6 +737,133 @@ code configured on promotion type '%s'
             )
             raise UserError(_(error_message))
 
+    # K2. Allocation Check (pre-open hook)
+    @ssi_decorator.pre_open_action()
+    def _15_check_allocation(self):
+        """Validate every allocation row before this usage can open.
+
+        Runs on the pre-action of the confirm-to-open transition
+        (approval, ``action_open``), before the state actually
+        changes and before ``_30_reconcile`` runs. Delegates each
+        row of 'Allocations' to ``_check_allocation_line``.
+
+        :raises UserError: via ``_check_allocation_line`` when any
+            allocation row fails a check
+        """
+        self.ensure_one()
+        for line in self.allocation_ids:
+            self._check_allocation_line(line)
+
+    def _check_allocation_line(self, line):
+        """Check one allocation row is safe to reconcile against.
+
+        :param line: a ``promotion_code_usage_allocation`` record
+            of this usage's own 'Allocations'
+        :raises UserError: when the row's own 'Journal Item' is not
+            reconcilable, not posted, already reconciled or has no
+            positive residual, is in a foreign currency, does not
+            match the expected source partner's own receivable
+            account, or the row's own 'Source' is 'Referrer' while
+            this usage's own promotion code has none
+        """
+        self.ensure_one()
+        move_line = line.move_line_id
+        if not move_line.account_id.reconcile:
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' is on an account that \
+does not allow reconciliation
+Solution: Choose a journal item whose account has 'Allow Reconciliation' \
+enabled
+""" % (
+                self.id,
+                move_line.display_name,
+            )
+            raise UserError(_(error_message))
+        if move_line.parent_state != "posted":
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' belongs to a journal \
+entry that is not posted
+Solution: Choose a journal item from a posted journal entry, or post \
+the journal entry first
+""" % (
+                self.id,
+                move_line.display_name,
+            )
+            raise UserError(_(error_message))
+        if move_line.reconciled or not (move_line.amount_residual > 0):
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' has no positive \
+residual amount left to reconcile
+Solution: Choose a journal item that still has an outstanding \
+residual amount
+""" % (
+                self.id,
+                move_line.display_name,
+            )
+            raise UserError(_(error_message))
+        if move_line.currency_id != move_line.company_currency_id:
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' is denominated in a \
+foreign currency, which this feature does not support
+Solution: Choose a journal item posted in the company currency
+""" % (
+                self.id,
+                move_line.display_name,
+            )
+            raise UserError(_(error_message))
+        if line.source == "referrer" and not self.promotion_code_id.partner_id:
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own 'Source' is 'Referrer' but this usage's \
+own promotion code has no referrer
+Solution: Change the row's 'Source' to 'Voucher User', or set a \
+referrer on the promotion code
+""" % (
+                self.id,
+            )
+            raise UserError(_(error_message))
+        expected_partner = self._get_allocation_expected_partner(line.source)
+        if (
+            not expected_partner
+            or move_line.partner_id != expected_partner
+            or move_line.account_id != expected_partner.property_account_receivable_id
+        ):
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' does not belong to the \
+expected source partner's own receivable account
+Solution: Choose a journal item whose partner and account match the \
+receivable account of the '%s' source for this usage
+""" % (
+                self.id,
+                move_line.display_name,
+                line.source,
+            )
+            raise UserError(_(error_message))
+
+    def _get_allocation_expected_partner(self, source):
+        """Resolve the partner an allocation row's own 'Source' expects.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: 'Voucher User' when 'customer', this usage's own
+            promotion code referrer ('promotion_code_id.partner_id')
+            when 'referrer', possibly empty
+        """
+        self.ensure_one()
+        if source == "referrer":
+            return self.promotion_code_id.partner_id
+        return self.partner_id
+
     # L. Credit Note Creation (post-open hook)
     @ssi_decorator.post_open_action()
     def _10_create_credit_note(self):
@@ -823,6 +970,66 @@ code configured on promotion type '%s'
         return move.line_ids.filtered(
             lambda line: line.account_id.internal_type == "receivable"
         )[:1]
+
+    # L2. Allocation Reconciliation (post-open hook)
+    @ssi_decorator.post_open_action()
+    def _30_reconcile(self):
+        """Reconcile the credit note(s) against every allocation row.
+
+        Runs after ``_20_post_credit_note``, once both credit notes
+        are posted, so their own receivable journal item is
+        available on 'Customer Credit Note Receivable Line' /
+        'Referrer Credit Note Receivable Line'. Consumes each
+        source's own credit note receivable line against this
+        usage's own 'Allocations', in ``_order`` (grouped by
+        'Source'), skipping rows once that source's credit note
+        runs out of residual.
+        """
+        self.ensure_one()
+        self._reconcile_allocation_source("customer")
+        self._reconcile_allocation_source("referrer")
+
+    def _reconcile_allocation_source(self, source):
+        """Consume one source's own credit note against its rows.
+
+        A credit note's own receivable line sits on the credit side
+        of its journal entry, so its own 'Amount Residual' is
+        negative (``balance = debit - credit``) -- unlike an
+        allocation row's own target line, which sits on the debit
+        side and is checked for a positive residual instead (see
+        ``_check_allocation_line``). Exhaustion is therefore read
+        off a zero residual, not a positive one.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: nothing
+        """
+        self.ensure_one()
+        credit_move_line = self._get_allocation_credit_move_line(source)
+        if not credit_move_line:
+            return
+        precision = self.env.company.currency_id.decimal_places
+        lines = self.allocation_ids.filtered(
+            lambda allocation: allocation.source == source
+        )
+        for line in lines:
+            if credit_move_line.reconciled or float_is_zero(
+                credit_move_line.amount_residual, precision_digits=precision
+            ):
+                break
+            line._reconcile(credit_move_line)
+
+    def _get_allocation_credit_move_line(self, source):
+        """Resolve one source's own credit note receivable line.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: 'Customer Credit Note Receivable Line' for
+            ``'customer'``, 'Referrer Credit Note Receivable Line'
+            for ``'referrer'``, possibly empty
+        """
+        self.ensure_one()
+        if source == "referrer":
+            return self.referrer_credit_note_move_line_id
+        return self.credit_note_move_line_id
 
     def _check_credit_note_configuration(self, referrer=False):
         """Require a complete credit note configuration on the type.
@@ -970,6 +1177,30 @@ referrer equivalents if applicable) on the promotion type
             "name": product.name,
             "account_id": account_id,
         }
+
+    # M0. Allocation Un-Reconciliation (post-cancel hook)
+    @ssi_decorator.post_cancel_action()
+    def _05_unreconcile(self):
+        """Undo every allocation reconciliation before the credit
+        note(s) are deleted.
+
+        Runs on the transition to Cancel, with a prefix number
+        smaller than ``_10_delete_credit_note`` so this hook runs
+        first -- reconciliation must be undone before the credit
+        note journal items it points to are removed. Calls
+        ``remove_move_reconcile`` on 'Customer Credit Note
+        Receivable Line' and, when present, 'Referrer Credit Note
+        Receivable Line', then clears 'Partial Reconcile' on every
+        row of 'Allocations'. Idempotent: an empty receivable line
+        field is skipped, so this hook is safe to run repeatedly.
+        """
+        self.ensure_one()
+        credit_move_lines = (
+            self.credit_note_move_line_id + self.referrer_credit_note_move_line_id
+        )
+        if credit_move_lines:
+            credit_move_lines.remove_move_reconcile()
+        self.allocation_ids.write({"partial_reconcile_id": False})
 
     # M. Credit Note Deletion (post-cancel hook)
     @ssi_decorator.post_cancel_action()
