@@ -20,9 +20,14 @@ class PromotionCodeUsage(models.Model):
 
     Confirming a usage runs the promotion type's validity Python code
     together with the usage-limit and validity-period checks. Approving a
-    usage (state open) automatically creates a customer credit note for
-    partner_id, and a referrer credit note for promotion_code_id.partner_id
-    when the code has a referrer (see the post_open_action hook).
+    usage (state open) automatically creates and posts a customer credit
+    note for partner_id, and a referrer credit note for
+    promotion_code_id.partner_id when the code has a referrer (see the
+    post_open_action hooks). Each posted credit note's own receivable
+    journal item is kept on credit_note_move_line_id /
+    referrer_credit_note_move_line_id. Cancelling the usage deletes both
+    credit notes again and clears those four fields (see the
+    post_cancel_action hook).
 
     Recognition Method controls which account those credit note lines
     debit: Immediate (the default, copied from the promotion type)
@@ -158,6 +163,24 @@ class PromotionCodeUsage(models.Model):
         help="Credit note automatically created for the promotion code's "
         "referrer (promotion_code_id.partner_id) when this usage is "
         "approved, if the promotion code has a referrer.",
+    )
+    credit_note_move_line_id = fields.Many2one(
+        string="Customer Credit Note Receivable Line",
+        comodel_name="account.move.line",
+        readonly=True,
+        copy=False,
+        help="Receivable journal item of 'Customer Credit Note', filled "
+        "by the '_20_post_credit_note' hook when this usage's own "
+        "customer credit note is posted.",
+    )
+    referrer_credit_note_move_line_id = fields.Many2one(
+        string="Referrer Credit Note Receivable Line",
+        comodel_name="account.move.line",
+        readonly=True,
+        copy=False,
+        help="Receivable journal item of 'Referrer Credit Note', filled "
+        "by the '_20_post_credit_note' hook when this usage's own "
+        "referrer credit note is posted.",
     )
     recognition_method = fields.Selection(
         string="Recognition Method",
@@ -744,6 +767,63 @@ code configured on promotion type '%s'
         )
         self.write({"referrer_credit_note_id": move.id})
 
+    @ssi_decorator.post_open_action()
+    def _20_post_credit_note(self):
+        """Post the credit note(s) created by ``_10_create_credit_note``.
+
+        Runs after the confirm-to-open transition (approval,
+        ``action_open``) completes, right after credit note
+        creation, so the "create then post" order reads from the
+        prefix numbers. Posts 'Customer Credit Note' and, when
+        present, 'Referrer Credit Note', then fills their own
+        receivable journal item field.
+        """
+        self._post_customer_credit_note()
+        self._post_referrer_credit_note()
+
+    def _post_customer_credit_note(self):
+        """Post 'Customer Credit Note' and fill its receivable line.
+
+        No-op when 'Customer Credit Note' is empty or already
+        'posted'.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        if not self.credit_note_id or self.credit_note_id.state == "posted":
+            return
+        self.credit_note_id.action_post()
+        self.credit_note_move_line_id = self._get_receivable_move_line(
+            self.credit_note_id
+        )
+
+    def _post_referrer_credit_note(self):
+        """Post 'Referrer Credit Note' and fill its receivable line.
+
+        No-op when 'Referrer Credit Note' is empty or already
+        'posted'.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        move = self.referrer_credit_note_id
+        if not move or move.state == "posted":
+            return
+        move.action_post()
+        self.referrer_credit_note_move_line_id = self._get_receivable_move_line(move)
+
+    def _get_receivable_move_line(self, move):
+        """Resolve a posted credit note's own receivable journal item.
+
+        :param move: a posted ``account.move`` (credit note)
+        :return: the ``account.move.line`` whose 'Account' has
+            'internal_type' 'receivable', possibly empty
+        """
+        self.ensure_one()
+        return move.line_ids.filtered(
+            lambda line: line.account_id.internal_type == "receivable"
+        )[:1]
+
     def _check_credit_note_configuration(self, referrer=False):
         """Require a complete credit note configuration on the type.
 
@@ -890,6 +970,69 @@ referrer equivalents if applicable) on the promotion type
             "name": product.name,
             "account_id": account_id,
         }
+
+    # M. Credit Note Deletion (post-cancel hook)
+    @ssi_decorator.post_cancel_action()
+    def _10_delete_credit_note(self):
+        """Delete the credit note(s) created for this usage.
+
+        Runs after the transition to Cancel. Returns 'Customer
+        Credit Note' and, when present, 'Referrer Credit Note' to
+        draft, then deletes them, clearing 'Customer Credit Note',
+        'Referrer Credit Note', and their own receivable journal
+        item field. Idempotent: a credit note field already empty is
+        skipped, so this hook is safe to run repeatedly.
+        """
+        self._delete_customer_credit_note()
+        self._delete_referrer_credit_note()
+
+    def _delete_customer_credit_note(self):
+        """Delete 'Customer Credit Note', once.
+
+        No-op when 'Customer Credit Note' is already empty.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        if not self.credit_note_id:
+            return
+        move = self.credit_note_id
+        if move.state != "draft":
+            move.button_draft()
+        # 'posted_before' stays True after button_draft(), so plain
+        # unlink() still raises "You cannot delete an entry which has
+        # been posted once." -- force_delete is account.move's own
+        # sanctioned bypass for that guard (see account_payment.py /
+        # account_bank_statement.py core usage of the same context key).
+        move.with_context(force_delete=True).unlink()
+        self.write(
+            {
+                "credit_note_id": False,
+                "credit_note_move_line_id": False,
+            }
+        )
+
+    def _delete_referrer_credit_note(self):
+        """Delete 'Referrer Credit Note', once.
+
+        No-op when 'Referrer Credit Note' is already empty.
+
+        :return: nothing
+        """
+        self.ensure_one()
+        if not self.referrer_credit_note_id:
+            return
+        move = self.referrer_credit_note_id
+        if move.state != "draft":
+            move.button_draft()
+        # See the matching comment in _delete_customer_credit_note.
+        move.with_context(force_delete=True).unlink()
+        self.write(
+            {
+                "referrer_credit_note_id": False,
+                "referrer_credit_note_move_line_id": False,
+            }
+        )
 
     # J. Insert Form Element Decorator
     @ssi_decorator.insert_on_form_view()

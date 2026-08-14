@@ -116,7 +116,9 @@
                             string="Credit Note"
                         >
                         <field name="credit_note_id" />
+                        <field name="credit_note_move_line_id" />
                         <field name="referrer_credit_note_id" />
+                        <field name="referrer_credit_note_move_line_id" />
                     </group>
                 </page>
                 <page

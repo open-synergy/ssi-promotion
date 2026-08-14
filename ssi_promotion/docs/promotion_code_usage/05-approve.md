@@ -38,5 +38,7 @@
 - If all approval levels are fulfilled, this document is automatically opened: status
   changes straight to **Open**. There is no separate manual "Start" step — the
   transition happens as soon as the last approval level is fulfilled. A customer credit
-  note is created for **Voucher User** at the same time (and a referrer credit note as
-  well, if **Promotion Code** has a referrer).
+  note is created and posted for **Voucher User** at the same time (and a referrer
+  credit note as well, if **Promotion Code** has a referrer), so **Customer Credit
+  Note** already shows status **Posted** and its own receivable journal item is stored
+  on this document.
