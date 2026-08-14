@@ -195,6 +195,58 @@ allocation row
         ]
         return self.search_count(domain) == 0
 
+    @api.constrains(
+        "usage_id",
+        "move_line_id",
+    )
+    def _check_move_line_promotion_object(self):
+        """Require 'Journal Item' to be an eligible line of the
+        reference document, when that document carries
+        ``mixin.promotion_object``.
+
+        Reference documents that do not carry the mixin are left
+        unconstrained by this rule, preserving the pre-existing
+        behaviour of open-synergy/ssi-promotion#29.
+
+        :raises ValidationError: via
+            ``_check_move_line_promotion_object_condition`` when
+            'Journal Item' is not part of the reference document's
+            own ``_get_promotion_move_lines()``
+        """
+        for record in self:
+            if not record._check_move_line_promotion_object_condition():
+                error_message = """
+Context: Set journal item on promotion code usage allocation
+Database ID: %s
+Problem: Journal item '%s' is not an eligible journal item of \
+reference document '%s'
+Solution: Choose a journal item returned by the reference \
+document's own '_get_promotion_move_lines' (reconcilable account, \
+posted move, positive residual)
+""" % (
+                    record.id,
+                    record.move_line_id.display_name,
+                    record.usage_id.document_reference.display_name,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_move_line_promotion_object_condition(self):
+        """Check 'Journal Item' passes the reference document's own
+        promotion object contract.
+
+        :return: ``True`` when '# Usage''s own 'Reference Document'
+            is empty, its model does not carry
+            ``mixin.promotion_object``, or 'Journal Item' is part of
+            its own ``_get_promotion_move_lines()``
+        """
+        self.ensure_one()
+        reference = self.usage_id.document_reference
+        if not reference:
+            return True
+        if "promotion_usage_ids" not in reference._fields:
+            return True
+        return self.move_line_id in reference._get_promotion_move_lines()
+
     def _reconcile(self, credit_move_line):
         """Reconcile this row's own 'Journal Item' against a credit
         note receivable line.

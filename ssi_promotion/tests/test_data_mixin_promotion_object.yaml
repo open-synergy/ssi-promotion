@@ -1,0 +1,161 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "account.move counts the promotion_code_usage records referencing it"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "MIXPO-INC"
+          name: "Mixin Promotion Object Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Mixin Promotion Object Journal"
+          code: "MIXPO"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Mixin Promotion Object Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Mixin Promotion Object Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 250000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Mixin Promotion Object Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "MIXPO-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Mixin Promotion Object Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the receivable line's residual"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 1000000.0
+      - step: "Assert the invoice has no promotion usage yet"
+        action: "assert"
+        target: "invoice"
+        asserts:
+          promotion_usage_count:
+            type: "value"
+            expected: 0
+      - step: "Create a usage referencing the invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
+      - step: "Assert the invoice now counts the new usage"
+        action: "assert"
+        target: "invoice"
+        asserts:
+          promotion_usage_count:
+            type: "value"
+            expected: 1
+          promotion_usage_ids:
+            type: "m2m"
+            check: "contains"
+            expected_records:
+              - "REC: usage"
