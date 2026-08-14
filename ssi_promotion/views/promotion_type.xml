@@ -81,19 +81,13 @@
                 <page name="reference" string="Reference Documents">
                     <field name="allowed_model_ids" widget="many2many_tags" />
                 </page>
-                <page name="accounting" string="Credit Note Accounting">
-                    <group
-                            name="accounting_customer_group"
-                            string="Customer Credit Note"
-                        >
+                <page name="accounting" string="Discount Accounting">
+                    <group name="accounting_customer_group" string="Customer Discount">
                         <field name="journal_id" />
                         <field name="product_id" />
                         <field name="account_id" />
                     </group>
-                    <group
-                            name="accounting_referrer_group"
-                            string="Referrer Credit Note"
-                        >
+                    <group name="accounting_referrer_group" string="Referrer Discount">
                         <field name="referrer_journal_id" />
                         <field name="referrer_product_id" />
                     </group>

@@ -20,32 +20,32 @@ class PromotionCodeUsage(models.Model):
 
     Confirming a usage runs the promotion type's validity Python code
     together with the usage-limit and validity-period checks. Approving a
-    usage (state open) automatically creates and posts a customer credit
-    note for partner_id, and a referrer credit note for
-    promotion_code_id.partner_id when the code has a referrer (see the
-    post_open_action hooks). Each posted credit note's own receivable
-    journal item is kept on credit_note_move_line_id /
-    referrer_credit_note_move_line_id. Cancelling the usage deletes both
-    credit notes again and clears those four fields (see the
-    post_cancel_action hook).
+    usage (state open) automatically creates and posts a plain journal
+    entry (account.move, move_type 'entry') for partner_id, and a
+    second one for promotion_code_id.partner_id when the code has a
+    referrer (see the post_open_action hooks). Each posted journal
+    entry's own receivable journal item is kept on
+    receivable_move_line_id / referrer_receivable_move_line_id.
+    Cancelling the usage deletes both journal entries again and clears
+    those four fields (see the post_cancel_action hook).
 
-    Recognition Method controls which account those credit note lines
-    debit: Immediate (the default, copied from the promotion type)
-    debits the Final Account right away; Deferred debits Deferred
-    Account instead, so the discount can be recognized later by one
-    or more promotion_code_usage_recognition documents. 'Amount To
-    Recognize', 'Amount Recognized', 'Amount Deferred', and
+    Recognition Method controls which account those journal entry
+    lines debit: Immediate (the default, copied from the promotion
+    type) debits the Final Account right away; Deferred debits
+    Deferred Account instead, so the discount can be recognized later
+    by one or more promotion_code_usage_recognition documents.
+    'Amount To Recognize', 'Amount Recognized', 'Amount Deferred', and
     'Recognition State' track that release; they stay 'Not
     Applicable' while Recognition Method is Immediate.
 
     allocation_ids lists receivable account.move.line records this
-    usage's own credit note(s) should reduce instead of only adding
-    to the source partner's credit balance. Opening a usage first
-    validates every row (see '_15_check_allocation'), then
-    reconciles each source's own credit note receivable line
+    usage's own journal entry(-ies) should reduce instead of only
+    adding to the source partner's credit balance. Opening a usage
+    first validates every row (see '_15_check_allocation'), then
+    reconciles each source's own journal entry receivable line
     against its own allocation rows in order (see '_30_reconcile').
     Cancelling the usage undoes that reconciliation before its own
-    credit note(s) are deleted (see '_05_unreconcile').
+    journal entry(-ies) are deleted (see '_05_unreconcile').
     """
 
     _name = "promotion_code_usage"
@@ -127,7 +127,7 @@ class PromotionCodeUsage(models.Model):
     partner_id = fields.Many2one(
         string="Voucher User",
         help="Partner who redeemed the promotion code. Receives the "
-        "customer credit note when this usage is approved.",
+        "customer accounting entry when this usage is approved.",
     )
     date = fields.Date(
         string="Usage Date",
@@ -156,40 +156,40 @@ class PromotionCodeUsage(models.Model):
         "promotion type's discount rule (fixed amount, percentage of the "
         "reference document's total, or custom Python code).",
     )
-    credit_note_id = fields.Many2one(
-        string="Customer Credit Note",
+    move_id = fields.Many2one(
+        string="Customer Accounting Entry",
         comodel_name="account.move",
         readonly=True,
         copy=False,
-        help="Credit note automatically created for 'Voucher User' when "
-        "this usage is approved.",
+        help="Journal entry automatically created for 'Voucher User' "
+        "when this usage is approved.",
     )
-    referrer_credit_note_id = fields.Many2one(
-        string="Referrer Credit Note",
+    referrer_move_id = fields.Many2one(
+        string="Referrer Accounting Entry",
         comodel_name="account.move",
         readonly=True,
         copy=False,
-        help="Credit note automatically created for the promotion code's "
-        "referrer (promotion_code_id.partner_id) when this usage is "
-        "approved, if the promotion code has a referrer.",
+        help="Journal entry automatically created for the promotion "
+        "code's referrer (promotion_code_id.partner_id) when this "
+        "usage is approved, if the promotion code has a referrer.",
     )
-    credit_note_move_line_id = fields.Many2one(
-        string="Customer Credit Note Receivable Line",
+    receivable_move_line_id = fields.Many2one(
+        string="Customer Receivable Journal Item",
         comodel_name="account.move.line",
         readonly=True,
         copy=False,
-        help="Receivable journal item of 'Customer Credit Note', filled "
-        "by the '_20_post_credit_note' hook when this usage's own "
-        "customer credit note is posted.",
+        help="Receivable journal item of 'Customer Accounting Entry', "
+        "filled by the '_20_post_accounting_entry' hook when this "
+        "usage's own customer journal entry is posted.",
     )
-    referrer_credit_note_move_line_id = fields.Many2one(
-        string="Referrer Credit Note Receivable Line",
+    referrer_receivable_move_line_id = fields.Many2one(
+        string="Referrer Receivable Journal Item",
         comodel_name="account.move.line",
         readonly=True,
         copy=False,
-        help="Receivable journal item of 'Referrer Credit Note', filled "
-        "by the '_20_post_credit_note' hook when this usage's own "
-        "referrer credit note is posted.",
+        help="Receivable journal item of 'Referrer Accounting Entry', "
+        "filled by the '_20_post_accounting_entry' hook when this "
+        "usage's own referrer journal entry is posted.",
     )
     recognition_method = fields.Selection(
         string="Recognition Method",
@@ -203,9 +203,9 @@ class PromotionCodeUsage(models.Model):
         compute_sudo=True,
         help="Defaulted from the promotion type's own 'Recognition "
         "Method', but may still be overridden manually while this "
-        "usage is in Draft. Deferred routes the credit note line(s) "
-        "created on approval to 'Deferred Account' instead of their "
-        "Final Account.",
+        "usage is in Draft. Deferred routes the journal entry "
+        "line(s) created on approval to 'Deferred Account' instead "
+        "of their Final Account.",
     )
     recognition_date = fields.Date(
         string="Recognition Date",
@@ -222,8 +222,8 @@ class PromotionCodeUsage(models.Model):
         comodel_name="account.account",
         readonly=True,
         states={"draft": [("readonly", False)]},
-        help="Account debited on the credit note line(s) created for "
-        "this usage instead of their Final Account, while this "
+        help="Account debited on the journal entry line(s) created "
+        "for this usage instead of their Final Account, while this "
         "usage's own 'Recognition Method' is Deferred. Defaulted from "
         "the promotion type's own 'Deferred Account'. Required while "
         "'Recognition Method' is Deferred.",
@@ -243,12 +243,12 @@ class PromotionCodeUsage(models.Model):
         compute="_compute_amount_to_recognize",
         store=True,
         compute_sudo=True,
-        help="Total amount this usage's credit note line(s) debited "
+        help="Total amount this usage's journal entry line(s) debited "
         "to Deferred Account, due to be released by "
         "promotion_code_usage_recognition documents: 'Discount "
         "Amount', doubled when this usage's promotion code has a "
-        "referrer (both the customer and referrer credit note lines "
-        "carry the same 'Discount Amount').",
+        "referrer (both the customer and referrer journal entry "
+        "lines carry the same 'Discount Amount').",
     )
     amount_recognized = fields.Float(
         string="Amount Recognized",
@@ -299,10 +299,10 @@ class PromotionCodeUsage(models.Model):
         comodel_name="promotion_code_usage_allocation",
         inverse_name="usage_id",
         copy=False,
-        help="Receivable journal items this usage's own credit "
-        "note(s) should be reconciled against once this usage "
+        help="Receivable journal items this usage's own journal "
+        "entry(-ies) should be reconciled against once this usage "
         "opens (see the '_30_reconcile' hook). Journal items "
-        "reached after their own source credit note runs out of "
+        "reached after their own source journal entry runs out of "
         "residual keep an empty 'Partial Reconcile'.",
     )
 
@@ -439,8 +439,8 @@ class PromotionCodeUsage(models.Model):
         """Compute the total amount due to be released by recognitions.
 
         Doubles 'Discount Amount' when this usage's promotion code
-        has a referrer, since the customer and referrer credit note
-        lines both carry the same 'Discount Amount'.
+        has a referrer, since the customer and referrer journal
+        entry lines both carry the same 'Discount Amount'.
 
         :return: nothing; assigns ``amount_to_recognize``
         """
@@ -962,105 +962,102 @@ receivable account of the '%s' source for this usage
             return self.promotion_code_id.partner_id
         return self.partner_id
 
-    # L. Credit Note Creation (post-open hook)
+    # L. Accounting Entry Creation (post-open hook)
     @ssi_decorator.post_open_action()
-    def _10_create_credit_note(self):
-        """Create the credit note(s) for a newly approved usage.
+    def _10_create_accounting_entry(self):
+        """Create the journal entry(-ies) for a newly approved usage.
 
         Runs after the confirm-to-open transition (approval,
         ``action_open``) completes. Always creates the customer
-        credit note; also creates the referrer credit note when the
-        promotion code has a referrer ('partner_id' set).
+        journal entry; also creates the referrer journal entry when
+        the promotion code has a referrer ('partner_id' set).
         """
-        self._create_customer_credit_note()
-        self._create_referrer_credit_note()
+        self._create_customer_move()
+        self._create_referrer_move()
 
-    def _create_customer_credit_note(self):
-        """Create the customer credit note for this usage, once.
+    def _create_customer_move(self):
+        """Create the customer journal entry for this usage, once.
 
-        No-op when 'Customer Credit Note' is already set.
+        No-op when 'Customer Accounting Entry' is already set.
 
-        :raises UserError: via ``_check_credit_note_configuration``
-            when the promotion type's journal/product are incomplete
+        :raises UserError: via ``_check_accounting_configuration``
+            when the promotion type/partner accounting configuration
+            is incomplete
         """
         self.ensure_one()
-        if self.credit_note_id:
+        if self.move_id:
             return
-        self._check_credit_note_configuration(referrer=False)
-        move = self.env["account.move"].create(
-            self._prepare_customer_credit_note_data()
-        )
-        self.write({"credit_note_id": move.id})
+        self._check_accounting_configuration(referrer=False)
+        move = self.env["account.move"].create(self._prepare_customer_move_data())
+        self.write({"move_id": move.id})
 
-    def _create_referrer_credit_note(self):
-        """Create the referrer credit note for this usage, once.
+    def _create_referrer_move(self):
+        """Create the referrer journal entry for this usage, once.
 
-        No-op when 'Referrer Credit Note' is already set, or when
-        the promotion code has no referrer ('partner_id' empty).
+        No-op when 'Referrer Accounting Entry' is already set, or
+        when the promotion code has no referrer ('partner_id' empty).
 
-        :raises UserError: via ``_check_credit_note_configuration``
-            when the promotion type's journal/product are incomplete
+        :raises UserError: via ``_check_accounting_configuration``
+            when the promotion type/partner accounting configuration
+            is incomplete
         """
         self.ensure_one()
-        if self.referrer_credit_note_id:
+        if self.referrer_move_id:
             return
         if not self.promotion_code_id.partner_id:
             return
-        self._check_credit_note_configuration(referrer=True)
-        move = self.env["account.move"].create(
-            self._prepare_referrer_credit_note_data()
-        )
-        self.write({"referrer_credit_note_id": move.id})
+        self._check_accounting_configuration(referrer=True)
+        move = self.env["account.move"].create(self._prepare_referrer_move_data())
+        self.write({"referrer_move_id": move.id})
 
     @ssi_decorator.post_open_action()
-    def _20_post_credit_note(self):
-        """Post the credit note(s) created by ``_10_create_credit_note``.
+    def _20_post_accounting_entry(self):
+        """Post the journal entry(-ies) created by
+        ``_10_create_accounting_entry``.
 
         Runs after the confirm-to-open transition (approval,
-        ``action_open``) completes, right after credit note
+        ``action_open``) completes, right after journal entry
         creation, so the "create then post" order reads from the
-        prefix numbers. Posts 'Customer Credit Note' and, when
-        present, 'Referrer Credit Note', then fills their own
+        prefix numbers. Posts 'Customer Accounting Entry' and, when
+        present, 'Referrer Accounting Entry', then fills their own
         receivable journal item field.
         """
-        self._post_customer_credit_note()
-        self._post_referrer_credit_note()
+        self._post_customer_move()
+        self._post_referrer_move()
 
-    def _post_customer_credit_note(self):
-        """Post 'Customer Credit Note' and fill its receivable line.
+    def _post_customer_move(self):
+        """Post 'Customer Accounting Entry' and fill its receivable line.
 
-        No-op when 'Customer Credit Note' is empty or already
+        No-op when 'Customer Accounting Entry' is empty or already
         'posted'.
 
         :return: nothing
         """
         self.ensure_one()
-        if not self.credit_note_id or self.credit_note_id.state == "posted":
+        if not self.move_id or self.move_id.state == "posted":
             return
-        self.credit_note_id.action_post()
-        self.credit_note_move_line_id = self._get_receivable_move_line(
-            self.credit_note_id
-        )
+        self.move_id.action_post()
+        self.receivable_move_line_id = self._get_receivable_move_line(self.move_id)
 
-    def _post_referrer_credit_note(self):
-        """Post 'Referrer Credit Note' and fill its receivable line.
+    def _post_referrer_move(self):
+        """Post 'Referrer Accounting Entry' and fill its receivable line.
 
-        No-op when 'Referrer Credit Note' is empty or already
+        No-op when 'Referrer Accounting Entry' is empty or already
         'posted'.
 
         :return: nothing
         """
         self.ensure_one()
-        move = self.referrer_credit_note_id
+        move = self.referrer_move_id
         if not move or move.state == "posted":
             return
         move.action_post()
-        self.referrer_credit_note_move_line_id = self._get_receivable_move_line(move)
+        self.referrer_receivable_move_line_id = self._get_receivable_move_line(move)
 
     def _get_receivable_move_line(self, move):
-        """Resolve a posted credit note's own receivable journal item.
+        """Resolve a posted journal entry's own receivable journal item.
 
-        :param move: a posted ``account.move`` (credit note)
+        :param move: a posted ``account.move`` (journal entry)
         :return: the ``account.move.line`` whose 'Account' has
             'internal_type' 'receivable', possibly empty
         """
@@ -1072,26 +1069,25 @@ receivable account of the '%s' source for this usage
     # L2. Allocation Reconciliation (post-open hook)
     @ssi_decorator.post_open_action()
     def _30_reconcile(self):
-        """Reconcile the credit note(s) against every allocation row.
+        """Reconcile the journal entry(-ies) against every allocation row.
 
-        Runs after ``_20_post_credit_note``, once both credit notes
-        are posted, so their own receivable journal item is
-        available on 'Customer Credit Note Receivable Line' /
-        'Referrer Credit Note Receivable Line'. Consumes each
-        source's own credit note receivable line against this
-        usage's own 'Allocations', in ``_order`` (grouped by
-        'Source'), skipping rows once that source's credit note
-        runs out of residual.
+        Runs after ``_20_post_accounting_entry``, once both journal
+        entries are posted, so their own receivable journal item is
+        available on 'Customer Receivable Journal Item' /
+        'Referrer Receivable Journal Item'. Consumes each source's
+        own journal entry receivable line against this usage's own
+        'Allocations', in ``_order`` (grouped by 'Source'), skipping
+        rows once that source's journal entry runs out of residual.
         """
         self.ensure_one()
         self._reconcile_allocation_source("customer")
         self._reconcile_allocation_source("referrer")
 
     def _reconcile_allocation_source(self, source):
-        """Consume one source's own credit note against its rows.
+        """Consume one source's own journal entry against its rows.
 
-        A credit note's own receivable line sits on the credit side
-        of its journal entry, so its own 'Amount Residual' is
+        A journal entry's own receivable line sits on the credit
+        side of its journal entry, so its own 'Amount Residual' is
         negative (``balance = debit - credit``) -- unlike an
         allocation row's own target line, which sits on the debit
         side and is checked for a positive residual instead (see
@@ -1102,40 +1098,42 @@ receivable account of the '%s' source for this usage
         :return: nothing
         """
         self.ensure_one()
-        credit_move_line = self._get_allocation_credit_move_line(source)
-        if not credit_move_line:
+        receivable_move_line = self._get_allocation_receivable_move_line(source)
+        if not receivable_move_line:
             return
         precision = self.env.company.currency_id.decimal_places
         lines = self.allocation_ids.filtered(
             lambda allocation: allocation.source == source
         )
         for line in lines:
-            if credit_move_line.reconciled or float_is_zero(
-                credit_move_line.amount_residual, precision_digits=precision
+            if receivable_move_line.reconciled or float_is_zero(
+                receivable_move_line.amount_residual, precision_digits=precision
             ):
                 break
-            line._reconcile(credit_move_line)
+            line._reconcile(receivable_move_line)
 
-    def _get_allocation_credit_move_line(self, source):
-        """Resolve one source's own credit note receivable line.
+    def _get_allocation_receivable_move_line(self, source):
+        """Resolve one source's own journal entry receivable line.
 
         :param source: ``'customer'`` or ``'referrer'``
-        :return: 'Customer Credit Note Receivable Line' for
-            ``'customer'``, 'Referrer Credit Note Receivable Line'
-            for ``'referrer'``, possibly empty
+        :return: 'Customer Receivable Journal Item' for
+            ``'customer'``, 'Referrer Receivable Journal Item' for
+            ``'referrer'``, possibly empty
         """
         self.ensure_one()
         if source == "referrer":
-            return self.referrer_credit_note_move_line_id
-        return self.credit_note_move_line_id
+            return self.referrer_receivable_move_line_id
+        return self.receivable_move_line_id
 
-    def _check_credit_note_configuration(self, referrer=False):
-        """Require a complete credit note configuration on the type.
+    def _check_accounting_configuration(self, referrer=False):
+        """Require a complete accounting configuration for this side.
 
-        :param referrer: check the referrer journal/product instead
-            of the voucher user's
-        :raises UserError: when the resolved journal or product is
-            empty
+        :param referrer: check the referrer's own configuration
+            instead of the voucher user's
+        :raises UserError: when the resolved journal is empty, the
+            resolved discount account (``_get_discount_account``) is
+            empty, or the resolved partner has no own
+            'property_account_receivable_id'
         """
         self.ensure_one()
         promotion_type = self.type_id
@@ -1144,30 +1142,62 @@ receivable account of the '%s' source for this usage
             if referrer
             else promotion_type.journal_id
         )
-        product = (
-            promotion_type.referrer_product_id or promotion_type.product_id
-            if referrer
-            else promotion_type.product_id
-        )
-        if not journal or not product:
+        partner = self._get_move_partner(referrer=referrer)
+        if not journal:
             error_message = """
-Context: Create credit note from promotion code usage
+Context: Create accounting entry from promotion code usage
 Database ID: %s
-Problem: Promotion type '%s' does not have a complete credit note \
-configuration (journal and/or product)
-Solution: Set 'Credit Note Journal' and 'Credit Note Product' (and the \
-referrer equivalents if applicable) on the promotion type
+Problem: Promotion type '%s' does not have a Journal configured
+Solution: Set 'Discount Journal' (or 'Referrer Discount Journal') on the \
+promotion type
 """ % (
                 self.id,
                 promotion_type.display_name,
             )
             raise UserError(_(error_message))
+        if not self._get_discount_account(referrer=referrer):
+            error_message = """
+Context: Create accounting entry from promotion code usage
+Database ID: %s
+Problem: Promotion type '%s' does not have a Discount Account configured
+Solution: Set 'Discount Account' (and the 'Discount Product' income \
+account fallback) on the promotion type, or 'Deferred Account' while \
+'Recognition Method' is Deferred
+""" % (
+                self.id,
+                promotion_type.display_name,
+            )
+            raise UserError(_(error_message))
+        if not partner.property_account_receivable_id:
+            error_message = """
+Context: Create accounting entry from promotion code usage
+Database ID: %s
+Problem: Partner '%s' does not have a Receivable Account configured
+Solution: Set 'Account Receivable' on the partner's own accounting \
+configuration
+""" % (
+                self.id,
+                partner.display_name,
+            )
+            raise UserError(_(error_message))
+
+    def _get_move_partner(self, referrer=False):
+        """Resolve the partner one side of the journal entry belongs to.
+
+        :param referrer: resolve the promotion code's own referrer
+            instead of the voucher user's
+        :return: a ``res.partner`` record, possibly empty
+        """
+        self.ensure_one()
+        if referrer:
+            return self.promotion_code_id.partner_id
+        return self.partner_id
 
     def _get_final_account(self, referrer=False):
-        """Resolve the non-deferred account for a credit note line.
+        """Resolve the non-deferred account for a journal entry line.
 
         Extension point: override to change how the customer or
-        referrer credit note line's own Final Account is resolved,
+        referrer journal entry line's own Final Account is resolved,
         independently of 'Recognition Method'.
 
         :param referrer: resolve the referrer's Final Account instead
@@ -1184,8 +1214,8 @@ referrer equivalents if applicable) on the promotion type
             or promotion_type.product_id.property_account_income_id
         )
 
-    def _get_credit_note_account(self, referrer=False):
-        """Resolve the account a credit note line of this usage debits.
+    def _get_discount_account(self, referrer=False):
+        """Resolve the account a journal entry line of this usage debits.
 
         Returns this usage's own 'Deferred Account' while
         'Recognition Method' is ``deferred``; otherwise falls back to
@@ -1201,131 +1231,159 @@ referrer equivalents if applicable) on the promotion type
             return self.deferred_account_id
         return self._get_final_account(referrer=referrer)
 
-    def _prepare_customer_credit_note_data(self):
-        """Build the customer credit note ``account.move`` values.
+    def _prepare_customer_move_data(self):
+        """Build the customer journal entry ``account.move`` values.
 
-        The single line debits
-        ``_get_credit_note_account(referrer=False)``.
+        Two lines: a debit line on
+        ``_get_discount_account(referrer=False)``, and a credit line
+        on the voucher user's own receivable account.
 
         :return: dict of ``account.move`` values
         """
         self.ensure_one()
         promotion_type = self.type_id
+        partner = self._get_move_partner(referrer=False)
         return {
-            "move_type": "out_refund",
-            "partner_id": self.partner_id.id,
-            "invoice_date": self.date,
             "journal_id": promotion_type.journal_id.id,
-            "invoice_origin": self.name,
-            "invoice_line_ids": [
+            "partner_id": partner.id,
+            "date": self.date,
+            "ref": self.name,
+            "line_ids": [
                 (
                     0,
                     0,
-                    self._prepare_credit_note_line_data(
-                        promotion_type.product_id,
-                        self._get_credit_note_account(referrer=False),
+                    self._prepare_discount_line_data(
+                        partner, self._get_discount_account(referrer=False)
                     ),
-                )
+                ),
+                (0, 0, self._prepare_receivable_line_data(partner)),
             ],
         }
 
-    def _prepare_referrer_credit_note_data(self):
-        """Build the referrer credit note ``account.move`` values.
+    def _prepare_referrer_move_data(self):
+        """Build the referrer journal entry ``account.move`` values.
 
-        The single line debits
-        ``_get_credit_note_account(referrer=True)``.
+        Two lines: a debit line on
+        ``_get_discount_account(referrer=True)``, and a credit line
+        on the referrer's own receivable account.
 
         :return: dict of ``account.move`` values
         """
         self.ensure_one()
         promotion_type = self.type_id
-        product = promotion_type.referrer_product_id or promotion_type.product_id
+        partner = self._get_move_partner(referrer=True)
         journal = promotion_type.referrer_journal_id or promotion_type.journal_id
         return {
-            "move_type": "out_refund",
-            "partner_id": self.promotion_code_id.partner_id.id,
-            "invoice_date": self.date,
             "journal_id": journal.id,
-            "invoice_origin": self.name,
-            "invoice_line_ids": [
+            "partner_id": partner.id,
+            "date": self.date,
+            "ref": self.name,
+            "line_ids": [
                 (
                     0,
                     0,
-                    self._prepare_credit_note_line_data(
-                        product, self._get_credit_note_account(referrer=True)
+                    self._prepare_discount_line_data(
+                        partner, self._get_discount_account(referrer=True)
                     ),
-                )
+                ),
+                (0, 0, self._prepare_receivable_line_data(partner)),
             ],
         }
 
-    def _prepare_credit_note_line_data(self, product, account):
-        """Build one ``account.move.line`` values dict.
+    def _get_move_line_label(self):
+        """Build the label shared by both lines of a journal entry.
 
-        :param product: product recorded on the credit note line
-        :param account: account debited by the line; falls back to
-            ``product.property_account_income_id`` when empty
+        Combines this usage's own document number with its own
+        promotion code's voucher code.
+
+        :return: the composed label string
+        """
+        self.ensure_one()
+        return "%s - %s" % (self.name, self.promotion_code_id.voucher_code)
+
+    def _prepare_discount_line_data(self, partner, account):
+        """Build the debit (discount) ``account.move.line`` values dict.
+
+        :param partner: partner recorded on the line
+        :param account: account debited by the line
         :return: dict of ``account.move.line`` values
         """
         self.ensure_one()
-        account_id = account.id if account else product.property_account_income_id.id
         return {
-            "product_id": product.id,
-            "quantity": 1,
-            "price_unit": self.discount_amount,
-            "name": product.name,
-            "account_id": account_id,
+            "partner_id": partner.id,
+            "account_id": account.id,
+            "name": self._get_move_line_label(),
+            "debit": self.discount_amount,
+            "credit": 0.0,
+        }
+
+    def _prepare_receivable_line_data(self, partner):
+        """Build the credit (receivable) ``account.move.line`` values dict.
+
+        :param partner: partner recorded on the line; its own
+            'property_account_receivable_id' is credited
+        :return: dict of ``account.move.line`` values
+        """
+        self.ensure_one()
+        return {
+            "partner_id": partner.id,
+            "account_id": partner.property_account_receivable_id.id,
+            "name": self._get_move_line_label(),
+            "debit": 0.0,
+            "credit": self.discount_amount,
         }
 
     # M0. Allocation Un-Reconciliation (post-cancel hook)
     @ssi_decorator.post_cancel_action()
     def _05_unreconcile(self):
-        """Undo every allocation reconciliation before the credit
-        note(s) are deleted.
+        """Undo every allocation reconciliation before the journal
+        entry(-ies) are deleted.
 
         Runs on the transition to Cancel, with a prefix number
-        smaller than ``_10_delete_credit_note`` so this hook runs
-        first -- reconciliation must be undone before the credit
-        note journal items it points to are removed. Calls
-        ``remove_move_reconcile`` on 'Customer Credit Note
-        Receivable Line' and, when present, 'Referrer Credit Note
-        Receivable Line', then clears 'Partial Reconcile' on every
-        row of 'Allocations'. Idempotent: an empty receivable line
-        field is skipped, so this hook is safe to run repeatedly.
-        """
-        self.ensure_one()
-        credit_move_lines = (
-            self.credit_note_move_line_id + self.referrer_credit_note_move_line_id
-        )
-        if credit_move_lines:
-            credit_move_lines.remove_move_reconcile()
-        self.allocation_ids.write({"partial_reconcile_id": False})
-
-    # M. Credit Note Deletion (post-cancel hook)
-    @ssi_decorator.post_cancel_action()
-    def _10_delete_credit_note(self):
-        """Delete the credit note(s) created for this usage.
-
-        Runs after the transition to Cancel. Returns 'Customer
-        Credit Note' and, when present, 'Referrer Credit Note' to
-        draft, then deletes them, clearing 'Customer Credit Note',
-        'Referrer Credit Note', and their own receivable journal
-        item field. Idempotent: a credit note field already empty is
+        smaller than ``_10_delete_accounting_entry`` so this hook
+        runs first -- reconciliation must be undone before the
+        journal items it points to are removed. Calls
+        ``remove_move_reconcile`` on 'Customer Receivable Journal
+        Item' and, when present, 'Referrer Receivable Journal Item',
+        then clears 'Partial Reconcile' on every row of
+        'Allocations'. Idempotent: an empty receivable line field is
         skipped, so this hook is safe to run repeatedly.
         """
-        self._delete_customer_credit_note()
-        self._delete_referrer_credit_note()
+        self.ensure_one()
+        receivable_move_lines = (
+            self.receivable_move_line_id + self.referrer_receivable_move_line_id
+        )
+        if receivable_move_lines:
+            receivable_move_lines.remove_move_reconcile()
+        self.allocation_ids.write({"partial_reconcile_id": False})
 
-    def _delete_customer_credit_note(self):
-        """Delete 'Customer Credit Note', once.
+    # M. Accounting Entry Deletion (post-cancel hook)
+    @ssi_decorator.post_cancel_action()
+    def _10_delete_accounting_entry(self):
+        """Delete the journal entry(-ies) created for this usage.
 
-        No-op when 'Customer Credit Note' is already empty.
+        Runs after the transition to Cancel. Returns 'Customer
+        Accounting Entry' and, when present, 'Referrer Accounting
+        Entry' to draft, then deletes them, clearing 'Customer
+        Accounting Entry', 'Referrer Accounting Entry', and their own
+        receivable journal item field. Idempotent: an accounting
+        entry field already empty is skipped, so this hook is safe to
+        run repeatedly.
+        """
+        self._delete_customer_move()
+        self._delete_referrer_move()
+
+    def _delete_customer_move(self):
+        """Delete 'Customer Accounting Entry', once.
+
+        No-op when 'Customer Accounting Entry' is already empty.
 
         :return: nothing
         """
         self.ensure_one()
-        if not self.credit_note_id:
+        if not self.move_id:
             return
-        move = self.credit_note_id
+        move = self.move_id
         if move.state != "draft":
             move.button_draft()
         # 'posted_before' stays True after button_draft(), so plain
@@ -1336,30 +1394,30 @@ referrer equivalents if applicable) on the promotion type
         move.with_context(force_delete=True).unlink()
         self.write(
             {
-                "credit_note_id": False,
-                "credit_note_move_line_id": False,
+                "move_id": False,
+                "receivable_move_line_id": False,
             }
         )
 
-    def _delete_referrer_credit_note(self):
-        """Delete 'Referrer Credit Note', once.
+    def _delete_referrer_move(self):
+        """Delete 'Referrer Accounting Entry', once.
 
-        No-op when 'Referrer Credit Note' is already empty.
+        No-op when 'Referrer Accounting Entry' is already empty.
 
         :return: nothing
         """
         self.ensure_one()
-        if not self.referrer_credit_note_id:
+        if not self.referrer_move_id:
             return
-        move = self.referrer_credit_note_id
+        move = self.referrer_move_id
         if move.state != "draft":
             move.button_draft()
-        # See the matching comment in _delete_customer_credit_note.
+        # See the matching comment in _delete_customer_move.
         move.with_context(force_delete=True).unlink()
         self.write(
             {
-                "referrer_credit_note_id": False,
-                "referrer_credit_note_move_line_id": False,
+                "referrer_move_id": False,
+                "referrer_receivable_move_line_id": False,
             }
         )
 

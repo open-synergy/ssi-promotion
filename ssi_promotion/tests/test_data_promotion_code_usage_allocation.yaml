@@ -2,7 +2,7 @@ options:
   auto_refresh: true
 
 scenarios:
-  - name: "Approving an allocated usage reconciles its own credit note"
+  - name: "Approving an allocated usage reconciles its own accounting entry"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -24,7 +24,7 @@ scenarios:
           name: "Allocation Basic Journal"
           code: "ALLOCS1"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -194,7 +194,7 @@ scenarios:
             type: "value"
             expected: 800000.0
 
-  - name: "Sequential allocation consumes the credit note in order"
+  - name: "Sequential allocation consumes the accounting entry in order"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -216,7 +216,7 @@ scenarios:
           name: "Allocation Sequence Journal"
           code: "ALLOCS2"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -389,7 +389,7 @@ scenarios:
           amount_residual:
             type: "value"
             expected: 0.0
-      - step: "Assert the second line keeps the credit note's leftover"
+      - step: "Assert the second line keeps the accounting entry's leftover"
         action: "assert"
         target: "move_line_b"
         asserts:
@@ -397,7 +397,7 @@ scenarios:
             type: "value"
             expected: 200000.0
 
-  - name: "Allocation row reached after the credit note is exhausted"
+  - name: "Allocation row reached after the accounting entry is exhausted"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -419,7 +419,7 @@ scenarios:
           name: "Allocation Exhausted Journal"
           code: "ALLOCS3"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -541,7 +541,8 @@ scenarios:
         save_as: "move_line_b"
         limit: 1
         expect_count: 1
-      - step: "Create usage allocating both lines, credit note only covers the first"
+      - step:
+          "Create usage allocating both lines, accounting entry only covers the first"
         action: "create"
         model: "promotion_code_usage"
         save_as: "usage"
@@ -624,7 +625,7 @@ scenarios:
           name: "Allocation Cancel Journal"
           code: "ALLOCS4"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -823,7 +824,7 @@ scenarios:
           name: "Allocation Negative Partner Journal"
           code: "ALLOCNEG1"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -979,7 +980,7 @@ scenarios:
           name: "Allocation Negative Draft Journal"
           code: "ALLOCNEG2"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1131,7 +1132,7 @@ scenarios:
           name: "Allocation Negative Referrer Journal"
           code: "ALLOCNEG3"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1281,7 +1282,7 @@ scenarios:
           name: "Allocation Negative Duplicate Journal"
           code: "ALLOCNEG4"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1418,7 +1419,7 @@ scenarios:
           name: "Allocation Negative Promotion Object Journal"
           code: "ALLOCNEG5"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"

@@ -24,7 +24,7 @@ scenarios:
           name: "Mixin Promotion Object Journal"
           code: "MIXPO"
           type: "sale"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"

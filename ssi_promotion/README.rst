@@ -7,10 +7,11 @@ Promotion
 =========
 
 Manage voucher and referral codes: define promotion types (discount rule,
-usage limit, validity period, allowed reference documents, and credit note
-accounting), issue promotion codes, and record their usage against any
-Odoo document. Approving a usage automatically creates a customer credit
-note, and a referrer credit note when the code has a referrer partner.
+usage limit, validity period, allowed reference documents, and accounting
+entry configuration), issue promotion codes, and record their usage
+against any Odoo document. Approving a usage automatically creates a
+customer accounting entry (a plain journal entry), and a referrer
+accounting entry when the code has a referrer partner.
 
 
 Work Instruction

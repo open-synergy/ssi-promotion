@@ -54,7 +54,7 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             // Flow 3 — Fill in the required fields (Promotion Code,
             // Voucher User). Usage Date keeps its own default (today);
             // Reference Document is optional and left empty. Discount
-            // & Credit Note tab fields are auto-computed once
+            // & Accounting Entry tab fields are auto-computed once
             // Promotion Code is picked -- out of tour scope (value
             // verification is unit-test territory).
             {

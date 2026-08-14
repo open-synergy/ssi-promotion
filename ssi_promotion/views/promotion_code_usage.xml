@@ -76,7 +76,7 @@
                 <field name="document_reference" />
             </xpath>
             <xpath expr="//page[1]" position="before">
-                <page name="discount" string="Discount &amp; Credit Note">
+                <page name="discount" string="Discount &amp; Accounting Entry">
                     <group name="promotion_code_usage_discount_group" string="Discount">
                         <field name="discount_amount" />
                     </group>
@@ -112,13 +112,13 @@
                             />
                     </group>
                     <group
-                            name="promotion_code_usage_credit_note_group"
-                            string="Credit Note"
+                            name="promotion_code_usage_accounting_entry_group"
+                            string="Accounting Entry"
                         >
-                        <field name="credit_note_id" />
-                        <field name="credit_note_move_line_id" />
-                        <field name="referrer_credit_note_id" />
-                        <field name="referrer_credit_note_move_line_id" />
+                        <field name="move_id" />
+                        <field name="receivable_move_line_id" />
+                        <field name="referrer_move_id" />
+                        <field name="referrer_receivable_move_line_id" />
                     </group>
                 </page>
                 <page name="allocation" string="Allocation">

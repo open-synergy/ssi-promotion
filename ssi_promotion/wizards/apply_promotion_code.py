@@ -52,8 +52,8 @@ class ApplyPromotionCode(models.TransientModel):
         comodel_name="res.partner",
         readonly=True,
         default=lambda self: self._default_partner_id(),
-        help="Partner who will be billed the resulting credit note, "
-        "resolved from the caller document's own "
+        help="Partner who will be billed the resulting accounting "
+        "entry, resolved from the caller document's own "
         "_get_promotion_partner(). Shown for review only -- not "
         "editable here.",
     )
