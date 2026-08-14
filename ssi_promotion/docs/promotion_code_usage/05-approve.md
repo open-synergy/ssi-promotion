@@ -46,10 +46,10 @@
 - If all approval levels are fulfilled, this document is automatically opened: status
   changes straight to **Open**. There is no separate manual "Start" step — the
   transition happens as soon as the last approval level is fulfilled. A customer
-  accounting entry (a plain journal entry) is created and posted for
-  **Voucher User** at the same time (and a referrer accounting entry as well, if
-  **Promotion Code** has a referrer), so **Customer Accounting Entry** already shows
-  status **Posted** and its own receivable journal item is stored on this document. Each
-  row on the **Allocation** tab is then reconciled against its own **Source**'s
-  accounting entry, in **Sequence** order, until that accounting entry runs out of
-  residual — rows reached afterwards keep an empty **Partial Reconcile**.
+  accounting entry (a plain journal entry) is created and posted for **Voucher User** at
+  the same time (and a referrer accounting entry as well, if **Promotion Code** has a
+  referrer), so **Customer Accounting Entry** already shows status **Posted** and its
+  own receivable journal item is stored on this document. Each row on the **Allocation**
+  tab is then reconciled against its own **Source**'s accounting entry, in **Sequence**
+  order, until that accounting entry runs out of residual — rows reached afterwards keep
+  an empty **Partial Reconcile**.

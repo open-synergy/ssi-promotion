@@ -541,7 +541,8 @@ scenarios:
         save_as: "move_line_b"
         limit: 1
         expect_count: 1
-      - step: "Create usage allocating both lines, accounting entry only covers the first"
+      - step:
+          "Create usage allocating both lines, accounting entry only covers the first"
         action: "create"
         model: "promotion_code_usage"
         save_as: "usage"

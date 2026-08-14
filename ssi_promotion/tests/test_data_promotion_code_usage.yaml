@@ -139,7 +139,9 @@ scenarios:
           referrer_move_id:
             type: "value"
             operator: "is_falsy"
-      - step: "Assert customer accounting entry is a posted journal entry with its own receivable line"
+      - step:
+          "Assert customer accounting entry is a posted journal entry with its own
+          receivable line"
         action: "assert"
         target: "usage"
         asserts:

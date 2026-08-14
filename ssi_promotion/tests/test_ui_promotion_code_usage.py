@@ -181,12 +181,32 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         # move's own number (account.move.line name_get,
         # account_move.py), which is what the tour looks for in the
         # resulting allocation row.
+        #
+        # Deliberately posted through its OWN journal, not
+        # ``pcu_journal``: ``account.journal.refund_sequence`` groups
+        # a journal's own numbering by "is a credit note or not", so a
+        # plain ``entry``-type accounting entry (open-synergy/
+        # ssi-promotion#38) shares its own numbering bucket with this
+        # invoice. Sharing ``pcu_journal`` would make Odoo's own
+        # sequence.mixin derive the accounting entry posted for
+        # ``cls.usage_finish`` from this invoice's own manually-set,
+        # digit-less name (appending "1"), producing a display name
+        # that also contains "TOUR-PCU-ALLOC-INV" and confuses the
+        # tour's own autocomplete match below.
+        pcu_invoice_journal = cls.env["account.journal"].create(
+            {
+                "name": "TOUR PCUW Invoice Journal",
+                "code": "TPCUI",
+                "type": "sale",
+                "company_id": cls.env.ref("base.main_company").id,
+            }
+        )
         alloc_invoice = cls.env["account.move"].create(
             {
                 "name": "TOUR-PCU-ALLOC-INV",
                 "move_type": "out_invoice",
                 "partner_id": cls.customer_pcu.id,
-                "journal_id": pcu_journal.id,
+                "journal_id": pcu_invoice_journal.id,
                 "invoice_line_ids": [
                     (
                         0,
