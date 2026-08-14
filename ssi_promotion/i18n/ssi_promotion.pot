@@ -540,6 +540,11 @@ msgid "Customer Credit Note"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__credit_note_move_line_id
+msgid "Customer Credit Note Receivable Line"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__date
@@ -1358,6 +1363,22 @@ msgid "Ratio"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__credit_note_move_line_id
+msgid ""
+"Receivable journal item of 'Customer Credit Note', filled by the "
+"'_20_post_credit_note' hook when this usage's own customer credit note is "
+"posted."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_credit_note_move_line_id
+msgid ""
+"Receivable journal item of 'Referrer Credit Note', filled by the "
+"'_20_post_credit_note' hook when this usage's own referrer credit note is "
+"posted."
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
 msgid "Recognition"
 msgstr ""
@@ -1445,6 +1466,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_product_id
 msgid "Referrer Credit Note Product"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_credit_note_move_line_id
+msgid "Referrer Credit Note Receivable Line"
 msgstr ""
 
 #. module: ssi_promotion
