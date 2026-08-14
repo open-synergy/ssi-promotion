@@ -12,6 +12,13 @@ Extends ``promotion_code`` and ``promotion_code_usage`` with
 operating units assigned to the current user.
 
 
+Work Instruction
+================
+
+* `Promotion Code <docs/promotion_code/index.html>`_
+* `Promotion Code Usage <docs/promotion_code_usage/index.html>`_
+
+
 Bug Tracker
 ===========
 

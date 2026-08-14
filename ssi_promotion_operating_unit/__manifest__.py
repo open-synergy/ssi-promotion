@@ -15,6 +15,7 @@
     "depends": [
         "ssi_promotion",
         "ssi_operating_unit_mixin",
+        "web_tour",
     ],
     "data": [
         "security/res_group/promotion_code.xml",
@@ -23,5 +24,6 @@
         "security/ir_rule/promotion_code_usage.xml",
         "views/promotion_code.xml",
         "views/promotion_code_usage.xml",
+        "views/assets.xml",
     ],
 }
