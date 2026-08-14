@@ -23,8 +23,8 @@
    - **Voucher Code** _(required)_: Enter the code the customer will redeem to use this
      promotion. Must be unique across all promotion codes.
    - **Promotion Type** _(required)_: Select the `promotion_type` that determines the
-     discount rule, usage limit, validity period, and credit note accounting for this
-     code.
+     discount rule, usage limit, validity period, and accounting entry configuration for
+     this code.
    - **Referrer**: Optional. Select the partner this code is issued for as a referrer.
    - **Date Start**: Defaults to today. Change if needed.
    - **Date End**: Automatically filled if **Promotion Type** has a validity period,

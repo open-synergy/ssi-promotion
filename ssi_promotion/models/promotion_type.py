@@ -14,7 +14,7 @@ class PromotionType(models.Model):
     formula), how many times a code may be used, whether the code expires,
     which document models a usage may reference, the Python rule used to
     validate a usage, and the accounting configuration used to generate
-    the customer (and optional referrer) credit note automatically.
+    the customer (and optional referrer) journal entry automatically.
 
     Also configures whether a usage of this type recognizes its
     discount immediately or defers it: see 'Recognition Method',
@@ -102,41 +102,41 @@ class PromotionType(models.Model):
         "Referencing any other model is rejected.",
     )
     journal_id = fields.Many2one(
-        string="Credit Note Journal",
+        string="Discount Journal",
         comodel_name="account.journal",
         domain=[("type", "=", "sale")],
-        help="Sales journal used to create the customer credit note when a "
-        "promotion_code_usage of this type is approved.",
+        help="Sales journal used to create the customer accounting entry "
+        "when a promotion_code_usage of this type is approved.",
     )
     product_id = fields.Many2one(
-        string="Credit Note Product",
+        string="Discount Product",
         comodel_name="product.product",
-        help="Product used on the credit note line created for the "
-        "voucher user when a promotion_code_usage of this type is "
-        "approved. Its income account is used when 'Credit Note Account' "
-        "is not set.",
+        help="Product whose own income account is used as the fallback "
+        "for the voucher user's own discount account when a "
+        "promotion_code_usage of this type is approved and 'Discount "
+        "Account' is not set.",
     )
     account_id = fields.Many2one(
-        string="Credit Note Account",
+        string="Discount Account",
         comodel_name="account.account",
-        help="Income account used on the customer credit note line. If "
-        "left empty, the income account configured on 'Credit Note "
-        "Product' is used instead.",
+        help="Income account debited on the customer accounting entry's "
+        "own discount line. If left empty, the income account configured "
+        "on 'Discount Product' is used instead.",
     )
     referrer_product_id = fields.Many2one(
-        string="Referrer Credit Note Product",
+        string="Referrer Discount Product",
         comodel_name="product.product",
-        help="Product used on the credit note line created for the "
-        "referrer (promotion_code.partner_id) when a promotion_code_usage "
-        "of this type is approved. If left empty, 'Credit Note Product' "
-        "is reused.",
+        help="Product whose own income account is used as the fallback "
+        "for the referrer's own discount account (promotion_code."
+        "partner_id) when a promotion_code_usage of this type is "
+        "approved. If left empty, 'Discount Product' is reused.",
     )
     referrer_journal_id = fields.Many2one(
-        string="Referrer Credit Note Journal",
+        string="Referrer Discount Journal",
         comodel_name="account.journal",
         domain=[("type", "=", "sale")],
-        help="Sales journal used to create the referrer credit note. If "
-        "left empty, 'Credit Note Journal' is reused.",
+        help="Sales journal used to create the referrer accounting "
+        "entry. If left empty, 'Discount Journal' is reused.",
     )
     recognition_method = fields.Selection(
         string="Recognition Method",
@@ -147,10 +147,10 @@ class PromotionType(models.Model):
         default="immediate",
         required=True,
         help="How the discount granted by a promotion_code_usage of this "
-        "type is booked on its credit note(s). Immediate = the customer "
-        "and referrer credit note lines debit their Final Account (see "
-        "'Credit Note Account', falling back to the products' own "
-        "income account) right away, exactly as before this field "
+        "type is booked on its journal entry(-ies). Immediate = the "
+        "customer and referrer journal entry lines debit their Final "
+        "Account (see 'Discount Account', falling back to the products' "
+        "own income account) right away, exactly as before this field "
         "existed. Deferred = both lines debit 'Deferred Account' "
         "instead, so the discount can be recognized later by a "
         "separate document.",
@@ -159,7 +159,7 @@ class PromotionType(models.Model):
         string="Deferred Account",
         comodel_name="account.account",
         ondelete="restrict",
-        help="Account debited on the credit note line(s) of a "
+        help="Account debited on the journal entry line(s) of a "
         "promotion_code_usage of this type instead of its Final "
         "Account, while that usage's own 'Recognition Method' is set "
         "to Deferred. Defaulted onto each new usage of this type, but "

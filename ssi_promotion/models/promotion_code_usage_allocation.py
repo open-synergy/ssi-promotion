@@ -9,18 +9,18 @@ from odoo.exceptions import ValidationError
 class PromotionCodeUsageAllocation(models.Model):
     """
     Represents one receivable journal item (``account.move.line``) a
-    ``promotion_code_usage`` wants reduced by one of its own credit
-    notes.
+    ``promotion_code_usage`` wants reduced by one of its own journal
+    entries.
 
-    'Source' selects which of the usage's own two credit notes is
+    'Source' selects which of the usage's own two journal entries is
     consumed against 'Journal Item': the voucher user's own
     ('customer') or the promotion code's referrer own ('referrer').
     Opening the usage runs its own '_30_reconcile' hook, which
-    reconciles each row's own credit note receivable line against
+    reconciles each row's own journal entry receivable line against
     'Journal Item' in '_order' (grouped by 'Source'), stores the
     first ``account.partial.reconcile`` created on 'Partial
-    Reconcile', and stops consuming a given credit note once that
-    credit note's own residual reaches zero -- rows reached
+    Reconcile', and stops consuming a given journal entry once that
+    journal entry's own residual reaches zero -- rows reached
     afterwards keep an empty 'Partial Reconcile' and a zero
     'Amount Reconciled'. Cancelling the usage undoes every
     reconciliation created this way and clears 'Partial Reconcile'
@@ -54,7 +54,7 @@ class PromotionCodeUsageAllocation(models.Model):
         ],
         default="customer",
         required=True,
-        help="Which of the usage's own two credit notes is "
+        help="Which of the usage's own two journal entries is "
         "reconciled against 'Journal Item': the voucher user's own "
         "('Voucher User'), or the promotion code's referrer own "
         "('Referrer').",
@@ -71,7 +71,7 @@ class PromotionCodeUsageAllocation(models.Model):
             ("amount_residual", ">", 0),
         ],
         help="Receivable journal item to reduce with this usage's "
-        "own credit note. Only posted, reconcilable, not yet fully "
+        "own journal entry. Only posted, reconcilable, not yet fully "
         "reconciled journal items with a positive residual amount "
         "are selectable.",
     )
@@ -126,9 +126,10 @@ class PromotionCodeUsageAllocation(models.Model):
         copy=False,
         help="First ``account.partial.reconcile`` created by the "
         "usage's own '_30_reconcile' hook when this row's own "
-        "'Journal Item' was reconciled against the credit note. "
+        "'Journal Item' was reconciled against the journal entry. "
         "Empty while the usage has not opened yet, or when the "
-        "credit note ran out of residual before reaching this row.",
+        "journal entry ran out of residual before reaching this "
+        "row.",
     )
     amount_reconciled = fields.Monetary(
         string="Amount Reconciled",
@@ -247,25 +248,25 @@ posted move, positive residual)
             return True
         return self.move_line_id in reference._get_promotion_move_lines()
 
-    def _reconcile(self, credit_move_line):
-        """Reconcile this row's own 'Journal Item' against a credit
-        note receivable line.
+    def _reconcile(self, receivable_move_line):
+        """Reconcile this row's own 'Journal Item' against a journal
+        entry receivable line.
 
         No-op when 'Partial Reconcile' is already set. Combines
-        'Journal Item' with ``credit_move_line`` and calls
+        'Journal Item' with ``receivable_move_line`` and calls
         ``account.move.line.reconcile()``, then stores the first
         ``account.partial.reconcile`` it created on 'Partial
         Reconcile'.
 
-        :param credit_move_line: the credit note's own receivable
-            ``account.move.line`` to reconcile 'Journal Item'
-            against
+        :param receivable_move_line: the journal entry's own
+            receivable ``account.move.line`` to reconcile 'Journal
+            Item' against
         :return: nothing
         """
         self.ensure_one()
         if self.partial_reconcile_id:
             return
-        result = (self.move_line_id + credit_move_line).reconcile()
+        result = (self.move_line_id + receivable_move_line).reconcile()
         partials = result.get("partials")
         if partials:
             self.partial_reconcile_id = partials[:1]

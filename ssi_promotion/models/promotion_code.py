@@ -16,7 +16,7 @@ class PromotionCode(models.Model):
     Becomes usable (state "open") after the approval workflow completes.
     The optional partner_id (inherited from mixin.transaction_partner)
     identifies the referrer this code was issued for; when set, approving
-    a usage of this code also creates a credit note for that referrer
+    a usage of this code also creates a journal entry for that referrer
     (see promotion_code_usage).
     """
 
@@ -100,16 +100,16 @@ class PromotionCode(models.Model):
         readonly=True,
         states={"draft": [("readonly", False)]},
         help="Promotion type that determines the discount rule, usage "
-        "limit, validity, allowed reference documents, and credit note "
-        "accounting for this code.",
+        "limit, validity, allowed reference documents, and accounting "
+        "entry configuration for this code.",
     )
     partner_id = fields.Many2one(
         string="Referrer",
         required=False,
         help="Partner this promotion code was issued for as a referrer. "
-        "When set, approving a usage of this code also creates a credit "
-        "note for this partner in addition to the voucher user's credit "
-        "note.",
+        "When set, approving a usage of this code also creates a "
+        "journal entry for this partner in addition to the voucher "
+        "user's journal entry.",
     )
     date_start = fields.Date(
         required=False,

@@ -2,7 +2,7 @@ options:
   auto_refresh: true
 
 scenarios:
-  - name: "Fixed discount usage approval creates customer credit note"
+  - name: "Fixed discount usage approval creates customer accounting entry"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -29,7 +29,7 @@ scenarios:
           code: "PROMOFIX"
           type: "sale"
           company_id: "EVAL: registry['company'].id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -129,32 +129,68 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert customer credit note created"
+      - step: "Assert customer accounting entry created"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id:
+          move_id:
             type: "value"
             operator: "is_truthy"
-          referrer_credit_note_id:
+          referrer_move_id:
             type: "value"
             operator: "is_falsy"
-      - step: "Assert customer credit note is posted with its receivable line"
+      - step: "Assert customer accounting entry is a posted journal entry with its own receivable line"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id.state:
+          move_id.move_type:
+            type: "value"
+            expected: "entry"
+          move_id.state:
             type: "value"
             expected: "posted"
-          credit_note_move_line_id:
+          receivable_move_line_id:
             type: "value"
             operator: "is_truthy"
-          credit_note_move_line_id.account_id.internal_type:
+          receivable_move_line_id.account_id.internal_type:
             type: "value"
             expected: "receivable"
-          referrer_credit_note_move_line_id:
+          receivable_move_line_id.debit:
+            type: "value"
+            expected: 0.0
+          receivable_move_line_id.credit:
+            type: "value"
+            expected: 7000.0
+          referrer_receivable_move_line_id:
             type: "value"
             operator: "is_falsy"
+      - step: "Find every journal item of the customer accounting entry"
+        action: "search"
+        model: "account.move.line"
+        domain: [["move_id", "=", "REC: usage.move_id.id"]]
+        save_as: "fix_move_lines"
+        expect_count: 2
+      - step: "Find the customer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "fix_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the discount line debits Discount Amount"
+        action: "assert"
+        target: "fix_discount_line"
+        asserts:
+          debit:
+            type: "value"
+            expected: 7000.0
+          credit:
+            type: "value"
+            expected: 0.0
 
   - name: "Percentage discount computed from reference document total"
     steps:
@@ -183,7 +219,7 @@ scenarios:
           code: "PROMOPCT"
           type: "sale"
           company_id: "EVAL: registry['company'].id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -242,7 +278,7 @@ scenarios:
           voucher_code: "USAGE-PCT-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -304,7 +340,7 @@ scenarios:
           code: "PROMOPY"
           type: "sale"
           company_id: "EVAL: registry['company'].id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -331,7 +367,7 @@ scenarios:
           voucher_code: "USAGE-PY-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -371,7 +407,7 @@ scenarios:
             type: "value"
             expected: 4321.0
 
-  - name: "Approval creates both customer and referrer credit notes"
+  - name: "Approval creates both customer and referrer accounting entries"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -398,7 +434,7 @@ scenarios:
           code: "PROMOREF"
           type: "sale"
           company_id: "EVAL: registry['company'].id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -411,7 +447,7 @@ scenarios:
         model: "promotion_type"
         save_as: "ptype"
         values:
-          name: "Referrer Credit Note Type"
+          name: "Referrer Accounting Entry Type"
           code: "/"
           discount_type: "fixed"
           discount_amount: 6000.0
@@ -422,7 +458,7 @@ scenarios:
         model: "res.partner"
         save_as: "referrer"
         values:
-          name: "Referrer Partner Credit Note"
+          name: "Referrer Partner Accounting Entry"
       - step: "Create promotion code with referrer"
         action: "create"
         model: "promotion_code"
@@ -432,7 +468,7 @@ scenarios:
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -487,34 +523,77 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert both credit notes created"
+      - step: "Assert both accounting entries created"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id:
+          move_id:
             type: "value"
             operator: "is_truthy"
-          referrer_credit_note_id:
+          referrer_move_id:
             type: "value"
             operator: "is_truthy"
-      - step: "Assert both credit notes are posted with their receivable lines"
+      - step: "Assert both accounting entries are posted with their receivable lines"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id.state:
+          move_id.move_type:
+            type: "value"
+            expected: "entry"
+          move_id.state:
             type: "value"
             expected: "posted"
-          credit_note_move_line_id.account_id.internal_type:
+          receivable_move_line_id.account_id.internal_type:
             type: "value"
             expected: "receivable"
-          referrer_credit_note_id.state:
+          referrer_move_id.move_type:
+            type: "value"
+            expected: "entry"
+          referrer_move_id.state:
             type: "value"
             expected: "posted"
-          referrer_credit_note_move_line_id.account_id.internal_type:
+          referrer_receivable_move_line_id.account_id.internal_type:
             type: "value"
             expected: "receivable"
+      - step: "Find every journal item of the referrer accounting entry"
+        action: "search"
+        model: "account.move.line"
+        domain: [["move_id", "=", "REC: usage.referrer_move_id.id"]]
+        save_as: "referrer_move_lines"
+        expect_count: 2
+      - step: "Find the referrer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.referrer_move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "referrer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the referrer discount line debits Discount Amount"
+        action: "assert"
+        target: "referrer_discount_line"
+        asserts:
+          debit:
+            type: "value"
+            expected: 6000.0
+          credit:
+            type: "value"
+            expected: 0.0
+      - step: "Assert the referrer receivable line credits Discount Amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_receivable_move_line_id.debit:
+            type: "value"
+            expected: 0.0
+          referrer_receivable_move_line_id.credit:
+            type: "value"
+            expected: 6000.0
 
-  - name: "Cancelling an open usage deletes both credit notes"
+  - name: "Cancelling an open usage deletes both accounting entries"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -541,7 +620,7 @@ scenarios:
           code: "PROMOCANCEL"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -575,7 +654,7 @@ scenarios:
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -642,14 +721,14 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert both credit notes exist and are posted before cancel"
+      - step: "Assert both accounting entries exist and are posted before cancel"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id.state:
+          move_id.state:
             type: "value"
             expected: "posted"
-          referrer_credit_note_id.state:
+          referrer_move_id.state:
             type: "value"
             expected: "posted"
       - step: "Create the cancellation reason"
@@ -671,21 +750,21 @@ scenarios:
           state:
             type: "value"
             expected: "cancel"
-      - step: "Assert both credit notes and their journal item fields are cleared"
+      - step: "Assert both accounting entries and their journal item fields are cleared"
         action: "assert"
         target: "usage"
         refresh: true
         asserts:
-          credit_note_id:
+          move_id:
             type: "value"
             operator: "is_falsy"
-          referrer_credit_note_id:
+          referrer_move_id:
             type: "value"
             operator: "is_falsy"
-          credit_note_move_line_id:
+          receivable_move_line_id:
             type: "value"
             operator: "is_falsy"
-          referrer_credit_note_move_line_id:
+          referrer_receivable_move_line_id:
             type: "value"
             operator: "is_falsy"
 
@@ -724,7 +803,7 @@ scenarios:
           code: "PROMODEF1"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -753,7 +832,7 @@ scenarios:
           voucher_code: "USAGE-DEF-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -798,7 +877,7 @@ scenarios:
             type: "value"
             expected: 2024-06-01
 
-  - name: "Deferred usage approval routes credit notes to Deferred Account"
+  - name: "Deferred usage approval routes accounting entries to Deferred Account"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -833,7 +912,7 @@ scenarios:
           code: "PROMODEF2"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -869,7 +948,7 @@ scenarios:
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -925,18 +1004,40 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert customer credit note line uses Deferred Account"
+      - step: "Find the customer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "def_customer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert customer discount line uses Deferred Account"
         action: "assert"
-        target: "usage"
+        target: "def_customer_discount_line"
         asserts:
-          credit_note_id.invoice_line_ids.account_id:
+          account_id:
             type: "m2o"
             expected: "REC: deferred_account"
-      - step: "Assert referrer credit note line uses Deferred Account"
+      - step: "Find the referrer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.referrer_move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "def_referrer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert referrer discount line uses Deferred Account"
         action: "assert"
-        target: "usage"
+        target: "def_referrer_discount_line"
         asserts:
-          referrer_credit_note_id.invoice_line_ids.account_id:
+          account_id:
             type: "m2o"
             expected: "REC: deferred_account"
 
@@ -963,7 +1064,7 @@ scenarios:
           code: "PROMOIMM"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -991,7 +1092,7 @@ scenarios:
           voucher_code: "USAGE-IMM-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1053,11 +1154,22 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert customer credit note line uses the product's income account"
+      - step: "Find the customer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "imm_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert discount line uses the product's income account"
         action: "assert"
-        target: "usage"
+        target: "imm_discount_line"
         asserts:
-          credit_note_id.invoice_line_ids.account_id:
+          account_id:
             type: "m2o"
             expected: "REC: income_account"
 
@@ -1094,7 +1206,7 @@ scenarios:
           voucher_code: "USAGE-ONCHANGE-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1164,7 +1276,7 @@ scenarios:
           voucher_code: "USAGE-NEG-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1240,7 +1352,7 @@ scenarios:
           voucher_code: "USAGE-NEG-002"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1311,7 +1423,7 @@ scenarios:
           code: "PROMODISALLOW"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1357,7 +1469,7 @@ scenarios:
           voucher_code: "DISALLOWED-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1433,7 +1545,7 @@ scenarios:
           code: "PROMOLIMIT"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1461,7 +1573,7 @@ scenarios:
           type_id: "REC: ptype.id"
           usage_limit: 1
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1572,7 +1684,7 @@ scenarios:
           code: "PROMOINVALID"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1600,7 +1712,7 @@ scenarios:
           voucher_code: "INVALID-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1650,7 +1762,7 @@ scenarios:
         expect_error:
           type: "UserError"
 
-  - name: "Approving a usage with missing credit note config is rejected"
+  - name: "Approving a usage with missing accounting entry config is rejected"
     steps:
       - step: "Create promotion type without accounting config"
         action: "create"
@@ -1669,7 +1781,7 @@ scenarios:
           voucher_code: "NOCONFIG-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1727,7 +1839,7 @@ scenarios:
           state:
             type: "value"
             expected: "confirm"
-      - step: "Approving without journal/product must be rejected"
+      - step: "Approving without a Journal configured must be rejected"
         action: "call"
         target: "usage"
         method: "action_approve_approval"
@@ -1735,7 +1847,132 @@ scenarios:
         expect_error:
           type: "UserError"
 
-  - name: "Replaying the credit note creation and posting hooks is idempotent"
+  - name: "Approving a usage whose partner has no receivable account is rejected"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-NORECV"
+          name: "Promotion No Receivable Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion No Receivable Sales Journal"
+          code: "PROMONORECV"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion No Receivable Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "No Receivable Account Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 1000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "NORECV-001"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Customer Without Receivable Account"
+      - step: "Clear the customer's own receivable account"
+        action: "write"
+        target: "customer"
+        values:
+          property_account_receivable_id: false
+      - step: "Create usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving without a receivable account on the partner must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "Replaying the accounting entry creation and posting hooks is idempotent"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -1762,7 +1999,7 @@ scenarios:
           code: "PROMOGUARD"
           type: "sale"
           company_id: "REC: company.id"
-      - step: "Create credit note product"
+      - step: "Create discount product"
         action: "create"
         model: "product.product"
         save_as: "product"
@@ -1789,7 +2026,7 @@ scenarios:
           voucher_code: "GUARD-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
-          # approval creates customer credit note" di atas.
+          # approval creates customer accounting entry" di atas.
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
         action: "call"
@@ -1856,57 +2093,57 @@ scenarios:
           state:
             type: "value"
             expected: "open"
-      - step: "Assert customer credit note created"
+      - step: "Assert customer accounting entry created"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id:
+          move_id:
             type: "value"
             operator: "is_truthy"
-      - step: "Find the credit note before replay"
+      - step: "Find the accounting entry before replay"
         action: "search"
         model: "account.move"
-        domain: [["invoice_origin", "=", "REC: usage.name"]]
-        save_as: "credit_note_before"
+        domain: [["ref", "=", "REC: usage.name"], ["move_type", "=", "entry"]]
+        save_as: "move_before"
         expect_count: 1
-      - step: "Replay the credit note creation hook"
+      - step: "Replay the accounting entry creation hook"
         action: "call"
         target: "usage"
-        method: "_10_create_credit_note"
-      - step: "Replaying must not create a second credit note"
+        method: "_10_create_accounting_entry"
+      - step: "Replaying must not create a second accounting entry"
         action: "search"
         model: "account.move"
-        domain: [["invoice_origin", "=", "REC: usage.name"]]
-        save_as: "credit_note_after"
+        domain: [["ref", "=", "REC: usage.name"], ["move_type", "=", "entry"]]
+        save_as: "move_after"
         expect_count: 1
-      - step: "Assert credit_note_id unchanged after replay"
+      - step: "Assert move_id unchanged after replay"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id:
+          move_id:
             type: "m2o"
-            expected: "REC: credit_note_before"
-          credit_note_id.state:
+            expected: "REC: move_before"
+          move_id.state:
             type: "value"
             expected: "posted"
       - step: "Capture the receivable line before replaying the post hook"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_move_line_id:
+          receivable_move_line_id:
             type: "value"
             operator: "is_truthy"
-      - step: "Replay the credit note posting hook"
+      - step: "Replay the accounting entry posting hook"
         action: "call"
         target: "usage"
-        method: "_20_post_credit_note"
-      - step: "Assert credit_note_id still posted and the line is unchanged"
+        method: "_20_post_accounting_entry"
+      - step: "Assert move_id still posted and the line is unchanged"
         action: "assert"
         target: "usage"
         asserts:
-          credit_note_id.state:
+          move_id.state:
             type: "value"
             expected: "posted"
-          credit_note_move_line_id:
+          receivable_move_line_id:
             type: "value"
             operator: "is_truthy"

@@ -34,6 +34,6 @@
 - If any row on the **Allocation** tab was reconciled, that reconciliation is undone
   first — the allocated **Journal Item**'s own residual amount is restored, and the
   row's own **Partial Reconcile** is cleared back to empty.
-- If this document had a **Customer Credit Note** and/or **Referrer Credit Note**, those
-  credit notes are deleted and both fields, together with their own receivable journal
-  item fields, are cleared back to empty.
+- If this document had a **Customer Accounting Entry** and/or **Referrer Accounting
+  Entry**, those journal entries are deleted and both fields, together with their own
+  receivable journal item fields, are cleared back to empty.

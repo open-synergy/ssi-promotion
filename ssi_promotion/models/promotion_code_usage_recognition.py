@@ -17,10 +17,10 @@ class PromotionCodeUsageRecognition(models.Model):
     discount into its own Final Account(s).
 
     A usage whose own 'Recognition Method' is 'Deferred' books its
-    credit note line(s) to Deferred Account instead of their own
+    journal entry line(s) to Deferred Account instead of their own
     Final Account. This document later moves 'Amount' -- once for
     the full 'Amount Deferred', or several times -- from Deferred
-    Account to each credit note's own Final Account: one Line for
+    Account to each journal entry's own Final Account: one Line for
     the customer, and a second Line for the referrer when the usage's
     promotion code has one.
     """
