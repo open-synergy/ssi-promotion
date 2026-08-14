@@ -57,8 +57,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__deferred_account_id
 msgid ""
-"Account debited on the credit note line(s) created for this usage instead of"
-" their Final Account, while this usage's own 'Recognition Method' is "
+"Account debited on the journal entry line(s) created for this usage instead "
+"of their Final Account, while this usage's own 'Recognition Method' is "
 "Deferred. Defaulted from the promotion type's own 'Deferred Account'. "
 "Required while 'Recognition Method' is Deferred."
 msgstr ""
@@ -66,8 +66,8 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__deferred_account_id
 msgid ""
-"Account debited on the credit note line(s) of a promotion_code_usage of this"
-" type instead of its Final Account, while that usage's own 'Recognition "
+"Account debited on the journal entry line(s) of a promotion_code_usage of "
+"this type instead of its Final Account, while that usage's own 'Recognition "
 "Method' is set to Deferred. Defaulted onto each new usage of this type, but "
 "may still be overridden manually on the usage itself."
 msgstr ""
@@ -75,6 +75,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__account_id
 msgid "Account of 'Journal Item'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Accounting Entry"
 msgstr ""
 
 #. module: ssi_promotion
@@ -536,46 +541,6 @@ msgid "Credit Account"
 msgstr ""
 
 #. module: ssi_promotion
-#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
-msgid "Credit Note"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__account_id
-msgid "Credit Note Account"
-msgstr ""
-
-#. module: ssi_promotion
-#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
-msgid "Credit Note Accounting"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__journal_id
-msgid "Credit Note Journal"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__product_id
-msgid "Credit Note Product"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__credit_note_id
-msgid ""
-"Credit note automatically created for 'Voucher User' when this usage is "
-"approved."
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_credit_note_id
-msgid ""
-"Credit note automatically created for the promotion code's referrer "
-"(promotion_code_id.partner_id) when this usage is approved, if the promotion"
-" code has a referrer."
-msgstr ""
-
-#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__currency_id
@@ -608,14 +573,18 @@ msgid "Customer"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__credit_note_id
-#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
-msgid "Customer Credit Note"
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__move_id
+msgid "Customer Accounting Entry"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__credit_note_move_line_id
-msgid "Customer Credit Note Receivable Line"
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
+msgid "Customer Discount"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__receivable_move_line_id
+msgid "Customer Receivable Journal Item"
 msgstr ""
 
 #. module: ssi_promotion
@@ -681,7 +650,7 @@ msgstr ""
 msgid ""
 "Defaulted from the promotion type's own 'Recognition Method', but may still "
 "be overridden manually while this usage is in Draft. Deferred routes the "
-"credit note line(s) created on approval to 'Deferred Account' instead of "
+"journal entry line(s) created on approval to 'Deferred Account' instead of "
 "their Final Account."
 msgstr ""
 
@@ -729,12 +698,22 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
-msgid "Discount & Credit Note"
+msgid "Discount & Accounting Entry"
 msgstr ""
 
 #. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 msgid "Discount & Usage"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__account_id
+msgid "Discount Account"
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
+msgid "Discount Accounting"
 msgstr ""
 
 #. module: ssi_promotion
@@ -745,9 +724,19 @@ msgid "Discount Amount"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__journal_id
+msgid "Discount Journal"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__discount_percentage
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__discount_percentage
 msgid "Discount Percentage (%)"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__product_id
+msgid "Discount Product"
 msgstr ""
 
 #. module: ssi_promotion
@@ -827,8 +816,8 @@ msgstr ""
 msgid ""
 "First ``account.partial.reconcile`` created by the usage's own "
 "'_30_reconcile' hook when this row's own 'Journal Item' was reconciled "
-"against the credit note. Empty while the usage has not opened yet, or when "
-"the credit note ran out of residual before reaching this row."
+"against the journal entry. Empty while the usage has not opened yet, or when"
+" the journal entry ran out of residual before reaching this row."
 msgstr ""
 
 #. module: ssi_promotion
@@ -909,11 +898,11 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__recognition_method
 msgid ""
 "How the discount granted by a promotion_code_usage of this type is booked on"
-" its credit note(s). Immediate = the customer and referrer credit note lines"
-" debit their Final Account (see 'Credit Note Account', falling back to the "
-"products' own income account) right away, exactly as before this field "
-"existed. Deferred = both lines debit 'Deferred Account' instead, so the "
-"discount can be recognized later by a separate document."
+" its journal entry(-ies). Immediate = the customer and referrer journal "
+"entry lines debit their Final Account (see 'Discount Account', falling back "
+"to the products' own income account) right away, exactly as before this "
+"field existed. Deferred = both lines debit 'Deferred Account' instead, so "
+"the discount can be recognized later by a separate document."
 msgstr ""
 
 #. module: ssi_promotion
@@ -982,8 +971,9 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__account_id
 msgid ""
-"Income account used on the customer credit note line. If left empty, the "
-"income account configured on 'Credit Note Product' is used instead."
+"Income account debited on the customer accounting entry's own discount line."
+" If left empty, the income account configured on 'Discount Product' is used "
+"instead."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1013,6 +1003,21 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__move_id
 msgid "Journal entry 'Journal Item' belongs to."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__move_id
+msgid ""
+"Journal entry automatically created for 'Voucher User' when this usage is "
+"approved."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_move_id
+msgid ""
+"Journal entry automatically created for the promotion code's referrer "
+"(promotion_code_id.partner_id) when this usage is approved, if the promotion"
+" code has a referrer."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1323,23 +1328,23 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__partner_id
 msgid ""
 "Partner this promotion code was issued for as a referrer. When set, "
-"approving a usage of this code also creates a credit note for this partner "
-"in addition to the voucher user's credit note."
+"approving a usage of this code also creates a journal entry for this partner"
+" in addition to the voucher user's journal entry."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__partner_id
 msgid ""
-"Partner who redeemed the promotion code. Receives the customer credit note "
-"when this usage is approved."
+"Partner who redeemed the promotion code. Receives the customer accounting "
+"entry when this usage is approved."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_apply_promotion_code__partner_id
 msgid ""
-"Partner who will be billed the resulting credit note, resolved from the "
-"caller document's own _get_promotion_partner(). Shown for review only -- not"
-" editable here."
+"Partner who will be billed the resulting accounting entry, resolved from the"
+" caller document's own _get_promotion_partner(). Shown for review only -- "
+"not editable here."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1396,17 +1401,17 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_product_id
 msgid ""
-"Product used on the credit note line created for the referrer "
-"(promotion_code.partner_id) when a promotion_code_usage of this type is "
-"approved. If left empty, 'Credit Note Product' is reused."
+"Product whose own income account is used as the fallback for the referrer's "
+"own discount account (promotion_code.partner_id) when a promotion_code_usage"
+" of this type is approved. If left empty, 'Discount Product' is reused."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__product_id
 msgid ""
-"Product used on the credit note line created for the voucher user when a "
-"promotion_code_usage of this type is approved. Its income account is used "
-"when 'Credit Note Account' is not set."
+"Product whose own income account is used as the fallback for the voucher "
+"user's own discount account when a promotion_code_usage of this type is "
+"approved and 'Discount Account' is not set."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1535,7 +1540,8 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__type_id
 msgid ""
 "Promotion type that determines the discount rule, usage limit, validity, "
-"allowed reference documents, and credit note accounting for this code."
+"allowed reference documents, and accounting entry configuration for this "
+"code."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1565,25 +1571,25 @@ msgid "Ratio"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__credit_note_move_line_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__receivable_move_line_id
 msgid ""
-"Receivable journal item of 'Customer Credit Note', filled by the "
-"'_20_post_credit_note' hook when this usage's own customer credit note is "
-"posted."
+"Receivable journal item of 'Customer Accounting Entry', filled by the "
+"'_20_post_accounting_entry' hook when this usage's own customer journal "
+"entry is posted."
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_credit_note_move_line_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_receivable_move_line_id
 msgid ""
-"Receivable journal item of 'Referrer Credit Note', filled by the "
-"'_20_post_credit_note' hook when this usage's own referrer credit note is "
-"posted."
+"Receivable journal item of 'Referrer Accounting Entry', filled by the "
+"'_20_post_accounting_entry' hook when this usage's own referrer journal "
+"entry is posted."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__move_line_id
 msgid ""
-"Receivable journal item to reduce with this usage's own credit note. Only "
+"Receivable journal item to reduce with this usage's own journal entry. Only "
 "posted, reconcilable, not yet fully reconciled journal items with a positive"
 " residual amount are selectable."
 msgstr ""
@@ -1591,9 +1597,9 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__allocation_ids
 msgid ""
-"Receivable journal items this usage's own credit note(s) should be "
+"Receivable journal items this usage's own journal entry(-ies) should be "
 "reconciled against once this usage opens (see the '_30_reconcile' hook). "
-"Journal items reached after their own source credit note runs out of "
+"Journal items reached after their own source journal entry runs out of "
 "residual keep an empty 'Partial Reconcile'."
 msgstr ""
 
@@ -1673,24 +1679,28 @@ msgid "Referrer"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_credit_note_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_move_id
+msgid "Referrer Accounting Entry"
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
-msgid "Referrer Credit Note"
+msgid "Referrer Discount"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_journal_id
-msgid "Referrer Credit Note Journal"
+msgid "Referrer Discount Journal"
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_product_id
-msgid "Referrer Credit Note Product"
+msgid "Referrer Discount Product"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_credit_note_move_line_id
-msgid "Referrer Credit Note Receivable Line"
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_receivable_move_line_id
+msgid "Referrer Receivable Journal Item"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1762,15 +1772,15 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__journal_id
 msgid ""
-"Sales journal used to create the customer credit note when a "
+"Sales journal used to create the customer accounting entry when a "
 "promotion_code_usage of this type is approved."
 msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_journal_id
 msgid ""
-"Sales journal used to create the referrer credit note. If left empty, "
-"'Credit Note Journal' is reused."
+"Sales journal used to create the referrer accounting entry. If left empty, "
+"'Discount Journal' is reused."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1841,10 +1851,10 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__amount_to_recognize
 msgid ""
-"Total amount this usage's credit note line(s) debited to Deferred Account, "
-"due to be released by promotion_code_usage_recognition documents: 'Discount "
-"Amount', doubled when this usage's promotion code has a referrer (both the "
-"customer and referrer credit note lines carry the same 'Discount Amount')."
+"Total amount this usage's journal entry line(s) debited to Deferred Account,"
+" due to be released by promotion_code_usage_recognition documents: 'Discount"
+" Amount', doubled when this usage's promotion code has a referrer (both the "
+"customer and referrer journal entry lines carry the same 'Discount Amount')."
 msgstr ""
 
 #. module: ssi_promotion
@@ -2039,7 +2049,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__source
 msgid ""
-"Which of the usage's own two credit notes is reconciled against 'Journal "
+"Which of the usage's own two journal entries is reconciled against 'Journal "
 "Item': the voucher user's own ('Voucher User'), or the promotion code's "
 "referrer own ('Referrer')."
 msgstr ""
