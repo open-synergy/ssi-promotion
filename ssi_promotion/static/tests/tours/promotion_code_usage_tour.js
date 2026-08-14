@@ -875,25 +875,31 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             url: "/web",
         },
         [
-            // Flow 1 — Open the Invoicing > Customers > Invoices menu,
-            // then open the fixture invoice. The intermediate
-            // "Customers" level is a pure grouping header with no
-            // action of its own, so it never renders its own
-            // data-menu-xmlid (patterns.md "gejala menyesatkan") --
-            // the leaf action is reached directly from the app icon.
-            // The row-contains trigger below doubles as both "the
-            // right list loaded" and "open the record", since only
-            // the intended list can ever contain this fixture's own
-            // unique document number.
+            // Flow 1 — Open the Financial Accounting > Account
+            // Receivable > Invoices menu, then open the fixture
+            // invoice. ssi_financial_accounting REPLACES core
+            // account.menu_finance's own groups_id (menu.xml, "Hide
+            // menu") so the standard "Invoicing" app never renders at
+            // all -- account.move is reached through
+            // ssi_financial_accounting's own app instead. The
+            // intermediate "Account Receivable" level is a pure
+            // grouping header with no action of its own, so it never
+            // renders its own data-menu-xmlid (patterns.md "gejala
+            // menyesatkan") -- the leaf action is reached directly
+            // from the app icon. The row-contains trigger below
+            // doubles as both "the right list loaded" and "open the
+            // record", since only the intended list can ever contain
+            // this fixture's own unique document number.
             tour.stepUtils.showAppsMenuItem(),
             {
-                content: "Open the Invoicing app",
-                trigger: '.o_app[data-menu-xmlid="account.menu_finance"]',
+                content: "Open the Financial Accounting app",
+                trigger:
+                    '.o_app[data-menu-xmlid="ssi_financial_accounting.menu_root_financial_accounting"]',
             },
             {
-                content: "Open the Customer Invoices menu",
+                content: "Open the Invoices menu",
                 trigger:
-                    '.o_menu_sections [data-menu-xmlid="account.menu_action_move_out_invoice_type"]',
+                    '.o_menu_sections [data-menu-xmlid="ssi_financial_accounting.customer_invoice_menu"]',
             },
             {
                 content: "Open the fixture invoice",

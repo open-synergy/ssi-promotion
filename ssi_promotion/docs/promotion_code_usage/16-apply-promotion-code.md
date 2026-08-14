@@ -5,10 +5,10 @@
 > **Model:** `promotion_code_usage` (wizard `apply_promotion_code`, action
 > `action_apply_promotion_code`)
 >
-> **Menu:** Invoicing ‣ Customers ‣ Invoices ‣ (open an invoice) ‣ Action ‣ Apply
-> Promotion Code
+> **Menu:** Financial Accounting ‣ Account Receivable ‣ Invoices ‣ (open an invoice) ‣
+> Action ‣ Apply Promotion Code
 >
-> **Actor:** user in group _Usages — User_
+> **Actor:** user in group _Usages — User_ and _Invoice — User_
 >
 > **State:** `—` → `draft` (new `promotion_code_usage`)
 
@@ -19,11 +19,12 @@
   residual, in the company currency.
 - **Data:** An existing `promotion_code` whose own Status is **Open**, whose own
   Promotion Type's own Allowed Reference Models includes `account.move`.
-- **Access:** User is in group _Usages — User_.
+- **Access:** User is in group _Usages — User_ (`ssi_promotion`) and _Invoice — User_
+  (`ssi_financial_accounting`, to reach the invoice from its own menu).
 
 ## Flow
 
-1. Open the **Invoicing ‣ Customers ‣ Invoices** menu.
+1. Open the **Financial Accounting ‣ Account Receivable ‣ Invoices** menu.
 2. Open the posted invoice this promotion is being applied to.
 3. Click the **Action** (⚙️) button, then **Apply Promotion Code**. A wizard opens.
 4. Fill in the wizard:

@@ -298,16 +298,15 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         # from a posted customer invoice's own Action (gear) menu --
         # apply_promotion_code_action's own binding_model_id.
         #
-        # Pre-Condition: the "Invoicing" app's own top menu
-        # (account.menu_finance) is gated by
-        # account.group_account_readonly/account.group_account_invoice
-        # -- without one of them, admin's tour session never even
-        # sees the app icon, and the tour's first step times out
-        # (jebakan "Menu ter-gate grup", skill odoo-development-ui-test,
-        # structure-and-runner.md).
-        cls.env.ref("account.group_account_invoice").sudo().write(
-            {"users": [(4, cls.admin.id)]}
-        )
+        # ssi_financial_accounting REPLACES core account.menu_finance's
+        # own groups_id (menu.xml, "Hide menu"), so the invoice is
+        # reached through its own app instead (Financial Accounting >
+        # Account Receivable > Invoices, gated by
+        # ssi_financial_accounting.invoice_user_group). No group grant
+        # is needed here: that module's own security data already adds
+        # base.user_admin to invoice_validator_group (implying
+        # invoice_user_group) at install time
+        # (security/res_groups/invoice.xml).
         apc_journal = cls.env["account.journal"].create(
             {
                 "name": "TOUR APC Journal",
