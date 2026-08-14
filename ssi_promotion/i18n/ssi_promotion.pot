@@ -37,6 +37,7 @@ msgid "# Recognition"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__usage_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__usage_id
 msgid "# Usage"
 msgstr ""
@@ -46,6 +47,11 @@ msgstr ""
 msgid ""
 "'Amount To Recognize' still not released: 'Amount To Recognize' minus "
 "'Amount Recognized'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__account_id
+msgid "Account"
 msgstr ""
 
 #. module: ssi_promotion
@@ -64,6 +70,11 @@ msgid ""
 " type instead of its Final Account, while that usage's own 'Recognition "
 "Method' is set to Deferred. Defaulted onto each new usage of this type, but "
 "may still be overridden manually on the usage itself."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__account_id
+msgid "Account of 'Journal Item'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -174,6 +185,16 @@ msgid "All"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Allocation"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__allocation_ids
+msgid "Allocations"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__allowed_contact_ids
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__allowed_contact_ids
 msgid "Allowed Contact"
@@ -208,8 +229,25 @@ msgid "Amount Recognized"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__amount_reconciled
+msgid "Amount Reconciled"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__amount_residual
+msgid "Amount Residual"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__amount_to_recognize
 msgid "Amount To Recognize"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__amount_reconciled
+msgid ""
+"Amount actually reconciled against 'Journal Item': 'Partial Reconcile''s own"
+" 'Amount', or zero while empty."
 msgstr ""
 
 #. module: ssi_promotion
@@ -371,6 +409,7 @@ msgid "Company"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__company_currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__company_currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__company_currency_id
 msgid "Company Currency"
@@ -393,6 +432,13 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__company_currency_id
 msgid "Company currency inherited from the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__company_currency_id
+msgid ""
+"Company currency of 'Journal Item', also the currency 'Amount Residual' and "
+"'Amount Reconciled' are expressed in."
 msgstr ""
 
 #. module: ssi_promotion
@@ -449,6 +495,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__create_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__create_uid
@@ -459,6 +506,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__create_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__create_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__create_date
@@ -511,6 +559,7 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__currency_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__currency_id
 msgid "Currency"
@@ -519,6 +568,14 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__currency_id
 msgid "Currency inherited from the parent Recognition document."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__currency_id
+msgid ""
+"Currency of 'Journal Item', empty when it is posted in the company currency."
+" Allocations of a foreign-currency 'Journal Item' are rejected when the "
+"usage opens."
 msgstr ""
 
 #. module: ssi_promotion
@@ -697,6 +754,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__display_name
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__display_name
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__display_name
@@ -735,6 +793,15 @@ msgid ""
 "Final Account of this line's own side of the discount, debited by this "
 "Recognition Line. Resolved from the usage's own ``_get_final_account`` when "
 "this line is generated."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__partial_reconcile_id
+msgid ""
+"First ``account.partial.reconcile`` created by the usage's own "
+"'_30_reconcile' hook when this row's own 'Journal Item' was reconciled "
+"against the credit note. Empty while the usage has not opened yet, or when "
+"the credit note ran out of residual before reaching this row."
 msgstr ""
 
 #. module: ssi_promotion
@@ -826,6 +893,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__id
@@ -902,6 +970,21 @@ msgid "Journal"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__move_id
+msgid "Journal Entry"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__move_line_id
+msgid "Journal Item"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__move_id
+msgid "Journal entry 'Journal Item' belongs to."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__move_id
 msgid "Journal entry generated when this document is Done."
 msgstr ""
@@ -915,6 +998,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage____last_update
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line____last_update
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type____last_update
@@ -925,6 +1009,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_uid
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__write_uid
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__write_uid
@@ -935,6 +1020,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__write_date
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition_line__write_date
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__write_date
@@ -1155,8 +1241,30 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__sequence
+msgid ""
+"Order this row's own 'Journal Item' is consumed in, among the rows sharing "
+"the same 'Source', when the usage opens."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__partial_reconcile_id
+msgid "Partial Reconcile"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_state__partial
 msgid "Partially Recognized"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__partner_id
+msgid "Partner"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__partner_id
+msgid "Partner of 'Journal Item'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1283,6 +1391,11 @@ msgid "Promotion Code Usage"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model,name:ssi_promotion.model_promotion_code_usage_allocation
+msgid "Promotion Code Usage - Allocation"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model,name:ssi_promotion.model_promotion_code_usage_recognition
 #: model:ir.module.category,name:ssi_promotion.promotion_code_usage_recognition_data_ownership_module_category
 #: model:ir.module.category,name:ssi_promotion.promotion_code_usage_recognition_workflow_module_category
@@ -1320,6 +1433,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__promotion_code_id
 msgid "Promotion code being used. Only codes in state 'Open' can be selected."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__usage_id
+msgid "Promotion code usage this allocation row belongs to."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1376,6 +1494,23 @@ msgid ""
 "Receivable journal item of 'Referrer Credit Note', filled by the "
 "'_20_post_credit_note' hook when this usage's own referrer credit note is "
 "posted."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__move_line_id
+msgid ""
+"Receivable journal item to reduce with this usage's own credit note. Only "
+"posted, reconcilable, not yet fully reconciled journal items with a positive"
+" residual amount are selectable."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__allocation_ids
+msgid ""
+"Receivable journal items this usage's own credit note(s) should be "
+"reconciled against once this usage opens (see the '_30_reconcile' hook). "
+"Journal items reached after their own source credit note runs out of "
+"residual keep an empty 'Partial Reconcile'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1447,6 +1582,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__partner_id
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_allocation__source__referrer
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_recognition_line__line_type__referrer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_search
 msgid "Referrer"
@@ -1488,6 +1624,13 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__rejected
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__rejected
 msgid "Rejected"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__amount_residual
+msgid ""
+"Residual amount still due on 'Journal Item', before this usage's own "
+"reconciliation runs."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1547,10 +1690,20 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__sequence
+msgid "Sequence"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__line_type
 msgid ""
 "Side of the usage's discount released by this line: the voucher user's own "
 "share, or the promotion code's referrer own share."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__source
+msgid "Source"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1772,6 +1925,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__partner_id
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_allocation__source__customer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_search
 msgid "Voucher User"
 msgstr ""
@@ -1795,6 +1949,14 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__website_message_ids
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__website_message_ids
 msgid "Website communication history"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__source
+msgid ""
+"Which of the usage's own two credit notes is reconciled against 'Journal "
+"Item': the voucher user's own ('Voucher User'), or the promotion code's "
+"referrer own ('Referrer')."
 msgstr ""
 
 #. module: ssi_promotion
