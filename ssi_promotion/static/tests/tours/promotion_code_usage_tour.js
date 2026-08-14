@@ -881,20 +881,28 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             // account.menu_finance's own groups_id (menu.xml, "Hide
             // menu") so the standard "Invoicing" app never renders at
             // all -- account.move is reached through
-            // ssi_financial_accounting's own app instead. The
-            // intermediate "Account Receivable" level is a pure
-            // grouping header with no action of its own, so it never
-            // renders its own data-menu-xmlid (patterns.md "gejala
-            // menyesatkan") -- the leaf action is reached directly
-            // from the app icon. The row-contains trigger below
-            // doubles as both "the right list loaded" and "open the
-            // record", since only the intended list can ever contain
-            // this fixture's own unique document number.
+            // ssi_financial_accounting's own app instead.
+            // "Account Receivable" (menu_account_receivable) is a
+            // level-2 section: unlike a level-3+ grouping header, a
+            // level-2 section ALWAYS renders its own clickable
+            // dropdown-toggle with data-menu-xmlid even though it has
+            // no action of its own (patterns.md §A, "Jumlah level
+            // menu di IK ≠ jumlah step tour") -- it needs its own step
+            // to open the dropdown before its own leaf ("Invoices")
+            // becomes visible and clickable. The row-contains trigger
+            // below doubles as both "the right list loaded" and "open
+            // the record", since only the intended list can ever
+            // contain this fixture's own unique document number.
             tour.stepUtils.showAppsMenuItem(),
             {
                 content: "Open the Financial Accounting app",
                 trigger:
                     '.o_app[data-menu-xmlid="ssi_financial_accounting.menu_root_financial_accounting"]',
+            },
+            {
+                content: "Open the Account Receivable menu",
+                trigger:
+                    '.o_menu_sections [data-menu-xmlid="ssi_financial_accounting.menu_account_receivable"]',
             },
             {
                 content: "Open the Invoices menu",
