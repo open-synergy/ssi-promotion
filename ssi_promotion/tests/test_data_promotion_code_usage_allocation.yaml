@@ -1371,7 +1371,9 @@ scenarios:
         save_as: "move_line"
         limit: 1
         expect_count: 1
-      - step: "Creating a usage with two rows on the same journal item and source must be rejected"
+      - step:
+          "Creating a usage with two rows on the same journal item and source must be
+          rejected"
         action: "create"
         model: "promotion_code_usage"
         expect_error:

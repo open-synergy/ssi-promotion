@@ -835,8 +835,7 @@ referrer on the promotion code
         if (
             not expected_partner
             or move_line.partner_id != expected_partner
-            or move_line.account_id
-            != expected_partner.property_account_receivable_id
+            or move_line.account_id != expected_partner.property_account_receivable_id
         ):
             error_message = """
 Context: Open promotion code usage

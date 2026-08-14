@@ -21,11 +21,11 @@
 - **Config:** The Promotion Type of this usage's own **Promotion Code** has a complete
   credit note configuration (Credit Note Journal and Credit Note Product) — required for
   the customer credit note created automatically once this document reaches Open.
-- **Record:** Every row on the **Allocation** tab, if any, targets a posted, reconcilable,
-  not-yet-fully-reconciled, company-currency **Journal Item** whose own partner and
-  account match the row's own **Source** (the voucher user for **Voucher User**, the
-  promotion code's own referrer for **Referrer** — which also requires the promotion code
-  to actually have a referrer). Opening is rejected otherwise.
+- **Record:** Every row on the **Allocation** tab, if any, targets a posted,
+  reconcilable, not-yet-fully-reconciled, company-currency **Journal Item** whose own
+  partner and account match the row's own **Source** (the voucher user for **Voucher
+  User**, the promotion code's own referrer for **Referrer** — which also requires the
+  promotion code to actually have a referrer). Opening is rejected otherwise.
 - **Access:** User is registered as an approver on the approval level that is currently
   **pending**.
 
@@ -46,6 +46,6 @@
   note is created and posted for **Voucher User** at the same time (and a referrer
   credit note as well, if **Promotion Code** has a referrer), so **Customer Credit
   Note** already shows status **Posted** and its own receivable journal item is stored
-  on this document. Each row on the **Allocation** tab is then reconciled against its own
-  **Source**'s credit note, in **Sequence** order, until that credit note runs out of
-  residual — rows reached afterwards keep an empty **Partial Reconcile**.
+  on this document. Each row on the **Allocation** tab is then reconciled against its
+  own **Source**'s credit note, in **Sequence** order, until that credit note runs out
+  of residual — rows reached afterwards keep an empty **Partial Reconcile**.
