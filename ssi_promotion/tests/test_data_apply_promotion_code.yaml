@@ -1,0 +1,684 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "action_apply_promotion_code creates a draft usage from the document"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S1-INC"
+          name: "Apply Promotion Code Basic Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Basic Journal"
+          code: "APPCS1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Basic Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Basic Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Basic Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCS1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Basic Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Run the Apply Promotion Code wizard from the invoice"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Exactly one usage is created for this code and document"
+        action: "search"
+        model: "promotion_code_usage"
+        domain:
+          [
+            ["promotion_code_id", "=", "REC: code.id"],
+            [
+              "document_reference",
+              "=",
+              "EVAL: 'account.move,%d' % registry['invoice'].id",
+            ],
+          ]
+        save_as: "usage"
+        expect_count: 1
+      - step: "The usage is Draft, referencing the invoice and its own partner"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          document_reference:
+            type: "value"
+            expected: "EVAL: 'account.move,%d' % registry['invoice'].id"
+          partner_id:
+            type: "m2o"
+            expected: "REC: customer"
+      - step: "Exactly one allocation row is created"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step: "The allocation row targets the invoice's own receivable line"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          source:
+            type: "value"
+            expected: "customer"
+          move_line_id:
+            type: "m2o"
+            expected: "REC: move_line"
+
+  - name: "action_apply_promotion_code copies the wizard's own Date"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S2-INC"
+          name: "Apply Promotion Code Date Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Date Journal"
+          code: "APPCS2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Date Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Date Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Date Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCS2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Date Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Run the wizard with an explicit Date"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+          date: "2026-03-15"
+        method: "action_apply_promotion_code"
+      - step: "The resulting usage's own Usage Date matches the wizard"
+        action: "search"
+        model: "promotion_code_usage"
+        domain:
+          [
+            ["promotion_code_id", "=", "REC: code.id"],
+            [
+              "document_reference",
+              "=",
+              "EVAL: 'account.move,%d' % registry['invoice'].id",
+            ],
+          ]
+        save_as: "usage"
+        expect_count: 1
+      - step: "Assert Usage Date"
+        action: "assert"
+        target: "usage"
+        asserts:
+          date:
+            type: "value"
+            expected: "2026-03-15"
+
+  - name: "action_apply_promotion_code run twice creates two separate usages"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S3-INC"
+          name: "Apply Promotion Code Twice Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Twice Journal"
+          code: "APPCS3"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Twice Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Twice Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Twice Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCS3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Twice Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Run the wizard a first time"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Run the wizard a second time on the same document"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Two separate usages now exist for this code and document"
+        action: "search"
+        model: "promotion_code_usage"
+        domain:
+          [
+            ["promotion_code_id", "=", "REC: code.id"],
+            [
+              "document_reference",
+              "=",
+              "EVAL: 'account.move,%d' % registry['invoice'].id",
+            ],
+          ]
+        save_as: "usages"
+        expect_count: 2
+      - step: "Each usage carries its own allocation row"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "in", "REC: usages.ids"]]
+        save_as: "alloc_rows"
+        expect_count: 2
+
+  - name: "action_apply_promotion_code on a document without the mixin is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-N1-INC"
+          name: "Apply Promotion Code No Mixin Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code No Mixin Journal"
+          code: "APPCN1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code No Mixin Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find res.partner model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "res.partner"]]
+        save_as: "res_partner_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing res.partner as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code No Mixin Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: res_partner_model.id"
+      - step: "Create the reference partner (does not carry the mixin)"
+        action: "create"
+        model: "res.partner"
+        save_as: "reference_partner"
+        values:
+          name: "Apply Promotion Code No Mixin Reference"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCN1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Running the wizard against a document without the mixin must fail"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "reference_partner"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+        expect_error:
+          type: "UserError"
+
+  - name: "action_apply_promotion_code with a disallowed reference model is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-N2-INC"
+          name: "Apply Promotion Code Disallowed Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Disallowed Journal"
+          code: "APPCN2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Disallowed Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type WITHOUT account.move as an allowed model"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Disallowed Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Disallowed Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCN2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Disallowed Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Running the wizard with a disallowed reference model must fail"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+        expect_error:
+          type: "UserError"

@@ -10,6 +10,7 @@ from . import test_promotion_code_usage_allocation
 from . import test_promotion_code_usage_populate_allocation
 from . import test_promotion_code_usage_recognition
 from . import test_create_due_promotion_recognition
+from . import test_apply_promotion_code
 from . import test_ui_promotion_code_usage_recognition
 from . import test_ui_promotion_code_usage
 from . import test_ui_promotion_code

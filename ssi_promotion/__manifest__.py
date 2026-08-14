@@ -43,6 +43,7 @@
         "security/ir_model_access/promotion_code_usage_recognition.xml",
         "security/ir_model_access/promotion_code_usage_recognition_line.xml",
         "security/ir_model_access/create_due_promotion_recognition.xml",
+        "security/ir_model_access/apply_promotion_code.xml",
         "security/ir_rule/promotion_code.xml",
         "security/ir_rule/promotion_code_usage.xml",
         "security/ir_rule/promotion_code_usage_recognition.xml",
@@ -68,6 +69,7 @@
         # pada menuitem-nya
         "wizards/create_due_promotion_recognition.xml",
         "views/create_due_promotion_recognition_menu.xml",
+        "wizards/apply_promotion_code.xml",
         "views/assets.xml",
     ],
     "demo": [],
