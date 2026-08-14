@@ -31,3 +31,6 @@
 ## Post-Condition
 
 - Status changes to **Cancelled**.
+- If this document had a **Customer Credit Note** and/or **Referrer Credit Note**, those
+  credit notes are deleted and both fields, together with their own receivable journal
+  item fields, are cleared back to empty.
