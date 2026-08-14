@@ -155,8 +155,8 @@ scenarios:
             type: "value"
             expected: "draft"
           document_reference:
-            type: "value"
-            expected: "EVAL: 'account.move,%d' % registry['invoice'].id"
+            type: "m2o"
+            expected: "REC: invoice"
           partner_id:
             type: "m2o"
             expected: "REC: customer"
@@ -296,7 +296,7 @@ scenarios:
         as_user: "base.user_admin"
         values:
           promotion_code_id: "REC: code.id"
-          date: "2026-03-15"
+          date: 2026-03-15
         method: "action_apply_promotion_code"
       - step: "The resulting usage's own Usage Date matches the wizard"
         action: "search"
@@ -318,7 +318,7 @@ scenarios:
         asserts:
           date:
             type: "value"
-            expected: "2026-03-15"
+            expected: 2026-03-15
 
   - name: "action_apply_promotion_code run twice creates two separate usages"
     steps:
