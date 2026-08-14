@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="apply_promotion_code_view_form" model="ir.ui.view">
+    <field name="name">apply_promotion_code - form</field>
+    <field name="model">apply_promotion_code</field>
+    <field name="arch" type="xml">
+        <form string="Apply Promotion Code">
+            <group name="main" colspan="4" col="2">
+                <field name="promotion_code_id" />
+                <field name="date" />
+                <field name="partner_id" />
+            </group>
+            <footer>
+                <button
+                        name="action_apply_promotion_code"
+                        type="object"
+                        string="Apply"
+                        class="btn-primary"
+                    />
+                <button string="Cancel" class="btn-default" special="cancel" />
+            </footer>
+        </form>
+    </field>
+</record>
+
+<record id="apply_promotion_code_action" model="ir.actions.act_window">
+    <field name="name">Apply Promotion Code</field>
+    <field name="type">ir.actions.act_window</field>
+    <field name="res_model">apply_promotion_code</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="apply_promotion_code_view_form" />
+    <field name="target">new</field>
+    <!-- Any mixin.promotion_object implementer can bind this same
+         action to its own model here without touching this module
+         again; account.move is bound below since it is the only
+         implementer currently shipped by ssi_promotion itself
+         (models/account_move.py). This does not touch
+         account.move's own view: it only adds an entry to that
+         model's own Action (gear) menu. -->
+    <field name="binding_model_id" ref="account.model_account_move" />
+    <field name="binding_view_types">form</field>
+</record>
+</odoo>

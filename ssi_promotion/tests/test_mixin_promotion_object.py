@@ -36,3 +36,25 @@ class TestMixinPromotionObject(YamlTransactionCase):
         self.assertEqual(action["res_model"], "promotion_code_usage")
         self.assertEqual(action["type"], "ir.actions.act_window")
         self.assertEqual(action["domain"], [("id", "in", move.promotion_usage_ids.ids)])
+
+    def test_action_apply_promotion_code_returns_action(self):
+        """Assert the window action returned by
+        ``action_apply_promotion_code``.
+
+        Pure Python -- trigger P1 (L-01: the ``call`` action discards
+        the return value, so YAML cannot assert a dict's keys).
+        """
+        journal = self.env["account.journal"].search(
+            [("type", "=", "general")], limit=1
+        )
+        move = self.env["account.move"].create(
+            {"move_type": "entry", "journal_id": journal.id}
+        )
+        action = move.action_apply_promotion_code()
+        self.assertEqual(action["res_model"], "apply_promotion_code")
+        self.assertEqual(action["type"], "ir.actions.act_window")
+        self.assertEqual(action["target"], "new")
+        self.assertEqual(
+            action["context"],
+            {"active_model": "account.move", "active_id": move.id},
+        )

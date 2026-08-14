@@ -11,9 +11,10 @@ from odoo.tests import HttpSavepointCase, tagged
 @tagged("post_install", "-at_install")
 class TestUiPromotionCodeUsage(HttpSavepointCase):
     """Tour tests for the ``promotion_code_usage`` work instructions,
-    plus the "Create Due Recognition" wizard whose own work
-    instruction lives under ``docs/promotion_code_usage/`` since it is
-    triggered from a menu above ``promotion_code_usage``.
+    plus the "Create Due Recognition" and "Apply Promotion Code"
+    wizards whose own work instructions live under
+    ``docs/promotion_code_usage/`` since each one creates
+    ``promotion_code_usage`` records rather than standing on its own.
     """
 
     @classmethod
@@ -292,6 +293,81 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             }
         )
 
+        # ── Fixtures for the "Apply Promotion Code" wizard tour
+        # (docs/promotion_code_usage/16-apply-promotion-code.md), run
+        # from a posted customer invoice's own Action (gear) menu --
+        # apply_promotion_code_action's own binding_model_id.
+        #
+        # ssi_financial_accounting REPLACES core account.menu_finance's
+        # own groups_id (menu.xml, "Hide menu"), so the invoice is
+        # reached through its own app instead (Financial Accounting >
+        # Account Receivable > Invoices, gated by
+        # ssi_financial_accounting.invoice_user_group). No group grant
+        # is needed here: that module's own security data already adds
+        # base.user_admin to invoice_validator_group (implying
+        # invoice_user_group) at install time
+        # (security/res_groups/invoice.xml).
+        apc_journal = cls.env["account.journal"].create(
+            {
+                "name": "TOUR APC Journal",
+                "code": "TAPC",
+                "type": "sale",
+                "company_id": cls.env.ref("base.main_company").id,
+            }
+        )
+        apc_product = cls.env["product.product"].create(
+            {
+                "name": "TOUR APC Product",
+                "type": "service",
+                "property_account_income_id": pcu_income_account.id,
+            }
+        )
+        cls.promotion_type_apc = cls.env["promotion_type"].create(
+            {
+                "name": "TOUR APC Type",
+                "code": "/",
+                "discount_type": "fixed",
+                "discount_amount": 250.0,
+                "journal_id": apc_journal.id,
+                "product_id": apc_product.id,
+                "account_id": pcu_income_account.id,
+                "allowed_model_ids": [(6, 0, account_move_model.ids)],
+            }
+        )
+        cls.code_apc = cls.env["promotion_code"].create(
+            {
+                "voucher_code": "TOUR-APC-CODE",
+                "type_id": cls.promotion_type_apc.id,
+                "user_id": cls.admin.id,
+            }
+        )
+        cls._run_workflow(cls.code_apc)
+        cls.code_apc.sudo().write({"name": "TOUR-APC-CODE"})
+
+        cls.customer_apc = cls.env["res.partner"].create({"name": "TOUR APC Customer"})
+        cls.invoice_apc = cls.env["account.move"].create(
+            {
+                "name": "TOUR-APC-INVOICE",
+                "move_type": "out_invoice",
+                "partner_id": cls.customer_apc.id,
+                "journal_id": apc_journal.id,
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": apc_product.id,
+                            "quantity": 1,
+                            "price_unit": 1000000.0,
+                            "name": "TOUR APC Invoice Line",
+                            "account_id": pcu_income_account.id,
+                        },
+                    )
+                ],
+            }
+        )
+        cls.invoice_apc.action_post()
+
     @classmethod
     def _create_usage(cls, name):
         """Create one draft ``promotion_code_usage`` fixture against
@@ -481,5 +557,16 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         self.start_tour(
             "/web",
             "ssi_promotion_promotion_code_usage_create_due_recognition",
+            login="admin",
+        )
+
+    def test_apply_promotion_code(self):
+        """Run the "Apply Promotion Code" tour.
+
+        IK: docs/promotion_code_usage/16-apply-promotion-code.md
+        """
+        self.start_tour(
+            "/web",
+            "ssi_promotion_promotion_code_usage_apply_promotion_code",
             login="admin",
         )

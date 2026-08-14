@@ -146,3 +146,29 @@ class MixinPromotionObject(models.AbstractModel):
         """
         self.ensure_one()
         return getattr(self, self._promotion_partner_id_field_name)
+
+    def action_apply_promotion_code(self):
+        """Open the Apply Promotion Code wizard for this record.
+
+        Wired to a button on the form of each ``mixin.promotion_object``
+        implementer -- the mixin itself installs no button (see
+        ``apply_promotion_code_action``'s own ``binding_model_id`` for
+        the Action-menu alternative that needs no button at all).
+        Passes this record's own model/id through context so the
+        wizard (``apply_promotion_code``) can read it back with
+        ``env.context['active_model']``/``['active_id']``.
+
+        :return: an ``ir.actions.act_window`` dict opening the wizard
+        """
+        self.ensure_one()
+        return {
+            "name": _("Apply Promotion Code"),
+            "type": "ir.actions.act_window",
+            "res_model": "apply_promotion_code",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "active_model": self._name,
+                "active_id": self.id,
+            },
+        }

@@ -866,4 +866,124 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             },
         ]
     );
+
+    // IK: docs/promotion_code_usage/16-apply-promotion-code.md
+    tour.register(
+        "ssi_promotion_promotion_code_usage_apply_promotion_code",
+        {
+            test: true,
+            url: "/web",
+        },
+        [
+            // Flow 1 — Open the Financial Accounting > Account
+            // Receivable > Invoices menu, then open the fixture
+            // invoice. ssi_financial_accounting REPLACES core
+            // account.menu_finance's own groups_id (menu.xml, "Hide
+            // menu") so the standard "Invoicing" app never renders at
+            // all -- account.move is reached through
+            // ssi_financial_accounting's own app instead.
+            // "Account Receivable" (menu_account_receivable) is a
+            // level-2 section: unlike a level-3+ grouping header, a
+            // level-2 section ALWAYS renders its own clickable
+            // dropdown-toggle with data-menu-xmlid even though it has
+            // no action of its own (patterns.md §A, "Jumlah level
+            // menu di IK ≠ jumlah step tour") -- it needs its own step
+            // to open the dropdown before its own leaf ("Invoices")
+            // becomes visible and clickable. The row-contains trigger
+            // below doubles as both "the right list loaded" and "open
+            // the record", since only the intended list can ever
+            // contain this fixture's own unique document number.
+            tour.stepUtils.showAppsMenuItem(),
+            {
+                content: "Open the Financial Accounting app",
+                trigger:
+                    '.o_app[data-menu-xmlid="ssi_financial_accounting.menu_root_financial_accounting"]',
+            },
+            {
+                content: "Open the Account Receivable menu",
+                trigger:
+                    '.o_menu_sections [data-menu-xmlid="ssi_financial_accounting.menu_account_receivable"]',
+            },
+            {
+                content: "Open the Invoices menu",
+                trigger:
+                    '.o_menu_sections [data-menu-xmlid="ssi_financial_accounting.customer_invoice_menu"]',
+            },
+            {
+                content: "Open the fixture invoice",
+                trigger: ".o_data_row:contains(TOUR-APC-INVOICE) .o_data_cell:first",
+                extra_trigger: ".o_list_view",
+            },
+            {
+                content: "Invoice is open",
+                trigger: ".o_form_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+
+            // Flow 2 — Click Action, then Apply Promotion Code.
+            {
+                content: "Open the Action menu",
+                trigger: ".o_cp_action_menus button:contains(Action)",
+            },
+            {
+                content: "Click Apply Promotion Code",
+                // Action menu item is an Owl component; the correct
+                // click target is the <a> inside .o_menu_item, matched
+                // on EXACT label -- :contains() as a substring could
+                // otherwise match an unrelated item (patterns.md §I).
+                trigger: ".o_cp_action_menus .o_menu_item a",
+                run: function () {
+                    var $item = $(".o_cp_action_menus .o_menu_item a").filter(
+                        function () {
+                            return $(this).text().trim() === "Apply Promotion Code";
+                        }
+                    );
+                    $item[0].click();
+                },
+            },
+
+            // Flow 3 — In the wizard that appears, select the
+            // Promotion Code (Voucher User fills in automatically,
+            // read-only; Date keeps its own default of today).
+            {
+                content: "Wizard is open",
+                // 14.0: trigger is searched INSIDE the modal, so do
+                // not prefix it with ".modal" (see patterns.md §H).
+                trigger: ".o_form_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+            {
+                content: "Select the Promotion Code",
+                trigger: ".o_field_many2one[name='promotion_code_id'] input",
+                run: "text TOUR-APC-CODE",
+            },
+            {
+                content: "Pick the promotion code from the dropdown",
+                trigger: ".ui-autocomplete .ui-menu-item a:contains(TOUR-APC-CODE)",
+                in_modal: false,
+            },
+
+            // Flow 4 — Click Apply.
+            {
+                content: "Click the Apply button",
+                trigger: ".modal-footer button[name='action_apply_promotion_code']",
+                in_modal: true,
+            },
+
+            // Post-Condition — The new usage is created in Draft
+            // status, and its own form is displayed.
+            {
+                content: "New usage is created in Draft status",
+                trigger:
+                    ".o_statusbar_status .o_arrow_button[data-value='draft'].btn-primary",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+        ]
+    );
 });
