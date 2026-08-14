@@ -132,6 +132,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
       - step: "Run Populate Allocation"
         action: "call"
@@ -274,6 +275,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
       - step: "Run Populate Allocation the first time"
         action: "call"
@@ -289,6 +291,7 @@ scenarios:
         action: "search"
         model: "promotion_code_usage_allocation"
         domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "final_alloc_rows"
         expect_count: 1
 
   - name: "action_populate_allocation skips a fully reconciled journal item"
@@ -527,6 +530,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference: "EVAL: 'account.move,%d' % registry['document'].id"
       - step: "Run Populate Allocation"
         action: "call"
@@ -666,6 +670,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
       - step: "Confirm the usage, leaving Draft"
         action: "call"
@@ -771,6 +776,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
       - step: "Populate Allocation with an empty Reference Document must be rejected"
         action: "call"
         target: "usage"
@@ -883,6 +889,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference:
             "EVAL: 'res.partner,%d' % registry['reference_partner'].id"
       - step: "Populate Allocation on a document without the mixin must be rejected"
@@ -1014,6 +1021,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
           document_reference: "EVAL: 'account.move,%d' % registry['invoice'].id"
       - step: "Populate Allocation with no eligible journal item must be rejected"
         action: "call"
