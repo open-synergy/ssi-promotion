@@ -39,6 +39,7 @@
         "security/ir_model_access/promotion_type.xml",
         "security/ir_model_access/promotion_code.xml",
         "security/ir_model_access/promotion_code_usage.xml",
+        "security/ir_model_access/promotion_code_usage_allocation.xml",
         "security/ir_model_access/promotion_code_usage_recognition.xml",
         "security/ir_model_access/promotion_code_usage_recognition_line.xml",
         "security/ir_model_access/create_due_promotion_recognition.xml",

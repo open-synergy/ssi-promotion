@@ -1,0 +1,1393 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "Approving an allocated usage reconciles its own credit note"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-S1-INC"
+          name: "Allocation Basic Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Basic Journal"
+          code: "ALLOCS1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Basic Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Basic Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 200000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Basic Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-S1-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: record rule promotion_code_internal_user_rule hanya
+          # meloloskan pemiliknya sendiri (jebakan T-05).
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Allocation Basic Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the receivable line's residual before allocation"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 1000000.0
+      - step: "Create usage allocating the receivable line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Assert fixed discount computed"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 200000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Find the allocation row created for this usage"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step: "Assert the allocation row was reconciled"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          partial_reconcile_id:
+            type: "value"
+            operator: "is_truthy"
+          amount_reconciled:
+            type: "value"
+            expected: 200000.0
+      - step: "Assert the receivable line's residual dropped by the discount"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 800000.0
+
+  - name: "Sequential allocation consumes the credit note in order"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-S2-INC"
+          name: "Allocation Sequence Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Sequence Journal"
+          code: "ALLOCS2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Sequence Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Sequence Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 500000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Sequence Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-S2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create first receivable invoice (residual 300000)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_a"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Sequence Invoice A"
+                account_id: "REC: income_account.id"
+      - step: "Post the first invoice"
+        action: "call"
+        target: "invoice_a"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the first invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_a.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_a"
+        limit: 1
+        expect_count: 1
+      - step: "Create second receivable invoice (residual 400000)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_b"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 400000.0
+                name: "Allocation Sequence Invoice B"
+                account_id: "REC: income_account.id"
+      - step: "Post the second invoice"
+        action: "call"
+        target: "invoice_b"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the second invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_b.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_b"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating both receivable lines in order"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line_a.id"
+            - - 0
+              - 0
+              - sequence: 20
+                source: "customer"
+                move_line_id: "REC: move_line_b.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the first line is fully consumed"
+        action: "assert"
+        target: "move_line_a"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 0.0
+      - step: "Assert the second line keeps the credit note's leftover"
+        action: "assert"
+        target: "move_line_b"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 200000.0
+
+  - name: "Allocation row reached after the credit note is exhausted"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-S3-INC"
+          name: "Allocation Exhausted Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Exhausted Journal"
+          code: "ALLOCS3"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Exhausted Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Exhausted Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 100000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Exhausted Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-S3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create first receivable invoice (residual 500000)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_a"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 500000.0
+                name: "Allocation Exhausted Invoice A"
+                account_id: "REC: income_account.id"
+      - step: "Post the first invoice"
+        action: "call"
+        target: "invoice_a"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the first invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_a.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_a"
+        limit: 1
+        expect_count: 1
+      - step: "Create second receivable invoice (never reached)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_b"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 250000.0
+                name: "Allocation Exhausted Invoice B"
+                account_id: "REC: income_account.id"
+      - step: "Post the second invoice"
+        action: "call"
+        target: "invoice_b"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the second invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_b.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_b"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating both lines, credit note only covers the first"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line_a.id"
+            - - 0
+              - 0
+              - sequence: 20
+                source: "customer"
+                move_line_id: "REC: move_line_b.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Find the second row's own allocation record"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"], ["sequence", "=", 20]]
+        save_as: "alloc_row_b"
+        expect_count: 1
+      - step: "Assert the second row was never reconciled"
+        action: "assert"
+        target: "alloc_row_b"
+        asserts:
+          partial_reconcile_id:
+            type: "value"
+            operator: "is_falsy"
+          amount_reconciled:
+            type: "value"
+            expected: 0.0
+
+  - name: "Cancelling an open allocated usage restores the residual"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-S4-INC"
+          name: "Allocation Cancel Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Cancel Journal"
+          code: "ALLOCS4"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Cancel Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Cancel Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 200000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Cancel Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-S4-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Allocation Cancel Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating the receivable line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the residual dropped by the discount before cancel"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 800000.0
+      - step: "Create the cancellation reason"
+        action: "create"
+        model: "base.cancel_reason"
+        save_as: "reason"
+        values:
+          name: "Allocation Cancel Reason"
+          code: "ALLOCS4CANCEL"
+          global_use: true
+      - step: "Cancel the usage via the wizard"
+        action: "wizard"
+        model: "base.select_cancel_reason"
+        target: "usage"
+        as_user: "base.user_admin"
+        values:
+          cancel_reason_id: "REC: reason.id"
+        method: "action_confirm"
+        asserts:
+          state:
+            type: "value"
+            expected: "cancel"
+      - step: "Assert the residual is restored after cancel"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 1000000.0
+      - step: "Find the allocation row created for this usage"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step: "Assert the allocation row's own partial reconcile is cleared"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          partial_reconcile_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "Approving with an allocation row on another partner's line is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-NEG1-INC"
+          name: "Allocation Negative Partner Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Negative Partner Journal"
+          code: "ALLOCNEG1"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Negative Partner Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Negative Partner Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Negative Partner Voucher User"
+      - step: "Create an unrelated partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "other_partner"
+        values:
+          name: "Allocation Negative Unrelated Partner"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-NEG1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the OTHER partner"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: other_partner.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Negative Partner Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage for the voucher user, allocating the other partner's line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving with a mismatched partner must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "Approving with an allocation row on a draft journal entry is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-NEG2-INC"
+          name: "Allocation Negative Draft Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Negative Draft Journal"
+          code: "ALLOCNEG2"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Negative Draft Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Negative Draft Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Negative Draft Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-NEG2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a receivable invoice but do NOT post it"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Negative Draft Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Find the draft invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the receivable line still belongs to a draft entry"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          parent_state:
+            type: "value"
+            expected: "draft"
+      - step: "Create usage allocating the draft journal item"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving with a draft journal entry must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "Approving a referrer allocation without a referrer is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-NEG3-INC"
+          name: "Allocation Negative Referrer Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Negative Referrer Journal"
+          code: "ALLOCNEG3"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Negative Referrer Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Negative Referrer Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Negative Referrer Customer"
+      - step: "Create promotion code WITHOUT a referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-NEG3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Negative Referrer Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage with a Source Referrer allocation row"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving a referrer row without a referrer must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+
+  - name: "Duplicate allocation rows for the same journal item and source are rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-NEG4-INC"
+          name: "Allocation Negative Duplicate Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Negative Duplicate Journal"
+          code: "ALLOCNEG4"
+          type: "sale"
+      - step: "Create credit note product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Negative Duplicate Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Negative Duplicate Type"
+          code: "/"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Negative Duplicate Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-NEG4-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Negative Duplicate Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Creating a usage with two rows on the same journal item and source must be rejected"
+        action: "create"
+        model: "promotion_code_usage"
+        expect_error:
+          type: "ValidationError"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+            - - 0
+              - 0
+              - sequence: 20
+                source: "customer"
+                move_line_id: "REC: move_line.id"

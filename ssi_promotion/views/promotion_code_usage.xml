@@ -121,6 +121,43 @@
                         <field name="referrer_credit_note_move_line_id" />
                     </group>
                 </page>
+                <page name="allocation" string="Allocation">
+                    <field
+                            name="allocation_ids"
+                            colspan="4"
+                            nolabel="1"
+                            attrs="{'readonly': [('state', '!=', 'draft')]}"
+                        >
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle" />
+                            <field name="source" />
+                            <field name="move_line_id" />
+                            <field name="move_id" />
+                            <field name="partner_id" />
+                            <field name="amount_residual" widget="monetary" />
+                            <field name="partial_reconcile_id" />
+                            <field name="amount_reconciled" widget="monetary" />
+                            <field name="account_id" invisible="1" />
+                            <field name="currency_id" invisible="1" />
+                            <field name="company_currency_id" invisible="1" />
+                        </tree>
+                        <form>
+                            <group col="2">
+                                <field name="sequence" />
+                                <field name="source" />
+                                <field name="move_line_id" />
+                                <field name="move_id" />
+                                <field name="account_id" />
+                                <field name="partner_id" />
+                                <field name="amount_residual" widget="monetary" />
+                                <field name="partial_reconcile_id" />
+                                <field name="amount_reconciled" widget="monetary" />
+                                <field name="currency_id" invisible="1" />
+                                <field name="company_currency_id" invisible="1" />
+                            </group>
+                        </form>
+                    </field>
+                </page>
                 <page
                         name="recognitions"
                         string="Recognitions"
