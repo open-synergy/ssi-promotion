@@ -999,7 +999,12 @@ referrer equivalents if applicable) on the promotion type
         move = self.credit_note_id
         if move.state != "draft":
             move.button_draft()
-        move.unlink()
+        # 'posted_before' stays True after button_draft(), so plain
+        # unlink() still raises "You cannot delete an entry which has
+        # been posted once." -- force_delete is account.move's own
+        # sanctioned bypass for that guard (see account_payment.py /
+        # account_bank_statement.py core usage of the same context key).
+        move.with_context(force_delete=True).unlink()
         self.write(
             {
                 "credit_note_id": False,
@@ -1020,7 +1025,8 @@ referrer equivalents if applicable) on the promotion type
         move = self.referrer_credit_note_id
         if move.state != "draft":
             move.button_draft()
-        move.unlink()
+        # See the matching comment in _delete_customer_credit_note.
+        move.with_context(force_delete=True).unlink()
         self.write(
             {
                 "referrer_credit_note_id": False,
