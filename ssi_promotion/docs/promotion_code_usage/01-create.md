@@ -31,8 +31,8 @@
    once **Promotion Code** is selected:
    - **Discount Amount**: Automatically computed from **Promotion Code**'s own discount
      rule.
-   - **Recognition Method**: Automatically filled from **Promotion Code**'s own Promotion
-     Type. Change if needed.
+   - **Recognition Method**: Automatically filled from **Promotion Code**'s own
+     Promotion Type. Change if needed.
    - **Recognition Date**: Automatically filled from **Usage Date**. Change if needed.
    - **Deferred Account** _(required if **Recognition Method** is **Deferred**)_: Shown
      only when **Recognition Method** is **Deferred**. Automatically filled from
