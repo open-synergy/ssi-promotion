@@ -1147,14 +1147,21 @@ items sharing the same account
     def _get_receivable_move_line(self, move):
         """Resolve a posted journal entry's own receivable journal item.
 
+        ``move`` always carries exactly the two lines built by
+        ``_prepare_customer_move_data`` / ``_prepare_referrer_move_data``:
+        a debit-only discount line, and a credit-only line on the
+        account resolved from 'Allocations' (see
+        ``_get_allocation_account``). That account need not carry
+        'internal_type' 'receivable' -- ``_check_allocation_line``
+        accepts any reconcilable account -- so the credit line is
+        picked by its own 'Credit' side instead.
+
         :param move: a posted ``account.move`` (journal entry)
-        :return: the ``account.move.line`` whose 'Account' has
-            'internal_type' 'receivable', possibly empty
+        :return: the ``account.move.line`` on the credit side,
+            possibly empty
         """
         self.ensure_one()
-        return move.line_ids.filtered(
-            lambda line: line.account_id.internal_type == "receivable"
-        )[:1]
+        return move.line_ids.filtered(lambda line: line.credit > 0)[:1]
 
     # L2. Allocation Reconciliation (post-open hook)
     @ssi_decorator.post_open_action()
