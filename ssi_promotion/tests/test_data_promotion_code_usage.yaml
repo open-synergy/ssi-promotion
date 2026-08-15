@@ -2133,6 +2133,7 @@ scenarios:
           code: "NOCONFIG-RECV"
           name: "No Config Receivable"
           user_type_id: "REC: recv_acc_type.id"
+          reconcile: true
       - step: "Create a balancing income account"
         action: "create"
         model: "account.account"

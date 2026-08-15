@@ -1683,6 +1683,7 @@ scenarios:
           code: "ALLOC-POS1-RECVY"
           name: "Allocation Positive Account Receivable Y"
           user_type_id: "REF: account.data_account_type_receivable"
+          reconcile: true
       - step: "Move the customer's own receivable property to account Y"
         action: "write"
         target: "customer"
@@ -2063,6 +2064,7 @@ scenarios:
           code: "ALLOC-NEG6-RECVB"
           name: "Allocation Negative Account Receivable B"
           user_type_id: "REF: account.data_account_type_receivable"
+          reconcile: true
       - step: "Move the customer's own receivable property to account B"
         action: "write"
         target: "customer"
