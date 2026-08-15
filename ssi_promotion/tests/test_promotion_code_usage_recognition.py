@@ -170,6 +170,12 @@ class TestPromotionCodeUsageRecognition(YamlTransactionCase):
             referrer_line.debit_account_id,
             usage._get_final_account(referrer=True),
         )
-        self.assertNotEqual(
-            customer_line.debit_account_id, referrer_line.debit_account_id
-        )
+        # ptype's own 'Discount Account' (account_id) is set, and per
+        # '_get_final_account' it wins over usage/product resolution on
+        # BOTH sides alike -- 'referrer_product_id'/'referrer_discount_
+        # usage_id' never even get consulted here. Both lines therefore
+        # debit the same account; a differing account per side when NO
+        # override is set is covered by test_data_promotion_code_usage
+        # .yaml's own "Different Discount Usage on each side debits a
+        # different account" scenario instead.
+        self.assertEqual(customer_line.debit_account_id, referrer_line.debit_account_id)
