@@ -21,13 +21,18 @@ class PromotionCodeUsage(models.Model):
     Confirming a usage runs the promotion type's validity Python code
     together with the usage-limit and validity-period checks. Approving a
     usage (state open) automatically creates and posts a plain journal
-    entry (account.move, move_type 'entry') for partner_id, and a
-    second one for promotion_code_id.partner_id when the code has a
-    referrer (see the post_open_action hooks). Each posted journal
-    entry's own receivable journal item is kept on
-    receivable_move_line_id / referrer_receivable_move_line_id.
-    Cancelling the usage deletes both journal entries again and clears
-    those four fields (see the post_cancel_action hook).
+    entry (account.move, move_type 'entry') for partner_id when
+    allocation_ids has a 'customer' row, and a second one for
+    promotion_code_id.partner_id when the code has a referrer and
+    allocation_ids has a 'referrer' row (see the post_open_action
+    hooks). A side without an allocation row gets no journal entry --
+    its own credit line's account is resolved from allocation_ids,
+    not from a partner's own accounting configuration (see
+    '_get_allocation_account'). Each posted journal entry's own
+    receivable journal item is kept on receivable_move_line_id /
+    referrer_receivable_move_line_id. Cancelling the usage deletes
+    both journal entries again and clears those four fields (see the
+    post_cancel_action hook).
 
     Recognition Method controls which account those journal entry
     lines debit: Immediate (the default, copied from the promotion
@@ -38,14 +43,18 @@ class PromotionCodeUsage(models.Model):
     'Recognition State' track that release; they stay 'Not
     Applicable' while Recognition Method is Immediate.
 
-    allocation_ids lists receivable account.move.line records this
+    allocation_ids lists reconcilable account.move.line records this
     usage's own journal entry(-ies) should reduce instead of only
-    adding to the source partner's credit balance. Opening a usage
-    first validates every row (see '_15_check_allocation'), then
-    reconciles each source's own journal entry receivable line
-    against its own allocation rows in order (see '_30_reconcile').
-    Cancelling the usage undoes that reconciliation before its own
-    journal entry(-ies) are deleted (see '_05_unreconcile').
+    adding to the source partner's credit balance. Every allocation
+    row of one source is also this usage's own source for that
+    side's credit line account (see '_get_allocation_account'), so
+    every row of one source must share one account. Opening a usage
+    first validates every row and that per-source account sharing
+    (see '_15_check_allocation'), then reconciles each source's own
+    journal entry receivable line against its own allocation rows in
+    order (see '_30_reconcile'). Cancelling the usage undoes that
+    reconciliation before its own journal entry(-ies) are deleted
+    (see '_05_unreconcile').
     """
 
     _name = "promotion_code_usage"
@@ -843,26 +852,40 @@ outstanding receivable balance
         Runs on the pre-action of the confirm-to-open transition
         (approval, ``action_open``), before the state actually
         changes and before ``_30_reconcile`` runs. Delegates each
-        row of 'Allocations' to ``_check_allocation_line``.
+        row of 'Allocations' to ``_check_allocation_line``, then
+        checks every 'Source' shares one account with
+        ``_check_allocation_account_per_source`` -- the credit
+        account of that source's own journal entry is resolved from
+        'Allocations' (see ``_get_allocation_account``), and this
+        usage keeps a single credit line per source.
 
-        :raises UserError: via ``_check_allocation_line`` when any
+        :raises UserError: via ``_check_allocation_line`` or
+            ``_check_allocation_account_per_source`` when any
             allocation row fails a check
         """
         self.ensure_one()
         for line in self.allocation_ids:
             self._check_allocation_line(line)
+        self._check_allocation_account_per_source()
 
     def _check_allocation_line(self, line):
         """Check one allocation row is safe to reconcile against.
+
+        Any reconcilable account is accepted -- this hook no longer
+        requires the row's own 'Journal Item' to sit on the expected
+        source partner's own receivable account (see
+        ``_check_allocation_account_per_source`` for the constraint
+        that replaces it: every row of one 'Source' still shares a
+        single account).
 
         :param line: a ``promotion_code_usage_allocation`` record
             of this usage's own 'Allocations'
         :raises UserError: when the row's own 'Journal Item' is not
             reconcilable, not posted, already reconciled or has no
             positive residual, is in a foreign currency, does not
-            match the expected source partner's own receivable
-            account, or the row's own 'Source' is 'Referrer' while
-            this usage's own promotion code has none
+            belong to the expected source partner, or the row's own
+            'Source' is 'Referrer' while this usage's own promotion
+            code has none
         """
         self.ensure_one()
         move_line = line.move_line_id
@@ -930,24 +953,72 @@ referrer on the promotion code
             )
             raise UserError(_(error_message))
         expected_partner = self._get_allocation_expected_partner(line.source)
-        if (
-            not expected_partner
-            or move_line.partner_id != expected_partner
-            or move_line.account_id != expected_partner.property_account_receivable_id
-        ):
+        if not expected_partner or move_line.partner_id != expected_partner:
             error_message = """
 Context: Open promotion code usage
 Database ID: %s
 Problem: Allocation row's own journal item '%s' does not belong to the \
-expected source partner's own receivable account
-Solution: Choose a journal item whose partner and account match the \
-receivable account of the '%s' source for this usage
+expected source partner
+Solution: Choose a journal item whose partner matches the '%s' source \
+for this usage
 """ % (
                 self.id,
                 move_line.display_name,
                 line.source,
             )
             raise UserError(_(error_message))
+
+    def _check_allocation_account_per_source(self):
+        """Require every allocation row of one 'Source' to share one
+        account.
+
+        A single credit line is posted per source (see
+        ``_prepare_customer_move_data`` /
+        ``_prepare_referrer_move_data``), so its own account cannot
+        represent 'Allocations' spread across more than one account.
+
+        :raises UserError: when 'Allocations' of the same 'Source'
+            target 'Journal Item' on more than one account
+        """
+        self.ensure_one()
+        for source in ("customer", "referrer"):
+            lines = self.allocation_ids.filtered(
+                lambda allocation, source=source: allocation.source == source
+            )
+            accounts = lines.mapped("move_line_id.account_id")
+            if len(accounts) > 1:
+                error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation rows under Source '%s' target journal items on more \
+than one account (%s)
+Solution: Make every allocation row of that Source point to journal \
+items sharing the same account
+""" % (
+                    self.id,
+                    source,
+                    ", ".join(accounts.mapped("display_name")),
+                )
+                raise UserError(_(error_message))
+
+    def _get_allocation_account(self, source):
+        """Resolve the account this side's own allocation rows share.
+
+        Used both by ``_check_allocation_account_per_source`` (via
+        the constraint it enforces) and by ``_create_customer_move``
+        / ``_create_referrer_move`` to resolve the credit account of
+        this usage's own journal entry(-ies).
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: the ``account.account`` shared by every allocation
+            row of that 'Source', empty when that 'Source' has no
+            allocation row
+        """
+        self.ensure_one()
+        lines = self.allocation_ids.filtered(
+            lambda allocation, source=source: allocation.source == source
+        )
+        return lines.mapped("move_line_id.account_id")[:1]
 
     def _get_allocation_expected_partner(self, source):
         """Resolve the partner an allocation row's own 'Source' expects.
@@ -968,9 +1039,14 @@ receivable account of the '%s' source for this usage
         """Create the journal entry(-ies) for a newly approved usage.
 
         Runs after the confirm-to-open transition (approval,
-        ``action_open``) completes. Always creates the customer
-        journal entry; also creates the referrer journal entry when
-        the promotion code has a referrer ('partner_id' set).
+        ``action_open``) completes. Creates the customer journal
+        entry when 'Allocations' has at least one 'customer' row
+        (its own credit account is resolved from there, see
+        ``_get_allocation_account``); also creates the referrer
+        journal entry when the promotion code has a referrer
+        ('partner_id' set) and 'Allocations' has at least one
+        'referrer' row. A source without an allocation row does not
+        issue a journal entry.
         """
         self._create_customer_move()
         self._create_referrer_move()
@@ -978,36 +1054,50 @@ receivable account of the '%s' source for this usage
     def _create_customer_move(self):
         """Create the customer journal entry for this usage, once.
 
-        No-op when 'Customer Accounting Entry' is already set.
+        No-op when 'Customer Accounting Entry' is already set, or
+        when 'Allocations' has no 'customer' row -- there is then no
+        account to credit (see ``_get_allocation_account``).
 
         :raises UserError: via ``_check_accounting_configuration``
-            when the promotion type/partner accounting configuration
-            is incomplete
+            when the promotion type accounting configuration is
+            incomplete
         """
         self.ensure_one()
         if self.move_id:
             return
+        receivable_account = self._get_allocation_account("customer")
+        if not receivable_account:
+            return
         self._check_accounting_configuration(referrer=False)
-        move = self.env["account.move"].create(self._prepare_customer_move_data())
+        move = self.env["account.move"].create(
+            self._prepare_customer_move_data(receivable_account)
+        )
         self.write({"move_id": move.id})
 
     def _create_referrer_move(self):
         """Create the referrer journal entry for this usage, once.
 
-        No-op when 'Referrer Accounting Entry' is already set, or
-        when the promotion code has no referrer ('partner_id' empty).
+        No-op when 'Referrer Accounting Entry' is already set, the
+        promotion code has no referrer ('partner_id' empty), or
+        'Allocations' has no 'referrer' row -- there is then no
+        account to credit (see ``_get_allocation_account``).
 
         :raises UserError: via ``_check_accounting_configuration``
-            when the promotion type/partner accounting configuration
-            is incomplete
+            when the promotion type accounting configuration is
+            incomplete
         """
         self.ensure_one()
         if self.referrer_move_id:
             return
         if not self.promotion_code_id.partner_id:
             return
+        receivable_account = self._get_allocation_account("referrer")
+        if not receivable_account:
+            return
         self._check_accounting_configuration(referrer=True)
-        move = self.env["account.move"].create(self._prepare_referrer_move_data())
+        move = self.env["account.move"].create(
+            self._prepare_referrer_move_data(receivable_account)
+        )
         self.write({"referrer_move_id": move.id})
 
     @ssi_decorator.post_open_action()
@@ -1057,14 +1147,21 @@ receivable account of the '%s' source for this usage
     def _get_receivable_move_line(self, move):
         """Resolve a posted journal entry's own receivable journal item.
 
+        ``move`` always carries exactly the two lines built by
+        ``_prepare_customer_move_data`` / ``_prepare_referrer_move_data``:
+        a debit-only discount line, and a credit-only line on the
+        account resolved from 'Allocations' (see
+        ``_get_allocation_account``). That account need not carry
+        'internal_type' 'receivable' -- ``_check_allocation_line``
+        accepts any reconcilable account -- so the credit line is
+        picked by its own 'Credit' side instead.
+
         :param move: a posted ``account.move`` (journal entry)
-        :return: the ``account.move.line`` whose 'Account' has
-            'internal_type' 'receivable', possibly empty
+        :return: the ``account.move.line`` on the credit side,
+            possibly empty
         """
         self.ensure_one()
-        return move.line_ids.filtered(
-            lambda line: line.account_id.internal_type == "receivable"
-        )[:1]
+        return move.line_ids.filtered(lambda line: line.credit > 0)[:1]
 
     # L2. Allocation Reconciliation (post-open hook)
     @ssi_decorator.post_open_action()
@@ -1128,12 +1225,19 @@ receivable account of the '%s' source for this usage
     def _check_accounting_configuration(self, referrer=False):
         """Require a complete accounting configuration for this side.
 
+        The credit (receivable) line's own account no longer comes
+        from the partner's own 'property_account_receivable_id' --
+        it is resolved from 'Allocations' instead (see
+        ``_get_allocation_account``), and its own presence is
+        already guaranteed by the caller (``_create_customer_move`` /
+        ``_create_referrer_move``) before this check runs. Only the
+        promotion type's own configuration is checked here.
+
         :param referrer: check the referrer's own configuration
             instead of the voucher user's
-        :raises UserError: when the resolved journal is empty, the
-            resolved discount account (``_get_discount_account``) is
-            empty, or the resolved partner has no own
-            'property_account_receivable_id'
+        :raises UserError: when the resolved journal is empty, or
+            the resolved discount account
+            (``_get_discount_account``) is empty
         """
         self.ensure_one()
         promotion_type = self.type_id
@@ -1142,7 +1246,6 @@ receivable account of the '%s' source for this usage
             if referrer
             else promotion_type.journal_id
         )
-        partner = self._get_move_partner(referrer=referrer)
         if not journal:
             error_message = """
 Context: Create accounting entry from promotion code usage
@@ -1166,18 +1269,6 @@ account fallback) on the promotion type, or 'Deferred Account' while \
 """ % (
                 self.id,
                 promotion_type.display_name,
-            )
-            raise UserError(_(error_message))
-        if not partner.property_account_receivable_id:
-            error_message = """
-Context: Create accounting entry from promotion code usage
-Database ID: %s
-Problem: Partner '%s' does not have a Receivable Account configured
-Solution: Set 'Account Receivable' on the partner's own accounting \
-configuration
-""" % (
-                self.id,
-                partner.display_name,
             )
             raise UserError(_(error_message))
 
@@ -1231,13 +1322,17 @@ configuration
             return self.deferred_account_id
         return self._get_final_account(referrer=referrer)
 
-    def _prepare_customer_move_data(self):
+    def _prepare_customer_move_data(self, receivable_account):
         """Build the customer journal entry ``account.move`` values.
 
         Two lines: a debit line on
         ``_get_discount_account(referrer=False)``, and a credit line
-        on the voucher user's own receivable account.
+        on ``receivable_account``.
 
+        :param receivable_account: account credited by the credit
+            line, resolved by the caller
+            (``_get_allocation_account``) from this usage's own
+            'customer' 'Allocations'
         :return: dict of ``account.move`` values
         """
         self.ensure_one()
@@ -1256,17 +1351,25 @@ configuration
                         partner, self._get_discount_account(referrer=False)
                     ),
                 ),
-                (0, 0, self._prepare_receivable_line_data(partner)),
+                (
+                    0,
+                    0,
+                    self._prepare_receivable_line_data(partner, receivable_account),
+                ),
             ],
         }
 
-    def _prepare_referrer_move_data(self):
+    def _prepare_referrer_move_data(self, receivable_account):
         """Build the referrer journal entry ``account.move`` values.
 
         Two lines: a debit line on
         ``_get_discount_account(referrer=True)``, and a credit line
-        on the referrer's own receivable account.
+        on ``receivable_account``.
 
+        :param receivable_account: account credited by the credit
+            line, resolved by the caller
+            (``_get_allocation_account``) from this usage's own
+            'referrer' 'Allocations'
         :return: dict of ``account.move`` values
         """
         self.ensure_one()
@@ -1286,7 +1389,11 @@ configuration
                         partner, self._get_discount_account(referrer=True)
                     ),
                 ),
-                (0, 0, self._prepare_receivable_line_data(partner)),
+                (
+                    0,
+                    0,
+                    self._prepare_receivable_line_data(partner, receivable_account),
+                ),
             ],
         }
 
@@ -1317,17 +1424,20 @@ configuration
             "credit": 0.0,
         }
 
-    def _prepare_receivable_line_data(self, partner):
+    def _prepare_receivable_line_data(self, partner, account):
         """Build the credit (receivable) ``account.move.line`` values dict.
 
-        :param partner: partner recorded on the line; its own
-            'property_account_receivable_id' is credited
+        :param partner: partner recorded on the line
+        :param account: account credited by the line -- the account
+            shared by this side's own 'Allocations' rows (see
+            ``_get_allocation_account``), not the partner's own
+            'property_account_receivable_id'
         :return: dict of ``account.move.line`` values
         """
         self.ensure_one()
         return {
             "partner_id": partner.id,
-            "account_id": partner.property_account_receivable_id.id,
+            "account_id": account.id,
             "name": self._get_move_line_label(),
             "debit": 0.0,
             "credit": self.discount_amount,

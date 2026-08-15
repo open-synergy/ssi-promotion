@@ -88,6 +88,38 @@ scenarios:
         save_as: "customer"
         values:
           name: "Fixed Discount Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Fixed Discount Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the receivable invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create promotion code usage"
         action: "create"
         model: "promotion_code_usage"
@@ -97,6 +129,12 @@ scenarios:
           partner_id: "EVAL: registry['customer'].id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
       - step: "Assert fixed discount computed"
         action: "assert"
         target: "usage"
@@ -495,6 +533,70 @@ scenarios:
         save_as: "customer"
         values:
           name: "Referrer Flow Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Referrer Flow Customer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Referrer Flow Referrer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create promotion code usage"
         action: "create"
         model: "promotion_code_usage"
@@ -504,6 +606,17 @@ scenarios:
           partner_id: "EVAL: registry['customer'].id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
@@ -689,6 +802,70 @@ scenarios:
         save_as: "customer"
         values:
           name: "Cancel Flow Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Cancel Flow Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Cancel Flow Referrer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create usage"
         action: "create"
         model: "promotion_code_usage"
@@ -698,6 +875,17 @@ scenarios:
           partner_id: "REC: customer.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
@@ -975,6 +1163,70 @@ scenarios:
         save_as: "customer"
         values:
           name: "Deferred Flow Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Deferred Flow Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Deferred Flow Referrer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create deferred promotion code usage"
         action: "create"
         model: "promotion_code_usage"
@@ -985,6 +1237,17 @@ scenarios:
           deferred_account_id: "REC: deferred_account.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
@@ -1119,6 +1382,38 @@ scenarios:
         save_as: "customer"
         values:
           name: "Immediate Flow Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Immediate Flow Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the receivable invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create promotion code usage"
         action: "create"
         model: "promotion_code_usage"
@@ -1128,6 +1423,12 @@ scenarios:
           partner_id: "REC: customer.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
       - step: "Assert recognition_method defaults to immediate"
         action: "assert"
         target: "usage"
@@ -1816,6 +2117,76 @@ scenarios:
         save_as: "customer"
         values:
           name: "Customer No Config"
+      - step: "Get receivable account type"
+        action: "ref"
+        xml_id: "account.data_account_type_receivable"
+        save_as: "recv_acc_type"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "recv_income_acc_type"
+      - step: "Create a receivable account, unrelated to the promotion type"
+        action: "create"
+        model: "account.account"
+        save_as: "recv_account"
+        values:
+          code: "NOCONFIG-RECV"
+          name: "No Config Receivable"
+          user_type_id: "REC: recv_acc_type.id"
+          reconcile: true
+      - step: "Create a balancing income account"
+        action: "create"
+        model: "account.account"
+        save_as: "recv_income_account"
+        values:
+          code: "NOCONFIG-RECVINC"
+          name: "No Config Receivable Income"
+          user_type_id: "REC: recv_income_acc_type.id"
+      - step: "Create a general journal, unrelated to the promotion type"
+        action: "create"
+        model: "account.journal"
+        save_as: "recv_journal"
+        values:
+          name: "No Config Misc Journal"
+          code: "NOCONFIGM"
+          type: "general"
+      - step: "Create a posted journal entry crediting the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_entry"
+        values:
+          move_type: "entry"
+          journal_id: "REC: recv_journal.id"
+          line_ids:
+            - - 0
+              - 0
+              - account_id: "REC: recv_account.id"
+                partner_id: "REC: customer.id"
+                name: "No Config Allocation Debit"
+                debit: 100000.0
+                credit: 0.0
+            - - 0
+              - 0
+              - account_id: "REC: recv_income_account.id"
+                name: "No Config Allocation Credit"
+                debit: 0.0
+                credit: 100000.0
+      - step: "Post the journal entry"
+        action: "call"
+        target: "recv_entry"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the entry's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_entry.id"],
+            ["account_id", "=", "REC: recv_account.id"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create usage"
         action: "create"
         model: "promotion_code_usage"
@@ -1825,6 +2196,12 @@ scenarios:
           partner_id: "REC: customer.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
@@ -1849,7 +2226,9 @@ scenarios:
         expect_error:
           type: "UserError"
 
-  - name: "Approving a usage whose partner has no receivable account is rejected"
+  - name:
+      "Approving a usage whose partner has no receivable account and no allocation still
+      succeeds without a journal entry"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -1966,13 +2345,27 @@ scenarios:
           state:
             type: "value"
             expected: "confirm"
-      - step: "Approving without a receivable account on the partner must be rejected"
+      - step:
+          "Approving without a receivable account on the partner still succeeds, since
+          'customer' has no allocation row"
         action: "call"
         target: "usage"
         method: "action_approve_approval"
         as_user: "base.user_admin"
-        expect_error:
-          type: "UserError"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert no customer accounting entry was issued"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_falsy"
+          receivable_move_line_id:
+            type: "value"
+            operator: "is_falsy"
 
   - name: "Replaying the accounting entry creation and posting hooks is idempotent"
     steps:
@@ -2061,6 +2454,38 @@ scenarios:
         save_as: "customer"
         values:
           name: "Customer Guard"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Customer Guard Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the receivable invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
       - step: "Create usage"
         action: "create"
         model: "promotion_code_usage"
@@ -2070,6 +2495,12 @@ scenarios:
           partner_id: "REC: customer.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
       - step: "Confirm usage"
         action: "call"
         target: "usage"
