@@ -28,6 +28,9 @@ class PromotionCodeUsageAllocation(models.Model):
     """
 
     _name = "promotion_code_usage_allocation"
+    _inherit = [
+        "mixin.many2one_configurator",
+    ]
     _description = "Promotion Code Usage - Allocation"
     _order = "usage_id, sequence, id"
 
@@ -140,6 +143,17 @@ class PromotionCodeUsageAllocation(models.Model):
         help="Amount actually reconciled against 'Journal Item': "
         "'Partial Reconcile''s own 'Amount', or zero while empty.",
     )
+    allowed_account_ids = fields.Many2many(
+        string="Allowed Accounts",
+        comodel_name="account.account",
+        compute="_compute_allowed_account_ids",
+        store=False,
+        compute_sudo=True,
+        help="Accounts 'Journal Item' is allowed to sit on, resolved "
+        "from '# Usage''s own promotion type through its 'Allocation "
+        "Account Selection Method'. Used only to filter 'Journal "
+        "Item' on this row's own form/tree view -- never displayed.",
+    )
 
     @api.depends("partial_reconcile_id.amount")
     def _compute_amount_reconciled(self):
@@ -152,6 +166,34 @@ class PromotionCodeUsageAllocation(models.Model):
             if record.partial_reconcile_id:
                 result = record.partial_reconcile_id.amount
             record.amount_reconciled = result
+
+    @api.depends("usage_id.type_id")
+    def _compute_allowed_account_ids(self):
+        """Resolve the accounts allowed by this row's own promotion type.
+
+        Delegates to the m2o configurator on '# Usage''s own 'Type'
+        (see ``mixin.many2one_configurator``). While 'Type' is empty
+        (mis. a row created before its usage has one), falls back to
+        every reconcilable account rather than ``search([])`` or an
+        empty result -- 'reconcile' is a hard technical boundary that
+        holds regardless of type configuration, unlike the "no
+        restriction" default documented for other m2o configurators.
+
+        :return: nothing; assigns ``allowed_account_ids``
+        """
+        Account = self.env["account.account"]  # pylint: disable=invalid-name
+        for record in self:
+            result = Account.search([("reconcile", "=", True)])
+            if record.usage_id.type_id:
+                type_id = record.usage_id.type_id
+                result = record._m2o_configurator_get_filter(
+                    object_name="account.account",
+                    method_selection=(type_id.allocation_account_selection_method),
+                    manual_recordset=type_id.allocation_account_ids,
+                    domain=type_id.allocation_account_domain,
+                    python_code=type_id.allocation_account_python_code,
+                )
+            record.allowed_account_ids = result
 
     @api.constrains(
         "usage_id",

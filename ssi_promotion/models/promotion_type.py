@@ -198,3 +198,48 @@ class PromotionType(models.Model):
         "type, but may still be overridden manually on the usage "
         "itself.",
     )
+    allocation_account_selection_method = fields.Selection(
+        string="Allocation Account Selection Method",
+        selection=[
+            ("manual", "Manual"),
+            ("domain", "Domain"),
+            ("code", "Python Code"),
+        ],
+        default="domain",
+        required=True,
+        help="How a promotion_code_usage_allocation row's own 'Allowed "
+        "Accounts' is computed from this type: Manual = a fixed set of "
+        "accounts ('Allocation Accounts'), Domain = accounts matching "
+        "an Odoo search domain ('Allocation Account Domain'), Python "
+        "Code = accounts returned by a custom formula ('Allocation "
+        "Account Python Code').",
+    )
+    allocation_account_ids = fields.Many2many(
+        string="Allocation Accounts",
+        comodel_name="account.account",
+        relation="rel_promotion_type_2_allocation_account",
+        column1="promotion_type_id",
+        column2="account_account_id",
+        help="Fixed set of accounts a promotion_code_usage_allocation row "
+        "of this type may target, used when 'Allocation Account "
+        "Selection Method' is set to Manual.",
+    )
+    allocation_account_domain = fields.Text(
+        string="Allocation Account Domain",
+        default="[('reconcile', '=', True)]",
+        help="Odoo search domain on 'account.account' selecting the "
+        "accounts a promotion_code_usage_allocation row of this type "
+        "may target, used when 'Allocation Account Selection Method' "
+        "is set to Domain. The default keeps every reconcilable "
+        "account allowed, matching the behaviour before this field "
+        "existed.",
+    )
+    allocation_account_python_code = fields.Text(
+        string="Allocation Account Python Code",
+        default="result = []",
+        help="Python code executed to compute the accounts a "
+        "promotion_code_usage_allocation row of this type may target, "
+        "used when 'Allocation Account Selection Method' is set to "
+        "Python Code. The code must assign the resulting recordset to "
+        "a variable named 'result'.",
+    )

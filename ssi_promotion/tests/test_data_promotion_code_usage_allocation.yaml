@@ -2181,3 +2181,755 @@ scenarios:
         expect_error:
           type: "UserError"
           message_contains: "more than one account"
+
+  - name: "Manually allowed account narrows allowed_account_ids and permits approval"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "asset_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-CFG1-INC"
+          name: "Allocation Config Manual Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create the manually allowed reconcilable account"
+        action: "create"
+        model: "account.account"
+        save_as: "allowed_account"
+        values:
+          code: "ALLOC-CFG1-ALLOW"
+          name: "Allocation Config Manual Allowed"
+          user_type_id: "REC: asset_acc_type.id"
+          reconcile: true
+      - step: "Create a general journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "misc_journal"
+        values:
+          name: "Allocation Config Manual Misc Journal"
+          code: "ALLOCCFG1M"
+          type: "general"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Config Manual Journal"
+          code: "ALLOCCFG1"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Config Manual Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type restricting allocation to the allowed account"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Config Manual Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 120000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allocation_account_selection_method: "manual"
+          allocation_account_ids:
+            - - 6
+              - 0
+              - - "REC: allowed_account.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Config Manual Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-CFG1-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted journal entry crediting the allowed account"
+        action: "create"
+        model: "account.move"
+        save_as: "entry"
+        values:
+          move_type: "entry"
+          journal_id: "REC: misc_journal.id"
+          line_ids:
+            - - 0
+              - 0
+              - account_id: "REC: allowed_account.id"
+                partner_id: "REC: customer.id"
+                name: "Allocation Config Manual Debit"
+                debit: 700000.0
+                credit: 0.0
+            - - 0
+              - 0
+              - account_id: "REC: income_account.id"
+                name: "Allocation Config Manual Credit"
+                debit: 0.0
+                credit: 700000.0
+      - step: "Post the journal entry"
+        action: "call"
+        target: "entry"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the entry's own allowed-account line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: entry.id"],
+            ["account_id", "=", "REC: allowed_account.id"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating the manually allowed account's line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Find the allocation row created for this usage"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step:
+          "Assert the row's own allowed accounts contain exactly the manually configured
+          account"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          allowed_account_ids:
+            type: "m2m"
+            check: "exact"
+            expected_records:
+              - "REC: allowed_account"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage on the manually allowed account"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the allowed account's residual dropped by the discount"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 580000.0
+
+  - name:
+      "Default allocation account configuration keeps every reconcilable account allowed"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-CFG2-INC"
+          name: "Allocation Config Default Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Config Default Journal"
+          code: "ALLOCCFG2"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Config Default Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type without touching allocation account fields"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Config Default Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 70000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Assert the type kept the unrestricted default configuration"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          allocation_account_selection_method:
+            type: "value"
+            expected: "domain"
+          allocation_account_domain:
+            type: "value"
+            expected: "[('reconcile', '=', True)]"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Config Default Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-CFG2-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 400000.0
+                name: "Allocation Config Default Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating the receivable line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step:
+          "Approve usage on any reconcilable account under the default configuration"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the receivable line's residual dropped by the discount"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 330000.0
+
+  - name:
+      "Domain allocation account configuration narrows allowed_account_ids to matching
+      accounts"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "asset_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-CFG3-INC"
+          name: "Allocation Config Domain Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create the account matched by the narrow domain"
+        action: "create"
+        model: "account.account"
+        save_as: "narrow_account"
+        values:
+          code: "ALLOC-CFG3-NARROW"
+          name: "Allocation Config Domain Narrow"
+          user_type_id: "REC: asset_acc_type.id"
+          reconcile: true
+      - step: "Create another reconcilable account the domain must exclude"
+        action: "create"
+        model: "account.account"
+        save_as: "other_account"
+        values:
+          code: "ALLOC-CFG3-OTHER"
+          name: "Allocation Config Domain Other"
+          user_type_id: "REC: asset_acc_type.id"
+          reconcile: true
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Config Domain Journal"
+          code: "ALLOCCFG3"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Config Domain Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type with a domain matching only the narrow account"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Config Domain Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 60000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allocation_account_selection_method: "domain"
+          allocation_account_domain:
+            "[('reconcile', '=', True), ('code', '=', 'ALLOC-CFG3-NARROW')]"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Config Domain Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-CFG3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 300000.0
+                name: "Allocation Config Domain Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage carrying an allocation row to read its own allowed accounts"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Find the allocation row created for this usage"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step:
+          "Assert the row's own allowed accounts match only the narrow domain account"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          allowed_account_ids:
+            type: "m2m"
+            check: "exact"
+            expected_records:
+              - "REC: narrow_account"
+
+  - name:
+      "Approving an allocation on an account excluded by the type's manual configuration
+      is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "asset_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "ALLOC-NEG7-INC"
+          name: "Allocation Negative Config Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create the account the type's own configuration allows"
+        action: "create"
+        model: "account.account"
+        save_as: "allowed_account"
+        values:
+          code: "ALLOC-NEG7-ALLOW"
+          name: "Allocation Negative Config Allowed"
+          user_type_id: "REC: asset_acc_type.id"
+          reconcile: true
+      - step: "Create a reconcilable account the type's own configuration excludes"
+        action: "create"
+        model: "account.account"
+        save_as: "excluded_account"
+        values:
+          code: "ALLOC-NEG7-EXCL"
+          name: "Allocation Negative Config Excluded"
+          user_type_id: "REC: asset_acc_type.id"
+          reconcile: true
+      - step: "Create a general journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "misc_journal"
+        values:
+          name: "Allocation Negative Config Misc Journal"
+          code: "ALLOCNEG7M"
+          type: "general"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Allocation Negative Config Journal"
+          code: "ALLOCNEG7"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Allocation Negative Config Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type restricting allocation to the allowed account only"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Allocation Negative Config Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allocation_account_selection_method: "manual"
+          allocation_account_ids:
+            - - 6
+              - 0
+              - - "REC: allowed_account.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Allocation Negative Config Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "ALLOC-NEG7-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted journal entry crediting the excluded account"
+        action: "create"
+        model: "account.move"
+        save_as: "entry"
+        values:
+          move_type: "entry"
+          journal_id: "REC: misc_journal.id"
+          line_ids:
+            - - 0
+              - 0
+              - account_id: "REC: excluded_account.id"
+                partner_id: "REC: customer.id"
+                name: "Allocation Negative Config Debit"
+                debit: 300000.0
+                credit: 0.0
+            - - 0
+              - 0
+              - account_id: "REC: income_account.id"
+                name: "Allocation Negative Config Credit"
+                debit: 0.0
+                credit: 300000.0
+      - step: "Post the journal entry"
+        action: "call"
+        target: "entry"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the entry's own excluded-account line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: entry.id"],
+            ["account_id", "=", "REC: excluded_account.id"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating the excluded account's line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving an allocation on the excluded account must be rejected"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
