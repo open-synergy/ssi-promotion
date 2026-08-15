@@ -1562,8 +1562,8 @@ scenarios:
                 move_line_id: "REC: move_line_other.id"
 
   - name:
-      "Approving an allocation whose account differs from the partner's own
-      receivable property still succeeds"
+      "Approving an allocation whose account differs from the partner's own receivable
+      property still succeeds"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -1750,8 +1750,7 @@ scenarios:
             expected: 850000.0
 
   - name:
-      "Approving an allocation on a reconcilable non-receivable account still
-      succeeds"
+      "Approving an allocation on a reconcilable non-receivable account still succeeds"
     steps:
       - step: "Get revenue account type"
         action: "ref"
@@ -1944,8 +1943,7 @@ scenarios:
             type: "m2o"
             expected: "REC: other_account"
 
-  - name:
-      "Allocation rows of the same source on different accounts are rejected"
+  - name: "Allocation rows of the same source on different accounts are rejected"
     steps:
       - step: "Get revenue account type"
         action: "ref"

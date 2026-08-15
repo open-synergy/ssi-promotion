@@ -2226,8 +2226,8 @@ scenarios:
           type: "UserError"
 
   - name:
-      "Approving a usage whose partner has no receivable account and no
-      allocation still succeeds without a journal entry"
+      "Approving a usage whose partner has no receivable account and no allocation still
+      succeeds without a journal entry"
     steps:
       - step: "Get main company"
         action: "ref"
@@ -2345,8 +2345,8 @@ scenarios:
             type: "value"
             expected: "confirm"
       - step:
-          "Approving without a receivable account on the partner still
-          succeeds, since 'customer' has no allocation row"
+          "Approving without a receivable account on the partner still succeeds, since
+          'customer' has no allocation row"
         action: "call"
         target: "usage"
         method: "action_approve_approval"
