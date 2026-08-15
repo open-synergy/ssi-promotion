@@ -26,6 +26,7 @@
         "ssi_accounting_entry_mixin",
         "ssi_company_currency_mixin",
         "ssi_product_usage_account_type",
+        "ssi_m2o_configurator_mixin",
         "web_tour",
     ],
     "data": [

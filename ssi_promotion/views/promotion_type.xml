@@ -81,6 +81,33 @@
                 <page name="reference" string="Reference Documents">
                     <field name="allowed_model_ids" widget="many2many_tags" />
                 </page>
+                <page name="allocation_account" string="Allocation Account">
+                    <group
+                            name="allocation_account_group"
+                            colspan="4"
+                            col="2"
+                            string="Allocation Account"
+                        >
+                        <field name="allocation_account_selection_method" />
+                        <field
+                                name="allocation_account_ids"
+                                widget="many2many_tags"
+                                attrs="{'invisible': [('allocation_account_selection_method', '!=', 'manual')]}"
+                            />
+                        <field
+                                name="allocation_account_domain"
+                                widget="domain"
+                                options="{'model': 'account.account', 'in_dialog': True}"
+                                attrs="{'invisible': [('allocation_account_selection_method', '!=', 'domain')]}"
+                            />
+                        <field
+                                name="allocation_account_python_code"
+                                widget="ace"
+                                options="{'mode': 'python'}"
+                                attrs="{'invisible': [('allocation_account_selection_method', '!=', 'code')]}"
+                            />
+                    </group>
+                </page>
                 <page name="accounting" string="Discount Accounting">
                     <group name="accounting_customer_group" string="Customer Discount">
                         <field name="journal_id" />

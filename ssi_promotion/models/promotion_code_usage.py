@@ -871,9 +871,12 @@ outstanding receivable balance
     def _check_allocation_line(self, line):
         """Check one allocation row is safe to reconcile against.
 
-        Any reconcilable account is accepted -- this hook no longer
-        requires the row's own 'Journal Item' to sit on the expected
-        source partner's own receivable account (see
+        Any reconcilable account is a technical requirement, but this
+        usage's own promotion type may narrow that further through
+        its own 'Allocation Account' m2o configurator -- see the
+        row's own 'Allowed Accounts' (``allowed_account_ids``). This
+        hook no longer requires the row's own 'Journal Item' to sit
+        on the expected source partner's own receivable account (see
         ``_check_allocation_account_per_source`` for the constraint
         that replaces it: every row of one 'Source' still shares a
         single account).
@@ -882,7 +885,8 @@ outstanding receivable balance
             of this usage's own 'Allocations'
         :raises UserError: when the row's own 'Journal Item' is not
             reconcilable, not posted, already reconciled or has no
-            positive residual, is in a foreign currency, does not
+            positive residual, is in a foreign currency, is on an
+            account not in the row's own 'Allowed Accounts', does not
             belong to the expected source partner, or the row's own
             'Source' is 'Referrer' while this usage's own promotion
             code has none
@@ -900,6 +904,22 @@ enabled
 """ % (
                 self.id,
                 move_line.display_name,
+            )
+            raise UserError(_(error_message))
+        if move_line.account_id not in line.allowed_account_ids:
+            error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation row's own journal item '%s' is on account '%s', which \
+is not allowed by this usage's own promotion type '%s'
+Solution: Choose a journal item whose account is allowed by the promotion \
+type's own 'Allocation Account' configuration, or update that \
+configuration
+""" % (
+                self.id,
+                move_line.display_name,
+                move_line.account_id.display_name,
+                self.type_id.display_name,
             )
             raise UserError(_(error_message))
         if move_line.parent_state != "posted":

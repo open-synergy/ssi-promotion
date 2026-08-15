@@ -139,7 +139,10 @@
                         <tree editable="bottom">
                             <field name="sequence" widget="handle" />
                             <field name="source" />
-                            <field name="move_line_id" />
+                            <field
+                                    name="move_line_id"
+                                    domain="[('account_id.reconcile', '=', True), ('parent_state', '=', 'posted'), ('reconciled', '=', False), ('amount_residual', '>', 0), ('account_id', 'in', allowed_account_ids)]"
+                                />
                             <field name="move_id" />
                             <field name="partner_id" />
                             <field name="amount_residual" widget="monetary" />
@@ -148,12 +151,16 @@
                             <field name="account_id" invisible="1" />
                             <field name="currency_id" invisible="1" />
                             <field name="company_currency_id" invisible="1" />
+                            <field name="allowed_account_ids" invisible="1" />
                         </tree>
                         <form>
                             <group col="2">
                                 <field name="sequence" />
                                 <field name="source" />
-                                <field name="move_line_id" />
+                                <field
+                                        name="move_line_id"
+                                        domain="[('account_id.reconcile', '=', True), ('parent_state', '=', 'posted'), ('reconciled', '=', False), ('amount_residual', '>', 0), ('account_id', 'in', allowed_account_ids)]"
+                                    />
                                 <field name="move_id" />
                                 <field name="account_id" />
                                 <field name="partner_id" />
@@ -162,6 +169,7 @@
                                 <field name="amount_reconciled" widget="monetary" />
                                 <field name="currency_id" invisible="1" />
                                 <field name="company_currency_id" invisible="1" />
+                                <field name="allowed_account_ids" invisible="1" />
                             </group>
                         </form>
                     </field>
