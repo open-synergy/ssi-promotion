@@ -55,6 +55,15 @@ msgid "Account"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__account_id
+msgid ""
+"Account debited on the customer accounting entry's own discount line. If "
+"left empty, the account is resolved from 'Discount Product' through the "
+"Product Usage Account Type mechanism (product, its template, its category, "
+"then 'Discount Usage' itself) -- see '_get_product_account'."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__deferred_account_id
 msgid ""
 "Account debited on the journal entry line(s) created for this usage instead "
@@ -751,6 +760,11 @@ msgid "Discount Type"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__discount_usage_id
+msgid "Discount Usage"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__discount_amount
 msgid ""
 "Discount amount granted by this usage, computed from the promotion type's "
@@ -966,14 +980,6 @@ msgstr ""
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_method__immediate
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__recognition_method__immediate
 msgid "Immediate"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__account_id
-msgid ""
-"Income account debited on the customer accounting entry's own discount line."
-" If left empty, the income account configured on 'Discount Product' is used "
-"instead."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1399,19 +1405,38 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_product_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__product_id
 msgid ""
-"Product whose own income account is used as the fallback for the referrer's "
-"own discount account (promotion_code.partner_id) when a promotion_code_usage"
-" of this type is approved. If left empty, 'Discount Product' is reused."
+"Product resolved through the Product Usage Account Type mechanism (together "
+"with 'Discount Usage') as the fallback for the voucher user's own discount "
+"account when a promotion_code_usage of this type is approved and 'Discount "
+"Account' is not set. See '_get_product_account'."
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__product_id
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_product_id
 msgid ""
-"Product whose own income account is used as the fallback for the voucher "
-"user's own discount account when a promotion_code_usage of this type is "
-"approved and 'Discount Account' is not set."
+"Product resolved through the Product Usage Account Type mechanism (together "
+"with 'Referrer Discount Usage', falling back to 'Discount Usage') as the "
+"fallback for the referrer's own discount account (promotion_code.partner_id)"
+" when a promotion_code_usage of this type is approved. If left empty, "
+"'Discount Product' is reused."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_discount_usage_id
+msgid ""
+"Product usage code used to resolve the referrer's own discount account, the "
+"same way 'Discount Usage' resolves the voucher user's own. If left empty, "
+"'Discount Usage' is reused."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__discount_usage_id
+msgid ""
+"Product usage code used to resolve the voucher user's own discount account "
+"from 'Discount Product' (product, template, category, then this usage's own "
+"'Account') when 'Discount Account' is not set. See '_get_product_account'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1696,6 +1721,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_product_id
 msgid "Referrer Discount Product"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_usage_id
+msgid "Referrer Discount Usage"
 msgstr ""
 
 #. module: ssi_promotion
