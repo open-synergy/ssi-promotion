@@ -246,6 +246,13 @@ class PromotionCode(models.Model):
         "date_start",
     )
     def onchange_date_end(self):
+        """Recompute ``date_end`` from ``type_id`` and ``date_start``.
+
+        ``date_end`` is always reset to ``False`` first. It is then
+        filled only when ``type_id`` has a validity period and
+        ``date_start`` is set, using the duration from
+        ``type_id.validity_duration``.
+        """
         self.date_end = False
         if self.type_id.has_validity and self.date_start:
             self.date_end = self.date_start + timedelta(

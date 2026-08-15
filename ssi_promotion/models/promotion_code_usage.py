@@ -318,6 +318,13 @@ class PromotionCodeUsage(models.Model):
     # G. Compute Methods
     @api.model
     def _selection_document_reference(self):
+        """Build the selection for the ``document_reference`` field.
+
+        The selection is built from the ``allowed_model_ids`` of every
+        ``promotion_type`` record, read with ``sudo()``.
+
+        :return: list of ``(model_name, model_label)`` pairs
+        """
         models_obj = self.env["ir.model"]
         allowed_model_ids = (
             self.env["promotion_type"].sudo().search([]).allowed_model_ids.ids
