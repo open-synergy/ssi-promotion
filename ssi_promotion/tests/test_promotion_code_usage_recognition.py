@@ -103,10 +103,14 @@ class TestPromotionCodeUsageRecognition(YamlTransactionCase):
                 "property_account_income_id": referrer_income.id,
             }
         )
+        income_usage = self.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Recognition Line Referrer Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 3000.0,
                 "journal_id": journal.id,

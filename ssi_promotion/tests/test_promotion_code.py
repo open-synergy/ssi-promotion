@@ -30,10 +30,14 @@ class TestPromotionCode(YamlTransactionCase):
         ``oca_checklog_odoo`` does not fail CI even though the test
         itself passes.
         """
+        income_usage = self.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Unique Voucher Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 1000.0,
             }

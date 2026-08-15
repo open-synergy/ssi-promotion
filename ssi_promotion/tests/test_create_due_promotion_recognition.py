@@ -87,10 +87,14 @@ class TestCreateDuePromotionRecognition(YamlTransactionCase):
         """
         admin = self.env.ref("base.user_admin")
         income, deferred_account, journal, product = self._setup_accounting("CDPRPY")
+        income_usage = self.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         ptype = self.env["promotion_type"].create(
             {
                 "name": "Create Due Recognition Python Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 2500.0,
                 "journal_id": journal.id,

@@ -59,10 +59,14 @@ class TestUiPromotionCodeUsageRecognition(HttpSavepointCase):
                 "property_account_income_id": income_account.id,
             }
         )
+        income_usage = cls.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         promotion_type = cls.env["promotion_type"].create(
             {
                 "name": "TOUR PCUR Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 1000.0,
                 "journal_id": journal.id,

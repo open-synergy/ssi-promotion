@@ -46,10 +46,14 @@ class TestApplyPromotionCode(YamlTransactionCase):
         account_move_model = self.env["ir.model"].search(
             [("model", "=", "account.move")], limit=1
         )
+        income_usage = self.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         promotion_type = self.env["promotion_type"].create(
             {
                 "name": "Apply Promotion Code Return Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 50000.0,
                 "journal_id": journal.id,
