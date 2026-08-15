@@ -8,6 +8,7 @@ scenarios:
         values:
           name: "Fixed Voucher"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 10000.0
           usage_limit: 5
@@ -37,6 +38,7 @@ scenarios:
         values:
           name: "Percentage Voucher"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "percentage"
           discount_percentage: 10.0
       - step: "Assert created"
@@ -59,6 +61,7 @@ scenarios:
         values:
           name: "Python Voucher"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "python"
           discount_python_code: "result = 5000"
           has_validity: true
@@ -87,6 +90,7 @@ scenarios:
         values:
           name: "Original Name"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
       - step: "Write new name"
         action: "write"
         target: "ptype"
@@ -109,6 +113,7 @@ scenarios:
         values:
           name: "To Be Deleted"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
       - step: "Delete record"
         action: "call"
         target: "ptype"

@@ -46,6 +46,8 @@ scenarios:
         values:
           name: "Populate Allocation Basic Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -200,6 +202,8 @@ scenarios:
         values:
           name: "Populate Allocation Idempotent Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -359,6 +363,8 @@ scenarios:
         values:
           name: "Populate Allocation Filter Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -595,6 +601,8 @@ scenarios:
         values:
           name: "Populate Allocation State Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -726,6 +734,8 @@ scenarios:
         values:
           name: "Populate Allocation Empty Ref Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -829,6 +839,8 @@ scenarios:
         values:
           name: "Populate Allocation No Mixin Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -944,6 +956,8 @@ scenarios:
         values:
           name: "Populate Allocation No Eligible Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"

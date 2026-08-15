@@ -1289,7 +1289,17 @@ account fallback) on the promotion type, or 'Deferred Account' while \
 
         Extension point: override to change how the customer or
         referrer journal entry line's own Final Account is resolved,
-        independently of 'Recognition Method'.
+        independently of 'Recognition Method'. 'Discount Account'
+        (``account_id``) wins over resolution when set, on either
+        side. Otherwise the account is resolved through the Product
+        Usage Account Type mechanism
+        (``product.product._get_product_account``), walking product
+        -> template -> category -> usage type's own 'Account', for
+        the product and discount usage that apply to this side:
+        'Discount Product'/'Discount Usage' for the voucher user,
+        'Referrer Discount Product'/'Referrer Discount Usage'
+        (falling back to the voucher user's own when either is
+        empty) for the referrer.
 
         :param referrer: resolve the referrer's Final Account instead
             of the voucher user's
@@ -1297,13 +1307,20 @@ account fallback) on the promotion type, or 'Deferred Account' while \
         """
         self.ensure_one()
         promotion_type = self.type_id
+        if promotion_type.account_id:
+            return promotion_type.account_id
         if referrer:
             product = promotion_type.referrer_product_id or promotion_type.product_id
-            return product.property_account_income_id
-        return (
-            promotion_type.account_id
-            or promotion_type.product_id.property_account_income_id
-        )
+            usage = (
+                promotion_type.referrer_discount_usage_id
+                or promotion_type.discount_usage_id
+            )
+        else:
+            product = promotion_type.product_id
+            usage = promotion_type.discount_usage_id
+        if not product:
+            return product
+        return product._get_product_account(usage_code=usage.code)
 
     def _get_discount_account(self, referrer=False):
         """Resolve the account a journal entry line of this usage debits.

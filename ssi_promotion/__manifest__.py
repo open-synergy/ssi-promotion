@@ -4,7 +4,7 @@
 
 {
     "name": "Promotion",
-    "version": "14.0.1.4.1",
+    "version": "14.0.1.5.0",
     "website": "https://simetri-sinergi.id",
     "author": "OpenSynergy Indonesia, PT. Simetri Sinergi Indonesia",
     "contributors": [
@@ -25,6 +25,7 @@
         "ssi_financial_accounting",
         "ssi_accounting_entry_mixin",
         "ssi_company_currency_mixin",
+        "ssi_product_usage_account_type",
         "web_tour",
     ],
     "data": [

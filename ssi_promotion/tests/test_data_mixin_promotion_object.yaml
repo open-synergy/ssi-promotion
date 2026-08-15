@@ -46,6 +46,8 @@ scenarios:
         values:
           name: "Mixin Promotion Object Type"
           code: "/"
+          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 250000.0
           journal_id: "REC: journal.id"
