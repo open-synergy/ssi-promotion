@@ -29,9 +29,7 @@ def migrate(env, version):
     :param version: the version being migrated to (unused)
     :return: nothing; updates ``promotion_type`` rows
     """
-    income_usage = env.ref(
-        "ssi_product_usage_account_type.product_usage_type_income"
-    )
+    income_usage = env.ref("ssi_product_usage_account_type.product_usage_type_income")
     openupgrade.logged_query(
         env.cr,
         """

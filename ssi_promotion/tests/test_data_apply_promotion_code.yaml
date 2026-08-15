@@ -46,7 +46,8 @@ scenarios:
         values:
           name: "Apply Promotion Code Basic Type"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
@@ -223,7 +224,8 @@ scenarios:
         values:
           name: "Apply Promotion Code Date Type"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
@@ -368,7 +370,8 @@ scenarios:
         values:
           name: "Apply Promotion Code Twice Type"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
@@ -519,7 +522,8 @@ scenarios:
         values:
           name: "Apply Promotion Code No Mixin Type"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
@@ -616,7 +620,8 @@ scenarios:
         values:
           name: "Apply Promotion Code Disallowed Type"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0

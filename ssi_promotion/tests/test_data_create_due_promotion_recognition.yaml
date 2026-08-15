@@ -55,7 +55,8 @@ scenarios:
         values:
           name: "Create Due Recognition Deferred Type 1"
           code: "/"
-          discount_usage_id: "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 4000.0
