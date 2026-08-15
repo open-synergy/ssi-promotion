@@ -126,6 +126,15 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__allowed_account_ids
+msgid ""
+"Accounts 'Journal Item' is allowed to sit on, resolved from '# Usage''s own "
+"promotion type through its 'Allocation Account Selection Method'. Used only "
+"to filter 'Journal Item' on this row's own form/tree view -- never "
+"displayed."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_needaction
@@ -204,8 +213,38 @@ msgid "Allocation"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
+msgid "Allocation Account"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__allocation_account_domain
+msgid "Allocation Account Domain"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__allocation_account_python_code
+msgid "Allocation Account Python Code"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__allocation_account_selection_method
+msgid "Allocation Account Selection Method"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__allocation_account_ids
+msgid "Allocation Accounts"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__allocation_ids
 msgid "Allocations"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__allowed_account_ids
+msgid "Allowed Accounts"
 msgstr ""
 
 #. module: ssi_promotion
@@ -808,6 +847,11 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__allocation_account_selection_method__domain
+msgid "Domain"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__done_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__done_ok
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__done_ok
@@ -837,6 +881,13 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__fixed
 msgid "Fixed"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__allocation_account_ids
+msgid ""
+"Fixed set of accounts a promotion_code_usage_allocation row of this type may"
+" target, used when 'Allocation Account Selection Method' is set to Manual."
 msgstr ""
 
 #. module: ssi_promotion
@@ -897,6 +948,16 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__has_validity
 msgid "Has Validity Period"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__allocation_account_selection_method
+msgid ""
+"How a promotion_code_usage_allocation row's own 'Allowed Accounts' is "
+"computed from this type: Manual = a fixed set of accounts ('Allocation "
+"Accounts'), Domain = accounts matching an Odoo search domain ('Allocation "
+"Account Domain'), Python Code = accounts returned by a custom formula "
+"('Allocation Account Python Code')."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1090,6 +1151,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_main_attachment_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_main_attachment_id
 msgid "Main Attachment"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__allocation_account_selection_method__manual
+msgid "Manual"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1292,6 +1358,16 @@ msgstr ""
 msgid ""
 "Number of usages of this code currently in state open or done, counted "
 "against 'Usage Limit'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__allocation_account_domain
+msgid ""
+"Odoo search domain on 'account.account' selecting the accounts a "
+"promotion_code_usage_allocation row of this type may target, used when "
+"'Allocation Account Selection Method' is set to Domain. The default keeps "
+"every reconcilable account allowed, matching the behaviour before this field"
+" existed."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1570,8 +1646,18 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__allocation_account_selection_method__code
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__python
 msgid "Python Code"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__allocation_account_python_code
+msgid ""
+"Python code executed to compute the accounts a "
+"promotion_code_usage_allocation row of this type may target, used when "
+"'Allocation Account Selection Method' is set to Python Code. The code must "
+"assign the resulting recordset to a variable named 'result'."
 msgstr ""
 
 #. module: ssi_promotion
