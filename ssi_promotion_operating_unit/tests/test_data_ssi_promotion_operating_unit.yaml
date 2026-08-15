@@ -90,6 +90,8 @@ scenarios:
         values:
           name: "OU Propagation Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 5000.0
 
@@ -119,6 +121,8 @@ scenarios:
         values:
           name: "OU Propagation Usage Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 3000.0
 
@@ -163,6 +167,8 @@ scenarios:
         values:
           name: "OU Rule Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 4000.0
 
@@ -219,6 +225,8 @@ scenarios:
         values:
           name: "OU Rule Usage Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 2000.0
 
