@@ -29,10 +29,14 @@ class TestUiPromotionCode(HttpSavepointCase):
         """
         super().setUpClass()
         cls.admin = cls.env.ref("base.user_admin")
+        income_usage = cls.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
         cls.promotion_type = cls.env["promotion_type"].create(
             {
                 "name": "TOUR PC Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 1000.0,
             }

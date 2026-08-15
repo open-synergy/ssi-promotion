@@ -85,11 +85,13 @@
                     <group name="accounting_customer_group" string="Customer Discount">
                         <field name="journal_id" />
                         <field name="product_id" />
+                        <field name="discount_usage_id" />
                         <field name="account_id" />
                     </group>
                     <group name="accounting_referrer_group" string="Referrer Discount">
                         <field name="referrer_journal_id" />
                         <field name="referrer_product_id" />
+                        <field name="referrer_discount_usage_id" />
                     </group>
                     <group
                             name="accounting_deferred_group"

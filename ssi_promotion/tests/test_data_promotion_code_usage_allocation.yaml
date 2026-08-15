@@ -39,6 +39,9 @@ scenarios:
         values:
           name: "Allocation Basic Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 200000.0
           journal_id: "REC: journal.id"
@@ -231,6 +234,9 @@ scenarios:
         values:
           name: "Allocation Sequence Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 500000.0
           journal_id: "REC: journal.id"
@@ -434,6 +440,9 @@ scenarios:
         values:
           name: "Allocation Exhausted Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 100000.0
           journal_id: "REC: journal.id"
@@ -640,6 +649,9 @@ scenarios:
         values:
           name: "Allocation Cancel Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 200000.0
           journal_id: "REC: journal.id"
@@ -839,6 +851,9 @@ scenarios:
         values:
           name: "Allocation Negative Partner Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -995,6 +1010,9 @@ scenarios:
         values:
           name: "Allocation Negative Draft Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -1147,6 +1165,9 @@ scenarios:
         values:
           name: "Allocation Negative Referrer Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -1297,6 +1318,9 @@ scenarios:
         values:
           name: "Allocation Negative Duplicate Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -1441,6 +1465,9 @@ scenarios:
         values:
           name: "Allocation Negative Promotion Object Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"
@@ -1600,6 +1627,9 @@ scenarios:
         values:
           name: "Allocation Positive Account Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 150000.0
           journal_id: "REC: journal.id"
@@ -1809,6 +1839,9 @@ scenarios:
         values:
           name: "Allocation Positive Non-Receivable Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 90000.0
           journal_id: "REC: journal.id"
@@ -1981,6 +2014,9 @@ scenarios:
         values:
           name: "Allocation Negative Account Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
           discount_type: "fixed"
           discount_amount: 50000.0
           journal_id: "REC: journal.id"

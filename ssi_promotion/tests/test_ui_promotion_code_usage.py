@@ -31,6 +31,9 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         """
         super().setUpClass()
         cls.admin = cls.env.ref("base.user_admin")
+        income_usage = cls.env.ref(
+            "ssi_product_usage_account_type.product_usage_type_income"
+        )
 
         # ── Fixtures for the "Create Due Recognition" wizard tour
         # (docs/promotion_code_usage/15-create-due-recognition.md).
@@ -69,6 +72,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             {
                 "name": "TOUR CDPR Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 500.0,
                 "journal_id": journal.id,
@@ -141,6 +145,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             {
                 "name": "TOUR PCUW Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 250.0,
                 "journal_id": pcu_journal.id,
@@ -346,6 +351,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             {
                 "name": "TOUR APC Type",
                 "code": "/",
+                "discount_usage_id": income_usage.id,
                 "discount_type": "fixed",
                 "discount_amount": 250.0,
                 "journal_id": apc_journal.id,

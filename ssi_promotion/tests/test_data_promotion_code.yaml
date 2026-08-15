@@ -11,6 +11,8 @@ scenarios:
         values:
           name: "Draft Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 15000.0
           usage_limit: 3
@@ -44,6 +46,8 @@ scenarios:
         values:
           name: "Referral Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 20000.0
       - step: "Create referrer partner"
@@ -77,6 +81,8 @@ scenarios:
         values:
           name: "Workflow Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 25000.0
       - step: "Create promotion code"
@@ -135,6 +141,8 @@ scenarios:
         values:
           name: "Done Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 12000.0
       - step: "Create promotion code"
@@ -194,6 +202,8 @@ scenarios:
         values:
           name: "Cancel Voucher Type"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 8000.0
       - step: "Create promotion code"
@@ -225,6 +235,8 @@ scenarios:
         values:
           name: "Fixed Voucher"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 10000.0
           usage_limit: 5
@@ -255,6 +267,8 @@ scenarios:
         values:
           name: "Validity Voucher"
           code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
           discount_type: "fixed"
           discount_amount: 5000.0
           has_validity: true

@@ -111,25 +111,48 @@ class PromotionType(models.Model):
     product_id = fields.Many2one(
         string="Discount Product",
         comodel_name="product.product",
-        help="Product whose own income account is used as the fallback "
-        "for the voucher user's own discount account when a "
+        help="Product resolved through the Product Usage Account Type "
+        "mechanism (together with 'Discount Usage') as the fallback for "
+        "the voucher user's own discount account when a "
         "promotion_code_usage of this type is approved and 'Discount "
-        "Account' is not set.",
+        "Account' is not set. See '_get_product_account'.",
     )
     account_id = fields.Many2one(
         string="Discount Account",
         comodel_name="account.account",
-        help="Income account debited on the customer accounting entry's "
-        "own discount line. If left empty, the income account configured "
-        "on 'Discount Product' is used instead.",
+        help="Account debited on the customer accounting entry's own "
+        "discount line. If left empty, the account is resolved from "
+        "'Discount Product' through the Product Usage Account Type "
+        "mechanism (product, its template, its category, then "
+        "'Discount Usage' itself) -- see '_get_product_account'.",
+    )
+    discount_usage_id = fields.Many2one(
+        string="Discount Usage",
+        comodel_name="product.usage_type",
+        required=True,
+        ondelete="restrict",
+        help="Product usage code used to resolve the voucher user's own "
+        "discount account from 'Discount Product' (product, template, "
+        "category, then this usage's own 'Account') when 'Discount "
+        "Account' is not set. See '_get_product_account'.",
     )
     referrer_product_id = fields.Many2one(
         string="Referrer Discount Product",
         comodel_name="product.product",
-        help="Product whose own income account is used as the fallback "
-        "for the referrer's own discount account (promotion_code."
-        "partner_id) when a promotion_code_usage of this type is "
-        "approved. If left empty, 'Discount Product' is reused.",
+        help="Product resolved through the Product Usage Account Type "
+        "mechanism (together with 'Referrer Discount Usage', falling "
+        "back to 'Discount Usage') as the fallback for the referrer's "
+        "own discount account (promotion_code.partner_id) when a "
+        "promotion_code_usage of this type is approved. If left empty, "
+        "'Discount Product' is reused.",
+    )
+    referrer_discount_usage_id = fields.Many2one(
+        string="Referrer Discount Usage",
+        comodel_name="product.usage_type",
+        ondelete="restrict",
+        help="Product usage code used to resolve the referrer's own "
+        "discount account, the same way 'Discount Usage' resolves the "
+        "voucher user's own. If left empty, 'Discount Usage' is reused.",
     )
     referrer_journal_id = fields.Many2one(
         string="Referrer Discount Journal",
