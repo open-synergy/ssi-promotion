@@ -812,6 +812,16 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_discount_amount
+msgid ""
+"Discount amount granted to the promotion code's referrer by this usage, "
+"computed from the promotion type's own referrer discount rule ('Same as "
+"Customer', fixed amount, percentage of the reference document's total, or "
+"custom Python code). Debited and credited by 'Referrer Accounting Entry', "
+"independently of 'Discount Amount'."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__discount_type
 msgid "Discount computation mode copied from 'Promotion Type'."
 msgstr ""
@@ -1851,6 +1861,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__referrer_discount_amount
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_discount_amount
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_amount
 msgid "Referrer Discount Amount"
 msgstr ""
