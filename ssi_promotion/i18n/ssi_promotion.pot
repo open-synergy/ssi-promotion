@@ -2065,8 +2065,9 @@ msgstr ""
 msgid ""
 "Total amount this usage's journal entry line(s) debited to Deferred Account,"
 " due to be released by promotion_code_usage_recognition documents: 'Discount"
-" Amount', doubled when this usage's promotion code has a referrer (both the "
-"customer and referrer journal entry lines carry the same 'Discount Amount')."
+" Amount' plus 'Referrer Discount Amount' when this usage's promotion code "
+"has a referrer (each side's own journal entry line carries its own amount), "
+"'Discount Amount' alone otherwise."
 msgstr ""
 
 #. module: ssi_promotion
