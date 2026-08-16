@@ -67,7 +67,8 @@ class TestPromotionCodeUsageRecognition(YamlTransactionCase):
         record.with_user(admin).action_approve_approval()
 
     def test_promotion_code_usage_recognition(self):
-        """Run the workflow, onchange, and cancel-guard scenarios."""
+        """Run the workflow, onchange, cancel-guard, and per-side
+        recognition amount scenarios."""
         self.run_yaml_scenario("test_data_promotion_code_usage_recognition.yaml")
 
     def test_recognition_lines_with_referrer(self):
@@ -76,10 +77,15 @@ class TestPromotionCodeUsageRecognition(YamlTransactionCase):
         A full recognition of a usage whose promotion code has a
         referrer produces exactly two Recognition Lines: one
         ``customer`` line and one ``referrer`` line, each carrying
-        its own ``line_type``, ``amount`` (half of the usage's own
-        Amount To Recognize, since both sides share the same
-        Discount Amount), and ``debit_account_id`` (the customer's
-        or referrer's own Final Account).
+        its own ``line_type``, ``amount``, and ``debit_account_id``
+        (the customer's or referrer's own Final Account). This
+        promotion type leaves 'Referrer Discount Type' on its own
+        default 'Same as Customer', so both sides happen to carry
+        the same amount here -- half of the usage's own Amount To
+        Recognize. Two sides carrying *different* amounts are
+        covered by the "Full recognition of a two-amount usage
+        releases each side by its own amount" scenario in
+        ``test_data_promotion_code_usage_recognition.yaml``.
 
         Pure Python -- trigger P3 (L-06: ``odoo-yaml-test``'s o2m
         assert is set-based and cannot assert per-row field values,

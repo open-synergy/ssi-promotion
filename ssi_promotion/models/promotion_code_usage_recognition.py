@@ -323,6 +323,12 @@ Solution: Select a usage whose own Recognition Method is 'Deferred'
     def _create_recognition_lines(self):
         """Create one Recognition Line per side of the usage's discount.
 
+        Each side's own share is its own deferred amount (see
+        ``_get_line_type_base_amount``) scaled by this document's own
+        Ratio, rounded to the Company Currency's own precision. The
+        rounding remainder is charged to the last line so the move
+        stays balanced against this document's own Amount.
+
         :return: the created
             ``promotion_code_usage_recognition_line`` recordset
         """
@@ -331,10 +337,12 @@ Solution: Select a usage whose own Recognition Method is 'Deferred'
         has_referrer = bool(self.usage_id.promotion_code_id.partner_id)
         line_types = ["customer", "referrer"] if has_referrer else ["customer"]
         precision = self.company_currency_id.decimal_places
-        discount_amount = self.usage_id.discount_amount
         amounts = [
-            float_round(discount_amount * self.ratio, precision_digits=precision)
-            for _line_type in line_types
+            float_round(
+                self._get_line_type_base_amount(line_type) * self.ratio,
+                precision_digits=precision,
+            )
+            for line_type in line_types
         ]
         remainder = float_round(self.amount - sum(amounts), precision_digits=precision)
         amounts[-1] = float_round(amounts[-1] + remainder, precision_digits=precision)
@@ -342,6 +350,24 @@ Solution: Select a usage whose own Recognition Method is 'Deferred'
         for line_type, amount in zip(line_types, amounts):
             lines |= Line.create(self._prepare_recognition_line(line_type, amount))
         return lines
+
+    def _get_line_type_base_amount(self, line_type):
+        """Resolve the deferred amount one side of the usage carries.
+
+        Each side's own journal entry line was booked with its own
+        amount, so each side is released with its own amount too:
+        'Referrer Discount Amount' for the referrer, 'Discount
+        Amount' for the voucher user. The two coincide only while the
+        promotion type's own 'Referrer Discount Type' is 'Same as
+        Customer'. Their sum is the usage's own Amount To Recognize.
+
+        :param line_type: ``'customer'`` or ``'referrer'``
+        :return: the usage's own deferred amount for that side
+        """
+        self.ensure_one()
+        if line_type == "referrer":
+            return self.usage_id.referrer_discount_amount
+        return self.usage_id.discount_amount
 
     def _prepare_recognition_line(self, line_type, amount):
         """Build one Recognition Line's create values.
