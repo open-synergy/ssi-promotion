@@ -5617,3 +5617,287 @@ scenarios:
           amount_deferred:
             type: "value"
             expected: 275000.0
+
+  - name:
+      "Referrer deferral rule is inherited from the type and still overridable while
+      Draft"
+    steps:
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create referrer deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account"
+        values:
+          code: "PROMO-RDEF-USAGE1"
+          name: "Promotion Referrer Deferred Usage Account 1"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create the account the override points to instead"
+        action: "create"
+        model: "account.account"
+        save_as: "other_referrer_deferred_account"
+        values:
+          code: "PROMO-RDEF-USAGE2"
+          name: "Promotion Referrer Deferred Usage Account 2"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create referrer recognition journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "referrer_recognition_journal"
+        values:
+          name: "Promotion Referrer Recognition Usage Journal 1"
+          code: "RDEFU1"
+          type: "general"
+          company_id: "REC: company.id"
+      - step: "Create the journal the override points to instead"
+        action: "create"
+        model: "account.journal"
+        save_as: "other_referrer_recognition_journal"
+        values:
+          name: "Promotion Referrer Recognition Usage Journal 2"
+          code: "RDEFU2"
+          type: "general"
+          company_id: "REC: company.id"
+      - step:
+          "Create promotion type deferring the referrer side only -- the voucher user's
+          own Recognition Method is left Immediate on purpose"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Deferred Usage Type 1"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 45000.0
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          referrer_recognition_journal_id: "REC: referrer_recognition_journal.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDEF-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Deferred Usage Customer 1"
+      - step:
+          "Fill the usage form -- account and journal arrive through the onchange on
+          type_id, method and date through their own compute"
+        action: form
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code"
+          partner_id: "REC: customer"
+          date: 2024-07-01
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          referrer_deferred_account_id:
+            type: "m2o"
+            expected: "REC: referrer_deferred_account"
+          referrer_recognition_journal_id:
+            type: "m2o"
+            expected: "REC: referrer_recognition_journal"
+      - step:
+          "Assert the saved usage inherited the referrer rule while its own voucher user
+          side stayed Immediate"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          referrer_recognition_date:
+            type: "value"
+            expected: 2024-07-01
+          referrer_deferred_account_id:
+            type: "m2o"
+            expected: "REC: referrer_deferred_account"
+          referrer_recognition_journal_id:
+            type: "m2o"
+            expected: "REC: referrer_recognition_journal"
+          recognition_method:
+            type: "value"
+            expected: "immediate"
+      - step: "Override every inherited referrer value while still in Draft"
+        action: "write"
+        target: "usage"
+        values:
+          referrer_recognition_date: 2025-07-01
+          referrer_deferred_account_id: "REC: other_referrer_deferred_account.id"
+          referrer_recognition_journal_id: "REC: other_referrer_recognition_journal.id"
+      - step: "Assert the manual override survived"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_recognition_date:
+            type: "value"
+            expected: 2025-07-01
+          referrer_deferred_account_id:
+            type: "m2o"
+            expected: "REC: other_referrer_deferred_account"
+          referrer_recognition_journal_id:
+            type: "m2o"
+            expected: "REC: other_referrer_recognition_journal"
+      - step: "Override the referrer method itself back to Same as Customer"
+        action: "write"
+        target: "usage"
+        values:
+          referrer_recognition_method: "same"
+      - step: "Assert the method override survived its own compute"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "same"
+
+  - name:
+      "Referrer deferral rule rejects an empty account and a recognition date before the
+      usage date"
+    steps:
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create referrer deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account"
+        values:
+          code: "PROMO-RDEF-NEG1"
+          name: "Promotion Referrer Deferred Negative Account 1"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create promotion type deferring the referrer side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Deferred Negative Type 1"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 3500.0
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDEF-NEG-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Deferred Negative Customer 1"
+      - step: "Create the usage with its own referrer deferred account"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          date: 2024-08-15
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Clearing referrer_deferred_account_id must be rejected"
+        action: "write"
+        target: "usage"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "Referrer Deferred Account is empty"
+        values:
+          referrer_deferred_account_id: false
+      - step:
+          "The very same empty account is accepted once the referrer follows the voucher
+          user again"
+        action: "write"
+        target: "usage"
+        values:
+          referrer_recognition_method: "same"
+          referrer_deferred_account_id: false
+      - step: "Assert the usage survived with an empty referrer account"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "same"
+          referrer_deferred_account_id:
+            type: "value"
+            operator: "is_falsy"
+      - step: "Restore the referrer deferral before the second case"
+        action: "write"
+        target: "usage"
+        values:
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+      - step:
+          "A referrer recognition date before the usage date must be rejected, and the
+          message must name the Referrer side"
+        action: "write"
+        target: "usage"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "Referrer Recognition Date"
+        values:
+          referrer_recognition_date: 2024-08-01

@@ -26,6 +26,11 @@ class PromotionType(models.Model):
     discount immediately or defers it: see 'Recognition Method',
     'Deferred Account', and the journal used to release that deferral
     later, 'Recognition Journal'.
+
+    The referrer's own side of that deferral is configured separately
+    through the 'Referrer Recognition Method' family of fields, which
+    defaults to 'Same as Customer' so both sides keep sharing a single
+    deferral rule unless told otherwise.
     """
 
     _name = "promotion_type"
@@ -241,6 +246,45 @@ class PromotionType(models.Model):
         "recognition document that releases a usage of this type's "
         "own Deferred Account. Defaulted onto each new usage of this "
         "type, but may still be overridden manually on the usage "
+        "itself.",
+    )
+    referrer_recognition_method = fields.Selection(
+        string="Referrer Recognition Method",
+        selection=[
+            ("same", "Same as Customer"),
+            ("immediate", "Immediate"),
+            ("deferred", "Deferred"),
+        ],
+        default="same",
+        required=True,
+        help="How the discount granted to the referrer "
+        "(promotion_code.partner_id) by a promotion_code_usage of this "
+        "type is booked on its own journal entry: Same as Customer = the "
+        "referrer follows the voucher user's own 'Recognition Method', "
+        "Immediate = the referrer journal entry line debits its Final "
+        "Account right away, Deferred = that line debits 'Referrer "
+        "Deferred Account' instead, so the referrer's own discount can "
+        "be recognized later independently of the voucher user's.",
+    )
+    referrer_deferred_account_id = fields.Many2one(
+        string="Referrer Deferred Account",
+        comodel_name="account.account",
+        ondelete="restrict",
+        help="Account debited on the referrer journal entry line of a "
+        "promotion_code_usage of this type instead of its Final "
+        "Account, while that usage's own 'Referrer Recognition Method' "
+        "is set to Deferred. Defaulted onto each new usage of this "
+        "type, but may still be overridden manually on the usage "
+        "itself.",
+    )
+    referrer_recognition_journal_id = fields.Many2one(
+        string="Referrer Recognition Journal",
+        comodel_name="account.journal",
+        ondelete="restrict",
+        help="Accounting journal used by a promotion_code_usage_"
+        "recognition document that releases a usage of this type's own "
+        "Referrer Deferred Account. Defaulted onto each new usage of "
+        "this type, but may still be overridden manually on the usage "
         "itself.",
     )
     allocation_account_selection_method = fields.Selection(

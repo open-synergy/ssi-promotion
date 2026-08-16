@@ -159,3 +159,90 @@ scenarios:
           referrer_discount_percentage:
             type: "value"
             expected: 0.0
+
+  # Backward compatibility guard: a promotion type created without any
+  # referrer recognition setting must keep the referrer following the voucher
+  # user's own recognition rule. Do not delete this scenario.
+  - name: "Create promotion type without referrer recognition rule"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "No Referrer Recognition Rule Voucher"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 275000.0
+      - step: "Assert referrer recognition defaults to same as customer"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "same"
+          referrer_deferred_account_id:
+            type: "value"
+            operator: "is_falsy"
+          referrer_recognition_journal_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "Create promotion type with its own referrer recognition rule"
+    steps:
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create referrer deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account"
+        values:
+          code: "PROMO-RDEF-TYPE"
+          name: "Promotion Referrer Deferred Type Account"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create referrer recognition journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "referrer_recognition_journal"
+        values:
+          name: "Promotion Referrer Recognition Type Journal"
+          code: "RDEFT"
+          type: "general"
+          company_id: "REC: company.id"
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Deferred Voucher"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 90000.0
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          referrer_recognition_journal_id: "REC: referrer_recognition_journal.id"
+      - step: "Assert referrer recognition rule stored apart from customer side"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          referrer_deferred_account_id:
+            type: "m2o"
+            expected: "REC: referrer_deferred_account"
+          referrer_recognition_journal_id:
+            type: "m2o"
+            expected: "REC: referrer_recognition_journal"
+          recognition_method:
+            type: "value"
+            expected: "immediate"
+          deferred_account_id:
+            type: "value"
+            operator: "is_falsy"
