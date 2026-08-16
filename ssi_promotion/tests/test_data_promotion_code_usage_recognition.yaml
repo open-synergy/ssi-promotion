@@ -413,3 +413,235 @@ scenarios:
           amount: 100.0
           journal_id: "REC: journal2.id"
           user_id: "REF: base.user_admin"
+
+  - name: "Full recognition of a two-amount usage releases each side by its own amount"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account3"
+        values:
+          code: "PCUR-INC3"
+          name: "Recognition Income 3"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account3"
+        values:
+          code: "PCUR-DEF3"
+          name: "Recognition Deferred Asset 3"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal3"
+        values:
+          name: "Recognition Sales Journal 3"
+          code: "PCURJ3"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product3"
+        values:
+          name: "Recognition Product 3"
+          type: "service"
+          property_account_income_id: "REC: income_account3.id"
+      - step: "Create deferred promotion type with a different amount per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype3"
+        values:
+          name: "Recognition Two Amount Deferred Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account3.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "REC: journal3.id"
+          product_id: "REC: product3.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account3.id"
+          recognition_journal_id: "REC: journal3.id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer3"
+        values:
+          name: "Recognition Two Amount Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code3"
+        values:
+          voucher_code: "RECOG-2S-001"
+          type_id: "REC: ptype3.id"
+          partner_id: "REC: referrer3.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code3"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code3"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer3"
+        values:
+          name: "Recognition Two Amount Customer"
+      - step: "Create the deferred promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage3"
+        values:
+          promotion_code_id: "REC: code3.id"
+          partner_id: "REC: customer3.id"
+          date: 2024-08-01
+          deferred_account_id: "REC: deferred_account3.id"
+          recognition_journal_id: "REC: journal3.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage3"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage3"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the usage defers the sum of both sides"
+        action: "assert"
+        target: "usage3"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+          amount_to_recognize:
+            type: "value"
+            expected: 500000.0
+          amount_deferred:
+            type: "value"
+            expected: 500000.0
+      - step: "Create the full recognition (Ratio 1)"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        save_as: "recognition_two"
+        values:
+          usage_id: "REC: usage3.id"
+          date: 2024-08-10
+          amount: 500000.0
+          journal_id: "REC: journal3.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the full recognition"
+        action: "call"
+        target: "recognition_two"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the full recognition"
+        action: "call"
+        target: "recognition_two"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          ratio:
+            type: "value"
+            expected: 1.0
+          recognition_line_ids:
+            type: "o2m"
+            check: "count"
+            expected_count: 2
+      - step: "Find the recognition's own customer line"
+        action: "search"
+        model: "promotion_code_usage_recognition_line"
+        domain:
+          [
+            ["recognition_id", "=", "REC: recognition_two.id"],
+            ["line_type", "=", "customer"],
+          ]
+        save_as: "customer_line"
+        expect_count: 1
+      - step: "Assert the customer line releases the customer amount"
+        action: "assert"
+        target: "customer_line"
+        asserts:
+          amount:
+            type: "value"
+            expected: 350000.0
+      - step: "Find the recognition's own referrer line"
+        action: "search"
+        model: "promotion_code_usage_recognition_line"
+        domain:
+          [
+            ["recognition_id", "=", "REC: recognition_two.id"],
+            ["line_type", "=", "referrer"],
+          ]
+        save_as: "referrer_line"
+        expect_count: 1
+      - step:
+          "Assert the referrer line releases the referrer amount, not the customer
+          amount"
+        action: "assert"
+        target: "referrer_line"
+        asserts:
+          amount:
+            type: "value"
+            expected: 150000.0
+      - step: "Assert the usage's own Amount Deferred reached zero"
+        action: "assert"
+        target: "usage3"
+        refresh: true
+        asserts:
+          amount_recognized:
+            type: "value"
+            expected: 500000.0
+          amount_deferred:
+            type: "value"
+            expected: 0.0
+          recognition_state:
+            type: "value"
+            expected: "recognized"

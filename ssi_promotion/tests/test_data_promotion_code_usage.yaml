@@ -5342,3 +5342,278 @@ scenarios:
           referrer_receivable_move_line_id:
             type: "value"
             operator: "is_falsy"
+
+  - name: "Deferred usage with a referrer sums both sides into Amount To Recognize"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-A2R"
+          name: "Promotion Two Amount Referrer Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PROMO-A2RD"
+          name: "Promotion Two Amount Referrer Deferred Asset"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Two Amount Referrer Journal"
+          code: "PROMOA2R"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Two Amount Referrer Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create deferred promotion type with a different amount per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Two Amount Referrer Deferred Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Two Amount Referrer Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-A2R-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Two Amount Referrer Customer"
+      - step: "Create the deferred promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Assert each side kept its own discount amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          recognition_method:
+            type: "value"
+            expected: "deferred"
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+      - step: "Assert Amount To Recognize sums both sides instead of doubling one"
+        action: "assert"
+        target: "usage"
+        asserts:
+          amount_to_recognize:
+            type: "value"
+            expected: 500000.0
+          amount_recognized:
+            type: "value"
+            expected: 0.0
+          amount_deferred:
+            type: "value"
+            expected: 500000.0
+          recognition_state:
+            type: "value"
+            expected: "pending"
+
+  - name: "Deferred usage without a referrer recognizes only its own Discount Amount"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-A2N"
+          name: "Promotion Two Amount No Referrer Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PROMO-A2ND"
+          name: "Promotion Two Amount No Referrer Deferred Asset"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Two Amount No Referrer Journal"
+          code: "PROMOA2N"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Two Amount No Referrer Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create a deferred promotion type that still configures a referrer amount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Two Amount No Referrer Deferred Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 275000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+      - step: "Create promotion code WITHOUT a referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-A2N-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Two Amount No Referrer Customer"
+      - step: "Create the deferred promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step:
+          "Assert Amount To Recognize stays at Discount Amount -- the referrer amount is
+          never added when the promotion code has no referrer"
+        action: "assert"
+        target: "usage"
+        asserts:
+          recognition_method:
+            type: "value"
+            expected: "deferred"
+          discount_amount:
+            type: "value"
+            expected: 275000.0
+          amount_to_recognize:
+            type: "value"
+            expected: 275000.0
+          amount_deferred:
+            type: "value"
+            expected: 275000.0

@@ -267,9 +267,10 @@ class PromotionCodeUsage(models.Model):
         help="Total amount this usage's journal entry line(s) debited "
         "to Deferred Account, due to be released by "
         "promotion_code_usage_recognition documents: 'Discount "
-        "Amount', doubled when this usage's promotion code has a "
-        "referrer (both the customer and referrer journal entry "
-        "lines carry the same 'Discount Amount').",
+        "Amount' plus 'Referrer Discount Amount' when this usage's "
+        "promotion code has a referrer (each side's own journal entry "
+        "line carries its own amount), 'Discount Amount' alone "
+        "otherwise.",
     )
     amount_recognized = fields.Float(
         string="Amount Recognized",
@@ -540,21 +541,28 @@ class PromotionCodeUsage(models.Model):
 
     @api.depends(
         "discount_amount",
+        "referrer_discount_amount",
         "promotion_code_id.partner_id",
     )
     def _compute_amount_to_recognize(self):
         """Compute the total amount due to be released by recognitions.
 
-        Doubles 'Discount Amount' when this usage's promotion code
-        has a referrer, since the customer and referrer journal
-        entry lines both carry the same 'Discount Amount'.
+        Adds 'Referrer Discount Amount' to 'Discount Amount' when
+        this usage's promotion code has a referrer, since each side's
+        own journal entry line carries its own amount (see
+        ``_prepare_customer_move_data`` /
+        ``_prepare_referrer_move_data``). Both sides still coincide
+        while the promotion type's own 'Referrer Discount Type' is
+        'Same as Customer'. Falls back to 'Discount Amount' alone
+        when the promotion code has no referrer, since no referrer
+        journal entry is issued at all.
 
         :return: nothing; assigns ``amount_to_recognize``
         """
         for record in self:
             result = record.discount_amount
             if record.promotion_code_id.partner_id:
-                result = 2 * record.discount_amount
+                result = record.discount_amount + record.referrer_discount_amount
             record.amount_to_recognize = result
 
     @api.depends(
