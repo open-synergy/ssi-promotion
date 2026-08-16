@@ -62,10 +62,7 @@
                             options="{'mode': 'python'}"
                             attrs="{'invisible': [('discount_type', '!=', 'python')]}"
                         />
-                    <group
-                            name="referrer_discount_group"
-                            string="Referrer Discount"
-                        >
+                    <group name="referrer_discount_group" string="Referrer Discount">
                         <field name="referrer_discount_type" />
                         <field
                                 name="referrer_discount_amount"
