@@ -16,6 +16,12 @@ class PromotionType(models.Model):
     validate a usage, and the accounting configuration used to generate
     the customer (and optional referrer) journal entry automatically.
 
+    The discount rule granted to the referrer
+    (promotion_code.partner_id) is configured separately from the voucher
+    user's own through the 'Referrer Discount Type' family of fields,
+    which defaults to 'Same as Customer' so both sides keep sharing a
+    single amount unless told otherwise.
+
     Also configures whether a usage of this type recognizes its
     discount immediately or defers it: see 'Recognition Method',
     'Deferred Account', and the journal used to release that deferral
@@ -61,6 +67,45 @@ class PromotionType(models.Model):
         help="Python code executed to compute the discount amount when "
         "'Discount Type' is set to Python Code. The code must assign the "
         "computed amount to a variable named 'result'.",
+    )
+    referrer_discount_type = fields.Selection(
+        string="Referrer Discount Type",
+        selection=[
+            ("same", "Same as Customer"),
+            ("fixed", "Fixed"),
+            ("percentage", "Percentage"),
+            ("python", "Python Code"),
+        ],
+        default="same",
+        required=True,
+        help="How the discount amount granted to the referrer "
+        "(promotion_code.partner_id) by a promotion code of this type is "
+        "computed: Same as Customer = the referrer gets exactly what the "
+        "voucher user gets, Fixed = a flat amount, Percentage = a "
+        "percentage of the referenced document's total, Python Code = a "
+        "custom formula set through 'Referrer Discount Python Code'.",
+    )
+    referrer_discount_amount = fields.Float(
+        string="Referrer Discount Amount",
+        help="Flat discount amount granted to the referrer per usage when "
+        "'Referrer Discount Type' is set to Fixed.",
+    )
+    referrer_discount_percentage = fields.Float(
+        string="Referrer Discount Percentage (%)",
+        help="Percentage of the referenced document's total amount granted "
+        "to the referrer as discount per usage when 'Referrer Discount "
+        "Type' is set to Percentage.",
+    )
+    referrer_discount_python_code = fields.Text(
+        string="Referrer Discount Python Code",
+        default="# Available variables: env, document, promotion_code, "
+        "promotion_type, reference_document\n"
+        "# Assign the computed referrer discount amount to 'result'\n"
+        "result = 0.0",
+        help="Python code executed to compute the referrer's discount "
+        "amount when 'Referrer Discount Type' is set to Python Code. The "
+        "code must assign the computed amount to a variable named "
+        "'result'.",
     )
     usage_limit = fields.Integer(
         string="Usage Limit",

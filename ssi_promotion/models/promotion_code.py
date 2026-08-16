@@ -144,6 +144,31 @@ class PromotionCode(models.Model):
         help="Percentage discount granted per usage. Defaulted from "
         "'Promotion Type' and may be overridden while in draft.",
     )
+    referrer_discount_type = fields.Selection(
+        string="Referrer Discount Type",
+        related="type_id.referrer_discount_type",
+        store=True,
+        compute_sudo=True,
+        help="Referrer discount computation mode copied from 'Promotion "
+        "Type'. 'Same as Customer' means the referrer gets exactly what "
+        "the voucher user gets.",
+    )
+    referrer_discount_amount = fields.Float(
+        string="Referrer Discount Amount",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Flat discount amount granted to the referrer per usage. "
+        "Defaulted from 'Promotion Type' and may be overridden while in "
+        "draft.",
+    )
+    referrer_discount_percentage = fields.Float(
+        string="Referrer Discount Percentage (%)",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Percentage discount granted to the referrer per usage. "
+        "Defaulted from 'Promotion Type' and may be overridden while in "
+        "draft.",
+    )
     usage_limit = fields.Integer(
         string="Usage Limit",
         readonly=True,
@@ -189,10 +214,12 @@ class PromotionCode(models.Model):
         """Default discount/usage_limit fields from 'Promotion Type'.
 
         Overridden because ``onchange_discount_amount``,
-        ``onchange_discount_percentage``, and ``onchange_usage_limit``
-        only fire from the Form UI and never run on a programmatic
-        create() (API calls, imports, tests), which would otherwise
-        leave those fields silently at zero.
+        ``onchange_discount_percentage``,
+        ``onchange_referrer_discount_amount``,
+        ``onchange_referrer_discount_percentage``, and
+        ``onchange_usage_limit`` only fire from the Form UI and never run
+        on a programmatic create() (API calls, imports, tests), which
+        would otherwise leave those fields silently at zero.
 
         :param values: ``create()`` values, mutated in place by
             ``_set_type_defaults``
@@ -204,8 +231,9 @@ class PromotionCode(models.Model):
     def _set_type_defaults(self, values):
         """Fill missing discount/usage_limit values from 'type_id'.
 
-        Only sets a key when it is absent from ``values``, so a
-        value already present is never overridden.
+        Covers both the voucher user's own discount fields and the
+        referrer's own ones. Only sets a key when it is absent from
+        ``values``, so a value already present is never overridden.
 
         :param values: ``create()`` values, mutated in place
         """
@@ -214,6 +242,13 @@ class PromotionCode(models.Model):
         promotion_type = self.env["promotion_type"].browse(values["type_id"])
         values.setdefault("discount_amount", promotion_type.discount_amount)
         values.setdefault("discount_percentage", promotion_type.discount_percentage)
+        values.setdefault(
+            "referrer_discount_amount", promotion_type.referrer_discount_amount
+        )
+        values.setdefault(
+            "referrer_discount_percentage",
+            promotion_type.referrer_discount_percentage,
+        )
         values.setdefault("usage_limit", promotion_type.usage_limit)
 
     # H. Onchange Methods
@@ -234,6 +269,24 @@ class PromotionCode(models.Model):
     )
     def onchange_discount_percentage(self):
         self.discount_percentage = self.type_id.discount_percentage
+
+    @api.onchange(
+        "type_id",
+    )
+    def onchange_referrer_discount_type(self):
+        self.referrer_discount_type = self.type_id.referrer_discount_type
+
+    @api.onchange(
+        "type_id",
+    )
+    def onchange_referrer_discount_amount(self):
+        self.referrer_discount_amount = self.type_id.referrer_discount_amount
+
+    @api.onchange(
+        "type_id",
+    )
+    def onchange_referrer_discount_percentage(self):
+        self.referrer_discount_percentage = self.type_id.referrer_discount_percentage
 
     @api.onchange(
         "type_id",

@@ -62,6 +62,23 @@
                             options="{'mode': 'python'}"
                             attrs="{'invisible': [('discount_type', '!=', 'python')]}"
                         />
+                    <group name="referrer_discount_group" string="Referrer Discount">
+                        <field name="referrer_discount_type" />
+                        <field
+                                name="referrer_discount_amount"
+                                attrs="{'invisible': [('referrer_discount_type', '!=', 'fixed')]}"
+                            />
+                        <field
+                                name="referrer_discount_percentage"
+                                attrs="{'invisible': [('referrer_discount_type', '!=', 'percentage')]}"
+                            />
+                    </group>
+                    <field
+                            name="referrer_discount_python_code"
+                            widget="ace"
+                            options="{'mode': 'python'}"
+                            attrs="{'invisible': [('referrer_discount_type', '!=', 'python')]}"
+                        />
                 </page>
                 <page name="limits" string="Usage &amp; Validity">
                     <group name="limits_group" string="Limits &amp; Validity">
