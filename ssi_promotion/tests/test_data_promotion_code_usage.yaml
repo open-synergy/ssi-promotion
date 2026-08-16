@@ -4395,3 +4395,950 @@ scenarios:
         as_user: "base.user_admin"
         expect_error:
           type: "UserError"
+
+  - name: "Referrer discount type Same mirrors the customer discount amount"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RDS"
+          name: "Promotion Referrer Discount Same Income"
+          user_type_id: "EVAL: registry['acc_type'].id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Referrer Discount Same Journal"
+          code: "PROMORDS"
+          type: "sale"
+          company_id: "EVAL: registry['company'].id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Referrer Discount Same Product"
+          type: "service"
+          property_account_income_id: "EVAL: registry['income_account'].id"
+      - step: "Create promotion type left on the default Referrer Discount Type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Discount Same Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "EVAL: registry['income_account'].id"
+          discount_type: "fixed"
+          discount_amount: 250000.0
+          referrer_discount_type: "same"
+          journal_id: "EVAL: registry['journal'].id"
+          product_id: "EVAL: registry['product'].id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Discount Same Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDSAME-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Discount Same Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount Same Customer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount Same Referrer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code'].id"
+          partner_id: "EVAL: registry['customer'].id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
+      - step: "Assert both sides carry the very same discount amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 250000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 250000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert both accounting entries total the same amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id.amount_total:
+            type: "value"
+            expected: 250000.0
+          referrer_move_id.amount_total:
+            type: "value"
+            expected: 250000.0
+      - step: "Assert both receivable lines credit the same amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          receivable_move_line_id.credit:
+            type: "value"
+            expected: 250000.0
+          referrer_receivable_move_line_id.credit:
+            type: "value"
+            expected: 250000.0
+
+  - name: "Referrer discount type Fixed issues its own amount per side"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RDF"
+          name: "Promotion Referrer Discount Fixed Income"
+          user_type_id: "EVAL: registry['acc_type'].id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Referrer Discount Fixed Journal"
+          code: "PROMORDF"
+          type: "sale"
+          company_id: "EVAL: registry['company'].id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Referrer Discount Fixed Product"
+          type: "service"
+          property_account_income_id: "EVAL: registry['income_account'].id"
+      - step: "Create promotion type with a different amount per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Discount Fixed Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "EVAL: registry['income_account'].id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "EVAL: registry['journal'].id"
+          product_id: "EVAL: registry['product'].id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Discount Fixed Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDFIX-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Assert the promotion code copied both fixed amounts"
+        action: "assert"
+        target: "code"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Discount Fixed Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount Fixed Customer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount Fixed Referrer Allocation Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code'].id"
+          partner_id: "EVAL: registry['customer'].id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
+      - step: "Assert each side computed its own discount amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert each accounting entry totals its own side's amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id.amount_total:
+            type: "value"
+            expected: 350000.0
+          referrer_move_id.amount_total:
+            type: "value"
+            expected: 150000.0
+      - step: "Find the customer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "rdf_customer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the customer discount line debits Discount Amount"
+        action: "assert"
+        target: "rdf_customer_discount_line"
+        asserts:
+          debit:
+            type: "value"
+            expected: 350000.0
+          credit:
+            type: "value"
+            expected: 0.0
+      - step: "Find the referrer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.referrer_move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "rdf_referrer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step:
+          "Assert the referrer discount line debits Referrer Discount Amount, not
+          Discount Amount"
+        action: "assert"
+        target: "rdf_referrer_discount_line"
+        asserts:
+          debit:
+            type: "value"
+            expected: 150000.0
+          credit:
+            type: "value"
+            expected: 0.0
+      - step: "Assert each receivable line credits its own side's amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          receivable_move_line_id.credit:
+            type: "value"
+            expected: 350000.0
+          referrer_receivable_move_line_id.credit:
+            type: "value"
+            expected: 150000.0
+
+  - name: "Referrer discount type Percentage applies its own percentage per side"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RDP"
+          name: "Promotion Referrer Discount Percentage Income"
+          user_type_id: "EVAL: registry['acc_type'].id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Referrer Discount Percentage Journal"
+          code: "PROMORDP"
+          type: "sale"
+          company_id: "EVAL: registry['company'].id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Referrer Discount Percentage Product"
+          type: "service"
+          property_account_income_id: "EVAL: registry['income_account'].id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "model_account_move"
+        limit: 1
+      - step: "Create promotion type with a different percentage per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Discount Percentage Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "EVAL: registry['income_account'].id"
+          discount_type: "percentage"
+          discount_percentage: 10.0
+          referrer_discount_type: "percentage"
+          referrer_discount_percentage: 4.0
+          journal_id: "EVAL: registry['journal'].id"
+          product_id: "EVAL: registry['product'].id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "EVAL: registry['model_account_move'].id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Discount Percentage Referrer"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Discount Percentage Customer"
+      - step: "Create reference invoice"
+        action: "create"
+        model: "account.move"
+        save_as: "ref_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount Percentage Reference Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDPCT-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create promotion code usage referencing invoice"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code'].id"
+          partner_id: "EVAL: registry['customer'].id"
+          document_reference: "EVAL: 'account.move,%d' % registry['ref_invoice'].id"
+      - step:
+          "Assert each side applied its own percentage to the reference document total"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 100000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 40000.0
+
+  - name: "Referrer discount type Python evaluates its own referrer code"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RDY"
+          name: "Promotion Referrer Discount Python Income"
+          user_type_id: "EVAL: registry['acc_type'].id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Referrer Discount Python Journal"
+          code: "PROMORDY"
+          type: "sale"
+          company_id: "EVAL: registry['company'].id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Referrer Discount Python Product"
+          type: "service"
+          property_account_income_id: "EVAL: registry['income_account'].id"
+      - step: "Create promotion type with a different Python code per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Discount Python Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "EVAL: registry['income_account'].id"
+          discount_type: "python"
+          discount_python_code: "result = 4321"
+          referrer_discount_type: "python"
+          # Membaca promotion_code dari localdict: hasilnya hanya benar bila
+          # _evaluate_referrer_discount_python_code() memakai _get_localdict()
+          # yang sama dengan sisi Voucher User.
+          referrer_discount_python_code: "result = 500.0 * promotion_code.usage_limit"
+          journal_id: "EVAL: registry['journal'].id"
+          product_id: "EVAL: registry['product'].id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Discount Python Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDPY-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+          usage_limit: 7
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Discount Python Customer"
+      - step: "Create promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code'].id"
+          partner_id: "EVAL: registry['customer'].id"
+      - step: "Assert each side evaluated its own Python code"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 4321.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 3500.0
+
+  - name:
+      "Referrer without a referrer allocation row still issues only the customer entry"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RDN"
+          name: "Promotion Referrer Discount No Allocation Income"
+          user_type_id: "EVAL: registry['acc_type'].id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Referrer Discount No Allocation Journal"
+          code: "PROMORDN"
+          type: "sale"
+          company_id: "EVAL: registry['company'].id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Referrer Discount No Allocation Product"
+          type: "service"
+          property_account_income_id: "EVAL: registry['income_account'].id"
+      - step: "Create promotion type with its own referrer amount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Discount No Allocation Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "EVAL: registry['income_account'].id"
+          discount_type: "fixed"
+          discount_amount: 90000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 30000.0
+          journal_id: "EVAL: registry['journal'].id"
+          product_id: "EVAL: registry['product'].id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Discount No Allocation Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RDNONE-001"
+          type_id: "EVAL: registry['ptype'].id"
+          partner_id: "EVAL: registry['referrer'].id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Discount No Allocation Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "EVAL: registry['customer'].id"
+          journal_id: "EVAL: registry['journal'].id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "EVAL: registry['product'].id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Discount No Allocation Customer Line"
+                account_id: "EVAL: registry['income_account'].id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion code usage with a customer allocation row only"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "EVAL: registry['code'].id"
+          partner_id: "EVAL: registry['customer'].id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+      - step: "Assert the referrer amount is still computed even without an entry"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 90000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 30000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert only the customer accounting entry was issued"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+          move_id.state:
+            type: "value"
+            expected: "posted"
+          move_id.amount_total:
+            type: "value"
+            expected: 90000.0
+          referrer_move_id:
+            type: "value"
+            operator: "is_falsy"
+          referrer_receivable_move_line_id:
+            type: "value"
+            operator: "is_falsy"

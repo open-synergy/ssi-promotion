@@ -79,6 +79,7 @@
                 <page name="discount" string="Discount &amp; Accounting Entry">
                     <group name="promotion_code_usage_discount_group" string="Discount">
                         <field name="discount_amount" />
+                        <field name="referrer_discount_amount" />
                     </group>
                     <group
                             name="promotion_code_usage_recognition_group"

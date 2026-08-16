@@ -165,6 +165,18 @@ class PromotionCodeUsage(models.Model):
         "promotion type's discount rule (fixed amount, percentage of the "
         "reference document's total, or custom Python code).",
     )
+    referrer_discount_amount = fields.Float(
+        string="Referrer Discount Amount",
+        compute="_compute_referrer_discount_amount",
+        store=True,
+        compute_sudo=True,
+        help="Discount amount granted to the promotion code's referrer by "
+        "this usage, computed from the promotion type's own referrer "
+        "discount rule ('Same as Customer', fixed amount, percentage of "
+        "the reference document's total, or custom Python code). Debited "
+        "and credited by 'Referrer Accounting Entry', independently of "
+        "'Discount Amount'.",
+    )
     move_id = fields.Many2one(
         string="Customer Accounting Entry",
         comodel_name="account.move",
@@ -402,6 +414,85 @@ class PromotionCodeUsage(models.Model):
         self.ensure_one()
         localdict = self._get_localdict()
         code = self.promotion_code_id.type_id.discount_python_code
+        safe_eval(code, localdict, mode="exec", nocopy=True)
+        return localdict.get("result", 0.0)
+
+    @api.depends(
+        "promotion_code_id",
+        "promotion_code_id.discount_type",
+        "promotion_code_id.discount_amount",
+        "promotion_code_id.discount_percentage",
+        "promotion_code_id.referrer_discount_type",
+        "promotion_code_id.referrer_discount_amount",
+        "promotion_code_id.referrer_discount_percentage",
+        "discount_amount",
+        "document_reference",
+    )
+    def _compute_referrer_discount_amount(self):
+        """Compute the discount amount granted to the referrer.
+
+        Delegates to ``_get_referrer_discount_amount`` for the actual
+        rule.
+
+        :return: nothing; assigns ``referrer_discount_amount``
+        """
+        for record in self:
+            record.referrer_discount_amount = record._get_referrer_discount_amount()
+
+    def _get_referrer_discount_amount(self):
+        """Resolve the referrer's amount per the promotion type's rule.
+
+        'Same as Customer' returns this usage's own 'Discount Amount',
+        so a promotion type left on the default keeps both sides
+        identical. The remaining branches mirror
+        ``_get_discount_amount`` on the referrer's own fields: Fixed
+        returns the promotion code's own 'Referrer Discount Amount',
+        Percentage applies the promotion code's own 'Referrer Discount
+        Percentage' to ``_get_reference_base_amount``, and Python
+        evaluates the promotion type's
+        ``referrer_discount_python_code`` via
+        ``_evaluate_referrer_discount_python_code``.
+
+        :return: the referrer's discount amount, ``0.0`` when the
+            promotion code is empty or the referrer discount type is
+            unrecognized
+        """
+        self.ensure_one()
+        if not self.promotion_code_id:
+            return 0.0
+        discount_type = self.promotion_code_id.referrer_discount_type
+        if discount_type == "same":
+            return self.discount_amount
+        if discount_type == "fixed":
+            return self.promotion_code_id.referrer_discount_amount
+        if discount_type == "percentage":
+            base_amount = self._get_reference_base_amount()
+            return (
+                base_amount
+                * self.promotion_code_id.referrer_discount_percentage
+                / 100.0
+            )
+        if discount_type == "python":
+            return self._evaluate_referrer_discount_python_code()
+        return 0.0
+
+    def _evaluate_referrer_discount_python_code(self):
+        """Evaluate the promotion type's referrer discount Python code.
+
+        Runs ``type_id.referrer_discount_python_code`` with the
+        localdict from ``_get_localdict`` (``promotion_code``,
+        ``promotion_type``, ``reference_document``, plus the base
+        variables provided by ``mixin.localdict``) -- the very same
+        context the voucher user's own code gets, with no referrer
+        specific variable added. The code is expected to assign the
+        referrer's discount amount to a ``result`` variable.
+
+        :return: ``localdict["result"]``, or ``0.0`` when the code
+            does not set it
+        """
+        self.ensure_one()
+        localdict = self._get_localdict()
+        code = self.promotion_code_id.type_id.referrer_discount_python_code
         safe_eval(code, localdict, mode="exec", nocopy=True)
         return localdict.get("result", 0.0)
 
@@ -1371,7 +1462,10 @@ account fallback) on the promotion type, or 'Deferred Account' while \
 
         Two lines: a debit line on
         ``_get_discount_account(referrer=False)``, and a credit line
-        on ``receivable_account``.
+        on ``receivable_account``. Both carry this usage's own
+        'Discount Amount' -- the referrer's own entry carries
+        'Referrer Discount Amount' instead (see
+        ``_prepare_referrer_move_data``).
 
         :param receivable_account: account credited by the credit
             line, resolved by the caller
@@ -1382,6 +1476,7 @@ account fallback) on the promotion type, or 'Deferred Account' while \
         self.ensure_one()
         promotion_type = self.type_id
         partner = self._get_move_partner(referrer=False)
+        amount = self.discount_amount
         return {
             "journal_id": promotion_type.journal_id.id,
             "partner_id": partner.id,
@@ -1392,13 +1487,15 @@ account fallback) on the promotion type, or 'Deferred Account' while \
                     0,
                     0,
                     self._prepare_discount_line_data(
-                        partner, self._get_discount_account(referrer=False)
+                        partner, self._get_discount_account(referrer=False), amount
                     ),
                 ),
                 (
                     0,
                     0,
-                    self._prepare_receivable_line_data(partner, receivable_account),
+                    self._prepare_receivable_line_data(
+                        partner, receivable_account, amount
+                    ),
                 ),
             ],
         }
@@ -1408,7 +1505,10 @@ account fallback) on the promotion type, or 'Deferred Account' while \
 
         Two lines: a debit line on
         ``_get_discount_account(referrer=True)``, and a credit line
-        on ``receivable_account``.
+        on ``receivable_account``. Both carry this usage's own
+        'Referrer Discount Amount', which equals 'Discount Amount'
+        only while the promotion type's own 'Referrer Discount Type'
+        is 'Same as Customer'.
 
         :param receivable_account: account credited by the credit
             line, resolved by the caller
@@ -1420,6 +1520,7 @@ account fallback) on the promotion type, or 'Deferred Account' while \
         promotion_type = self.type_id
         partner = self._get_move_partner(referrer=True)
         journal = promotion_type.referrer_journal_id or promotion_type.journal_id
+        amount = self.referrer_discount_amount
         return {
             "journal_id": journal.id,
             "partner_id": partner.id,
@@ -1430,13 +1531,15 @@ account fallback) on the promotion type, or 'Deferred Account' while \
                     0,
                     0,
                     self._prepare_discount_line_data(
-                        partner, self._get_discount_account(referrer=True)
+                        partner, self._get_discount_account(referrer=True), amount
                     ),
                 ),
                 (
                     0,
                     0,
-                    self._prepare_receivable_line_data(partner, receivable_account),
+                    self._prepare_receivable_line_data(
+                        partner, receivable_account, amount
+                    ),
                 ),
             ],
         }
@@ -1452,11 +1555,15 @@ account fallback) on the promotion type, or 'Deferred Account' while \
         self.ensure_one()
         return "%s - %s" % (self.name, self.promotion_code_id.voucher_code)
 
-    def _prepare_discount_line_data(self, partner, account):
+    def _prepare_discount_line_data(self, partner, account, amount):
         """Build the debit (discount) ``account.move.line`` values dict.
 
         :param partner: partner recorded on the line
         :param account: account debited by the line
+        :param amount: amount debited by the line -- this side's own
+            discount amount, passed by the caller ('Discount Amount'
+            from ``_prepare_customer_move_data``, 'Referrer Discount
+            Amount' from ``_prepare_referrer_move_data``)
         :return: dict of ``account.move.line`` values
         """
         self.ensure_one()
@@ -1464,11 +1571,11 @@ account fallback) on the promotion type, or 'Deferred Account' while \
             "partner_id": partner.id,
             "account_id": account.id,
             "name": self._get_move_line_label(),
-            "debit": self.discount_amount,
+            "debit": amount,
             "credit": 0.0,
         }
 
-    def _prepare_receivable_line_data(self, partner, account):
+    def _prepare_receivable_line_data(self, partner, account, amount):
         """Build the credit (receivable) ``account.move.line`` values dict.
 
         :param partner: partner recorded on the line
@@ -1476,6 +1583,10 @@ account fallback) on the promotion type, or 'Deferred Account' while \
             shared by this side's own 'Allocations' rows (see
             ``_get_allocation_account``), not the partner's own
             'property_account_receivable_id'
+        :param amount: amount credited by the line -- this side's own
+            discount amount, passed by the caller ('Discount Amount'
+            from ``_prepare_customer_move_data``, 'Referrer Discount
+            Amount' from ``_prepare_referrer_move_data``)
         :return: dict of ``account.move.line`` values
         """
         self.ensure_one()
@@ -1484,7 +1595,7 @@ account fallback) on the promotion type, or 'Deferred Account' while \
             "account_id": account.id,
             "name": self._get_move_line_label(),
             "debit": 0.0,
-            "credit": self.discount_amount,
+            "credit": amount,
         }
 
     # M0. Allocation Un-Reconciliation (post-cancel hook)
