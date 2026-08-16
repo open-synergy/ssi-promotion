@@ -83,6 +83,20 @@
                                 attrs="{'invisible': [('discount_type', '!=', 'percentage')]}"
                             />
                     </group>
+                    <group
+                            name="promotion_code_referrer_discount_group"
+                            string="Referrer Discount"
+                        >
+                        <field name="referrer_discount_type" />
+                        <field
+                                name="referrer_discount_amount"
+                                attrs="{'invisible': [('referrer_discount_type', '!=', 'fixed')]}"
+                            />
+                        <field
+                                name="referrer_discount_percentage"
+                                attrs="{'invisible': [('referrer_discount_type', '!=', 'percentage')]}"
+                            />
+                    </group>
                     <group name="promotion_code_usage_group" string="Usage">
                         <field name="usage_limit" />
                         <field name="usage_count" />

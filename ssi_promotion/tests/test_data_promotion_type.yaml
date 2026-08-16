@@ -129,3 +129,33 @@ scenarios:
         domain: [["name", "=", "To Be Deleted"]]
         save_as: "result"
         expect_count: 0
+
+  # Backward compatibility guard: a promotion type created without any
+  # referrer discount setting must keep granting the referrer exactly what
+  # the voucher user gets. Do not delete this scenario.
+  - name: "Create promotion type without referrer discount rule"
+    steps:
+      - step: "Create promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "No Referrer Rule Voucher"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+      - step: "Assert referrer discount defaults to same as customer"
+        action: "assert"
+        target: "ptype"
+        asserts:
+          referrer_discount_type:
+            type: "value"
+            expected: "same"
+          referrer_discount_amount:
+            type: "value"
+            expected: 0.0
+          referrer_discount_percentage:
+            type: "value"
+            expected: 0.0

@@ -285,3 +285,87 @@ scenarios:
           date_end:
             type: "value"
             expected: 2024-07-31
+
+  - name: "Create promotion code inherits referrer discount from type"
+    steps:
+      - step: "Create promotion type with own referrer discount rule"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Fixed Voucher Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+      - step: "Create promotion code without referrer values"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REFDISC-001"
+          type_id: "REC: ptype.id"
+      - step: "Assert referrer discount inherited from type"
+        action: "assert"
+        target: "code"
+        asserts:
+          referrer_discount_type:
+            type: "value"
+            expected: "fixed"
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+      - step: "Create promotion code with explicit referrer amount"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_explicit"
+        values:
+          voucher_code: "REFDISC-002"
+          type_id: "REC: ptype.id"
+          referrer_discount_amount: 175000.0
+      - step: "Assert explicit referrer amount is not overridden"
+        action: "assert"
+        target: "code_explicit"
+        asserts:
+          referrer_discount_amount:
+            type: "value"
+            expected: 175000.0
+
+  - name: "Onchange type_id sets referrer discount fields"
+    steps:
+      - step: "Create promotion type with percentage referrer discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Percentage Voucher Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 400000.0
+          referrer_discount_type: "percentage"
+          referrer_discount_percentage: 7.5
+      - step: "Fill form and check referrer discount onchange"
+        action: "form"
+        model: "promotion_code"
+        save: false
+        values:
+          voucher_code: "ONCHANGE-003"
+          type_id: "REC: ptype"
+        asserts:
+          referrer_discount_type:
+            type: "value"
+            expected: "percentage"
+          referrer_discount_percentage:
+            type: "value"
+            expected: 7.5
+          referrer_discount_amount:
+            type: "value"
+            expected: 0.0
