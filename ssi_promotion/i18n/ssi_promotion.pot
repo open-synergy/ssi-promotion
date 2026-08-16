@@ -880,6 +880,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__fixed
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__fixed
 msgid "Fixed"
 msgstr ""
 
@@ -901,6 +902,20 @@ msgstr ""
 msgid ""
 "Flat discount amount granted per usage. Defaulted from 'Promotion Type' and "
 "may be overridden while in draft."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_discount_amount
+msgid ""
+"Flat discount amount granted to the referrer per usage when 'Referrer "
+"Discount Type' is set to Fixed."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code__referrer_discount_amount
+msgid ""
+"Flat discount amount granted to the referrer per usage. Defaulted from "
+"'Promotion Type' and may be overridden while in draft."
 msgstr ""
 
 #. module: ssi_promotion
@@ -967,6 +982,16 @@ msgid ""
 "computed: Fixed = a flat amount, Percentage = a percentage of the referenced"
 " document's total, Python Code = a custom formula set through 'Discount "
 "Python Code'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_discount_type
+msgid ""
+"How the discount amount granted to the referrer (promotion_code.partner_id) "
+"by a promotion code of this type is computed: Same as Customer = the "
+"referrer gets exactly what the voucher user gets, Fixed = a flat amount, "
+"Percentage = a percentage of the referenced document's total, Python Code = "
+"a custom formula set through 'Referrer Discount Python Code'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1436,6 +1461,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__percentage
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__percentage
 msgid "Percentage"
 msgstr ""
 
@@ -1447,10 +1473,24 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code__referrer_discount_percentage
+msgid ""
+"Percentage discount granted to the referrer per usage. Defaulted from "
+"'Promotion Type' and may be overridden while in draft."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_type__discount_percentage
 msgid ""
 "Percentage of the referenced document's total amount granted as discount per"
 " usage when 'Discount Type' is set to Percentage."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_discount_percentage
+msgid ""
+"Percentage of the referenced document's total amount granted to the referrer"
+" as discount per usage when 'Referrer Discount Type' is set to Percentage."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1648,6 +1688,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__allocation_account_selection_method__code
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__python
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__python
 msgid "Python Code"
 msgstr ""
 
@@ -1666,6 +1707,14 @@ msgid ""
 "Python code executed to compute the discount amount when 'Discount Type' is "
 "set to Python Code. The code must assign the computed amount to a variable "
 "named 'result'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_discount_python_code
+msgid ""
+"Python code executed to compute the referrer's discount amount when "
+"'Referrer Discount Type' is set to Python Code. The code must assign the "
+"computed amount to a variable named 'result'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1795,8 +1844,15 @@ msgid "Referrer Accounting Entry"
 msgstr ""
 
 #. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
 msgid "Referrer Discount"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__referrer_discount_amount
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_amount
+msgid "Referrer Discount Amount"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1805,8 +1861,25 @@ msgid "Referrer Discount Journal"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__referrer_discount_percentage
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_percentage
+msgid "Referrer Discount Percentage (%)"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_product_id
 msgid "Referrer Discount Product"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_python_code
+msgid "Referrer Discount Python Code"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__referrer_discount_type
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_discount_type
+msgid "Referrer Discount Type"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1817,6 +1890,13 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_receivable_move_line_id
 msgid "Referrer Receivable Journal Item"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code__referrer_discount_type
+msgid ""
+"Referrer discount computation mode copied from 'Promotion Type'. 'Same as "
+"Customer' means the referrer gets exactly what the voucher user gets."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1897,6 +1977,11 @@ msgstr ""
 msgid ""
 "Sales journal used to create the referrer accounting entry. If left empty, "
 "'Discount Journal' is reused."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__same
+msgid "Same as Customer"
 msgstr ""
 
 #. module: ssi_promotion
