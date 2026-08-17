@@ -344,6 +344,11 @@ msgid "Apply"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__apply_python_code
+msgid "Apply Check Python Code"
+msgstr ""
+
+#. module: ssi_promotion
 #: code:addons/ssi_promotion/models/mixin_promotion_object.py:0
 #: model:ir.actions.act_window,name:ssi_promotion.apply_promotion_code_action
 #: model:ir.model,name:ssi_promotion.model_apply_promotion_code
@@ -1785,6 +1790,18 @@ msgstr ""
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__discount_type__python
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__python
 msgid "Python Code"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__apply_python_code
+msgid ""
+"Python code executed by the Apply Promotion Code wizard before a "
+"promotion_code_usage is created or attached, for both sides. The code must "
+"assign True (allow) or False (reject) to a variable named 'result', and may "
+"assign a rejection sentence to a variable named 'message'. Leave empty to "
+"allow every application; this check is an early feedback gate and does not "
+"replace 'Validity Check Python Code', which still runs when the usage is "
+"confirmed."
 msgstr ""
 
 #. module: ssi_promotion
