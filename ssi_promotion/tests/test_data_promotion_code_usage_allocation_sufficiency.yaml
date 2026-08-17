@@ -1,0 +1,1006 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "Approving a usage whose customer allocation is too small is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "SUFF-S1-INC"
+          name: "Sufficiency Customer Short Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Sufficiency Customer Short Journal"
+          code: "SUFF1"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Sufficiency Customer Short Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type granting a 350000 discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Sufficiency Customer Short Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Sufficiency Customer Short Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "SUFF-S1-001"
+          type_id: "REC: ptype.id"
+          discount_amount: 350000.0
+          # WAJIB: record rule promotion_code_internal_user_rule hanya
+          # meloloskan pemiliknya sendiri (jebakan T-05).
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice of only 67500"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 67500.0
+                name: "Sufficiency Customer Short Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Assert the receivable line only carries 67500 of residual"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 67500.0
+      - step: "Create usage allocating that single short receivable line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Assert the usage grants the full 350000 discount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 350000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving names the side, the available residual, and the discount"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+          message_contains:
+            "Source 'Voucher User' only offer 67500.0 of residual amount, which is less
+            than that side's own discount amount of 350000.0"
+      - step: "Assert the usage stayed in Confirm without an accounting entry"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+          move_id:
+            type: "value"
+            operator: "is_falsy"
+      - step: "Assert no journal entry was created for the customer at all"
+        action: "search"
+        model: "account.move"
+        domain: [["move_type", "=", "entry"], ["partner_id", "=", "REC: customer.id"]]
+        save_as: "customer_entries"
+        expect_count: 0
+
+  - name: "Approving a usage whose referrer allocation is too small is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "SUFF-S2-INC"
+          name: "Sufficiency Referrer Short Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Sufficiency Referrer Short Journal"
+          code: "SUFF2"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Sufficiency Referrer Short Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type with its own referrer discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Sufficiency Referrer Short Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 100000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Sufficiency Referrer Short Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Sufficiency Referrer Short Referrer"
+      - step: "Create promotion code carrying that referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "SUFF-S2-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          discount_amount: 100000.0
+          referrer_discount_amount: 150000.0
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice of 500000 for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "customer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 500000.0
+                name: "Sufficiency Referrer Short Customer Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer invoice"
+        action: "call"
+        target: "customer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: customer_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "customer_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice of only 50000 for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 50000.0
+                name: "Sufficiency Referrer Short Referrer Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer invoice"
+        action: "call"
+        target: "referrer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage with a sufficient customer side and a short referrer side"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: customer_move_line.id"
+            - - 0
+              - 0
+              - sequence: 20
+                source: "referrer"
+                move_line_id: "REC: referrer_move_line.id"
+      - step: "Assert both sides carry their own discount amount"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 100000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 150000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approving names the Referrer side, not the Voucher User side"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        expect_error:
+          type: "UserError"
+          message_contains:
+            "Source 'Referrer' only offer 50000.0 of residual amount, which is less than
+            that side's own discount amount of 150000.0"
+      - step: "Assert neither accounting entry was created"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+          move_id:
+            type: "value"
+            operator: "is_falsy"
+          referrer_move_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "A side without any allocation row still opens as before"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "SUFF-S3-INC"
+          name: "Sufficiency No Referrer Row Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Sufficiency No Referrer Row Journal"
+          code: "SUFF3"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Sufficiency No Referrer Row Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type with its own referrer discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Sufficiency No Referrer Row Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 150000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Sufficiency No Referrer Row Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Sufficiency No Referrer Row Referrer"
+      - step: "Create promotion code carrying that referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "SUFF-S3-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          discount_amount: 350000.0
+          referrer_discount_amount: 150000.0
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice of 1000000 for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Sufficiency No Referrer Row Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating the customer side only"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert only the customer accounting entry was issued"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+          move_id.state:
+            type: "value"
+            expected: "posted"
+          referrer_move_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "Several allocation rows together cover the discount amount"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "SUFF-S4-INC"
+          name: "Sufficiency Several Rows Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Sufficiency Several Rows Journal"
+          code: "SUFF4"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Sufficiency Several Rows Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type granting a 350000 discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Sufficiency Several Rows Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Sufficiency Several Rows Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "SUFF-S4-001"
+          type_id: "REC: ptype.id"
+          discount_amount: 350000.0
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create first receivable invoice (residual 200000)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_a"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 200000.0
+                name: "Sufficiency Several Rows Invoice A"
+                account_id: "REC: income_account.id"
+      - step: "Post the first invoice"
+        action: "call"
+        target: "invoice_a"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the first invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_a.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_a"
+        limit: 1
+        expect_count: 1
+      - step: "Create second receivable invoice (residual 200000)"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice_b"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 200000.0
+                name: "Sufficiency Several Rows Invoice B"
+                account_id: "REC: income_account.id"
+      - step: "Post the second invoice"
+        action: "call"
+        target: "invoice_b"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the second invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice_b.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line_b"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating both receivable lines"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line_a.id"
+            - - 0
+              - 0
+              - sequence: 20
+                source: "customer"
+                move_line_id: "REC: move_line_b.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Assert the accounting entry receivable line is fully reconciled"
+        action: "assert"
+        target: "usage"
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+          receivable_move_line_id.reconciled:
+            type: "value"
+            expected: true
+          receivable_move_line_id.amount_residual:
+            type: "value"
+            expected: 0.0
+      - step: "Assert the first allocated line was consumed entirely"
+        action: "assert"
+        target: "move_line_a"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 0.0
+      - step: "Assert the second allocated line absorbed the remainder"
+        action: "assert"
+        target: "move_line_b"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 50000.0
+
+  - name: "An allocation larger than the discount amount is still accepted"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "SUFF-S5-INC"
+          name: "Sufficiency Surplus Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Sufficiency Surplus Journal"
+          code: "SUFF5"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Sufficiency Surplus Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type granting a 350000 discount"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Sufficiency Surplus Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 350000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Sufficiency Surplus Customer"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "SUFF-S5-001"
+          type_id: "REC: ptype.id"
+          discount_amount: 350000.0
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice of 1000000"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Sufficiency Surplus Invoice Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage allocating that oversized receivable line"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada skenario pertama.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Find the allocation row created for this usage"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "alloc_row"
+        expect_count: 1
+      - step: "Assert only the discount amount was consumed"
+        action: "assert"
+        target: "alloc_row"
+        asserts:
+          amount_reconciled:
+            type: "value"
+            expected: 350000.0
+      - step: "Assert the surplus stayed on the allocated line"
+        action: "assert"
+        target: "move_line"
+        asserts:
+          amount_residual:
+            type: "value"
+            expected: 650000.0
+          reconciled:
+            type: "value"
+            expected: false
