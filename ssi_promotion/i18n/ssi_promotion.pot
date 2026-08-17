@@ -906,6 +906,16 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_document_reference
+msgid ""
+"Document the referrer's own side of this usage is attached to (e.g. the "
+"referrer's own invoice), when it differs from 'Reference Document'. "
+"Optional: left empty, the referrer's side falls back to 'Reference "
+"Document'. The document's model must be listed in the promotion type's "
+"'Allowed Reference Models'."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__document_reference
 msgid ""
 "Document this usage is attached to (e.g. a sale order or an invoice). The "
@@ -2008,6 +2018,11 @@ msgid "Referrer Recognition Method"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_document_reference
+msgid "Referrer Reference Document"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__referrer_discount_type
 msgid ""
 "Referrer discount computation mode copied from 'Promotion Type'. 'Same as "
@@ -2379,8 +2394,8 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_account_payment__promotion_usage_ids
 #: model:ir.model.fields,help:ssi_promotion.field_mixin_promotion_object__promotion_usage_ids
 msgid ""
-"promotion_code_usage records whose own 'Reference Document' points back to "
-"this record."
+"promotion_code_usage records whose own 'Reference Document' or 'Referrer "
+"Reference Document' points back to this record."
 msgstr ""
 
 #. module: ssi_promotion
