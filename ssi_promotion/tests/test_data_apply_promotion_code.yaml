@@ -1397,3 +1397,147 @@ scenarios:
         method: "action_apply_promotion_code"
         expect_error:
           type: "UserError"
+
+  - name:
+      "Side is derived from a code passed in context, and from a document without the
+      mixin"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S6-INC"
+          name: "Apply Promotion Code Derivation Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Derivation Journal"
+          code: "APPCS6"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Derivation Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Derivation Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create the referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Derivation Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_ref"
+        values:
+          voucher_code: "APPCS6-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code_ref"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create an invoice belonging to the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 400000.0
+                name: "Apply Promotion Code Derivation Line"
+                account_id: "REC: income_account.id"
+      - step: "A code handed over in the context is derived by the default itself"
+        action: "form"
+        model: "apply_promotion_code"
+        as_user: "base.user_admin"
+        save: false
+        context:
+          active_model: "account.move"
+          active_id: "REC: referrer_invoice.id"
+          default_promotion_code_id: "REC: code_ref.id"
+        asserts:
+          promotion_code_id:
+            type: "m2o"
+            expected: "REC: code_ref"
+          side:
+            type: "value"
+            expected: "referrer"
+      - step: "A document without the mixin derives Voucher User, it does not raise"
+        action: "form"
+        model: "apply_promotion_code"
+        as_user: "base.user_admin"
+        save: false
+        context:
+          active_model: "res.partner"
+          active_id: "REC: referrer.id"
+        ops:
+          - set: {promotion_code_id: "REC: code_ref"}
+          - assert:
+              side:
+                type: "value"
+                expected: "customer"
