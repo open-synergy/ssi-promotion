@@ -163,6 +163,18 @@ class PromotionCodeUsage(models.Model):
         "invoice). The document's model must be listed in the promotion "
         "type's 'Allowed Reference Models'.",
     )
+    referrer_document_reference = fields.Reference(
+        string="Referrer Reference Document",
+        selection="_selection_document_reference",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Document the referrer's own side of this usage is "
+        "attached to (e.g. the referrer's own invoice), when it "
+        "differs from 'Reference Document'. Optional: left empty, "
+        "the referrer's side falls back to 'Reference Document'. "
+        "The document's model must be listed in the promotion type's "
+        "'Allowed Reference Models'.",
+    )
     discount_amount = fields.Float(
         string="Discount Amount",
         compute="_compute_discount_amount",
@@ -447,17 +459,63 @@ class PromotionCodeUsage(models.Model):
             return self._evaluate_discount_python_code()
         return 0.0
 
-    def _get_reference_base_amount(self):
-        """Resolve the base amount a percentage discount applies to.
+    def _get_document_reference(self, referrer=False):
+        """Resolve the document one side of this usage points at.
 
-        :return: 'Reference Document' ``amount_total`` when that
-            field exists on the document, else ``0.0``
+        Single mapping from a side to its own document field, shared
+        by the model constraint, ``action_populate_allocation``, and
+        ``_get_reference_base_amount``.
+
+        :param referrer: ``True`` for the referrer's own side
+            ('Referrer Reference Document'), ``False`` (default) for
+            the voucher user's own side ('Reference Document')
+        :return: the referenced record, empty when that side's own
+            document field is not set
         """
         self.ensure_one()
-        if not self.document_reference:
+        if referrer:
+            return self.referrer_document_reference
+        return self.document_reference
+
+    def _get_effective_document_reference(self, referrer=False):
+        """Resolve the document a side is measured against.
+
+        Same mapping as ``_get_document_reference``, except that the
+        referrer's own side falls back to 'Reference Document' when
+        'Referrer Reference Document' is empty -- so a usage carrying
+        a single document keeps behaving exactly as it did before
+        that field existed. Unlike ``_get_document_reference``, this
+        is the resolver for rules that must always land on a
+        document; the rounds of ``action_populate_allocation`` use
+        the raw one instead, since a side without its own document
+        must create nothing rather than duplicate the other side.
+
+        :param referrer: ``True`` to resolve the referrer's own side,
+            ``False`` (default) for the voucher user's own side
+        :return: the referenced record, empty when neither that
+            side's own document nor 'Reference Document' is set
+        """
+        self.ensure_one()
+        document = self._get_document_reference(referrer=referrer)
+        if referrer and not document:
+            document = self.document_reference
+        return document
+
+    def _get_reference_base_amount(self, referrer=False):
+        """Resolve the base amount a percentage discount applies to.
+
+        :param referrer: ``True`` to resolve the referrer's own side,
+            ``False`` (default) for the voucher user's own side
+        :return: the ``amount_total`` of the side's own document as
+            resolved by ``_get_effective_document_reference``, when
+            that field exists on it, else ``0.0``
+        """
+        self.ensure_one()
+        document = self._get_effective_document_reference(referrer=referrer)
+        if not document:
             return 0.0
-        if "amount_total" in self.document_reference._fields:
-            return self.document_reference.amount_total
+        if "amount_total" in document._fields:
+            return document.amount_total
         return 0.0
 
     def _evaluate_discount_python_code(self):
@@ -488,6 +546,7 @@ class PromotionCodeUsage(models.Model):
         "promotion_code_id.referrer_discount_percentage",
         "discount_amount",
         "document_reference",
+        "referrer_document_reference",
     )
     def _compute_referrer_discount_amount(self):
         """Compute the discount amount granted to the referrer.
@@ -509,7 +568,9 @@ class PromotionCodeUsage(models.Model):
         ``_get_discount_amount`` on the referrer's own fields: Fixed
         returns the promotion code's own 'Referrer Discount Amount',
         Percentage applies the promotion code's own 'Referrer Discount
-        Percentage' to ``_get_reference_base_amount``, and Python
+        Percentage' to ``_get_reference_base_amount(referrer=True)``
+        -- the referrer's own document when 'Referrer Reference
+        Document' is set, 'Reference Document' otherwise -- and Python
         evaluates the promotion type's
         ``referrer_discount_python_code`` via
         ``_evaluate_referrer_discount_python_code``.
@@ -527,7 +588,7 @@ class PromotionCodeUsage(models.Model):
         if discount_type == "fixed":
             return self.promotion_code_id.referrer_discount_amount
         if discount_type == "percentage":
-            base_amount = self._get_reference_base_amount()
+            base_amount = self._get_reference_base_amount(referrer=True)
             return (
                 base_amount
                 * self.promotion_code_id.referrer_discount_percentage
@@ -762,41 +823,67 @@ class PromotionCodeUsage(models.Model):
     # H. Constrains
     @api.constrains(
         "document_reference",
+        "referrer_document_reference",
         "promotion_code_id",
     )
     def _check_document_reference_model(self):
-        """Require 'Reference Document' model to be allowed by the type.
+        """Require both document fields' model to be allowed by the
+        type.
 
-        :raises ValidationError: when 'Reference Document' is set and
+        Walks the voucher user's own side ('Reference Document') and
+        the referrer's own side ('Referrer Reference Document') with
+        the very same rule, naming the offending field in the error
+        message so a rejected usage says which of the two it is.
+
+        :raises ValidationError: when either document field is set and
             its model is not listed in the promotion type's 'Allowed
             Reference Models'
         """
         for record in self.sudo():
-            if not record._check_document_reference_model_condition():
+            for referrer in (False, True):
+                if record._check_document_reference_model_condition(referrer=referrer):
+                    continue
+                document = record._get_document_reference(referrer=referrer)
                 error_message = """
 Context: Set reference document on promotion code usage
 Database ID: %s
-Problem: Reference document model '%s' is not allowed by promotion type '%s'
+Problem: Model '%s' of '%s' is not allowed by promotion type '%s'
 Solution: Choose a document whose model is listed in the promotion type's \
 Allowed Reference Models, or update that configuration
 """ % (
                     record.id,
-                    record.document_reference._name,
+                    document._name,
+                    record._get_document_reference_label(referrer=referrer),
                     record.type_id.display_name,
                 )
                 raise ValidationError(_(error_message))
 
-    def _check_document_reference_model_condition(self):
-        """Check whether 'Reference Document' model is allowed.
+    def _get_document_reference_label(self, referrer=False):
+        """Resolve the user-facing label of one side's document field.
 
-        :return: ``True`` when 'Reference Document' is empty, or its
-            model is listed in the promotion type's 'Allowed
+        :param referrer: ``True`` for the referrer's own side,
+            ``False`` (default) for the voucher user's own side
+        :return: the field label as shown on the form
+        """
+        self.ensure_one()
+        if referrer:
+            return "Referrer Reference Document"
+        return "Reference Document"
+
+    def _check_document_reference_model_condition(self, referrer=False):
+        """Check whether one side's document model is allowed.
+
+        :param referrer: ``True`` to check the referrer's own side,
+            ``False`` (default) for the voucher user's own side
+        :return: ``True`` when that side's own document is empty, or
+            its model is listed in the promotion type's 'Allowed
             Reference Models'
         """
         self.ensure_one()
-        if not self.document_reference:
+        document = self._get_document_reference(referrer=referrer)
+        if not document:
             return True
-        model_name = self.document_reference._name
+        model_name = document._name
         allowed_models = self.type_id.allowed_model_ids.mapped("model")
         return model_name in allowed_models
 
@@ -1060,17 +1147,20 @@ code configured on promotion type '%s'
 
     # K1. Populate Allocation (button, inline action)
     def action_populate_allocation(self):
-        """Fill 'Allocations' from the reference document's own
-        eligible journal items.
+        """Fill 'Allocations' from both sides' own eligible journal
+        items.
 
-        Delegates to
-        ``document_reference._get_promotion_move_lines()`` for the
-        eligible ``account.move.line`` recordset, walking it in the
-        order it is returned and skipping any journal item already
-        present on 'Allocations'. Every new row is created with
-        'Source' 'Voucher User'. Wired to a button on the
-        'Allocation' page -- an inline action documented as a Flow
-        step in ``docs/promotion_code_usage/01-create.md`` and
+        Runs one round per side, in order: 'Reference Document'
+        first, producing rows with 'Source' 'Voucher User', then
+        'Referrer Reference Document', producing rows with 'Source'
+        'Referrer'. Each round delegates to
+        ``_populate_allocation_side``, which skips any journal item
+        already present on 'Allocations' and keeps 'Sequence' rising
+        by five across both rounds. A usage whose 'Referrer Reference
+        Document' is empty simply produces nothing on the second
+        round. Wired to a button on the 'Allocation' page -- an
+        inline action documented as a Flow step in
+        ``docs/promotion_code_usage/01-create.md`` and
         ``docs/promotion_code_usage/02-edit.md``, not a file of its
         own.
 
@@ -1080,33 +1170,70 @@ code configured on promotion type '%s'
         """
         self.ensure_one()
         self._check_populate_allocation()
+        existing_move_line_ids = self.allocation_ids.mapped("move_line_id").ids
+        sequence = 5
+        for referrer in (False, True):
+            sequence = self._populate_allocation_side(
+                referrer, existing_move_line_ids, sequence
+            )
+        return True
+
+    def _populate_allocation_side(self, referrer, existing_move_line_ids, sequence):
+        """Create the allocation rows of a single side.
+
+        Reads the side's own document with ``_get_document_reference``
+        and its eligible journal items with
+        ``_get_promotion_move_lines()``, walking them in the order
+        they are returned. ``existing_move_line_ids`` is extended in
+        place with every journal item consumed, so the next round
+        never allocates the same journal item twice.
+
+        :param referrer: ``True`` for the referrer's own side (rows
+            with 'Source' 'Referrer'), ``False`` for the voucher
+            user's own side (rows with 'Source' 'Voucher User')
+        :param existing_move_line_ids: list of ``account.move.line``
+            ids already allocated, extended in place
+        :param sequence: 'Sequence' to give the next row
+        :return: the 'Sequence' left for the next round
+        """
+        self.ensure_one()
+        document = self._get_document_reference(referrer=referrer)
+        if not document:
+            return sequence
         Allocation = self.env[  # pylint: disable=invalid-name
             "promotion_code_usage_allocation"
         ]
-        existing_move_line_ids = self.allocation_ids.mapped("move_line_id").ids
-        move_lines = self.document_reference._get_promotion_move_lines()
-        sequence = 5
-        for move_line in move_lines:
+        source = "referrer" if referrer else "customer"
+        for move_line in document._get_promotion_move_lines():
             if move_line.id in existing_move_line_ids:
                 continue
             Allocation.create(
                 {
                     "usage_id": self.id,
                     "move_line_id": move_line.id,
-                    "source": "customer",
+                    "source": source,
                     "sequence": sequence,
                 }
             )
+            existing_move_line_ids.append(move_line.id)
             sequence += 5
-        return True
+        return sequence
 
     def _check_populate_allocation(self):
         """Validate this usage can run ``action_populate_allocation``.
 
-        :raises UserError: when 'Status' is not 'Draft', 'Reference
-            Document' is empty, the reference document's own model
-            does not carry ``mixin.promotion_object``, or the
-            reference document has no eligible journal item at all
+        Both document fields are validated with the very same rule,
+        each one only when it is actually set: a usage carrying a
+        single document is checked exactly as before this method
+        learned about sides. The 'no eligible journal item' rule is
+        the one exception -- it is read across both sides at once, so
+        a fully settled referrer document never blocks populating the
+        voucher user's own side.
+
+        :raises UserError: when 'Status' is not 'Draft', both
+            document fields are empty, a document's own model does
+            not carry ``mixin.promotion_object``, or neither document
+            has an eligible journal item at all
         """
         self.ensure_one()
         if self.state != "draft":
@@ -1119,40 +1246,46 @@ Solution: Only a Draft usage can populate its own 'Allocations'
                 self.id,
             )
             raise UserError(_(error_message))
-        if not self.document_reference:
+        if not self.document_reference and not self.referrer_document_reference:
             error_message = """
 Context: Populate allocation from reference document
 Database ID: %s
-Problem: 'Reference Document' is empty
-Solution: Set 'Reference Document' before populating 'Allocations'
+Problem: Both 'Reference Document' and 'Referrer Reference Document' are empty
+Solution: Set at least one of them before populating 'Allocations'
 """ % (
                 self.id,
             )
             raise UserError(_(error_message))
-        if "promotion_usage_ids" not in self.document_reference._fields:
-            error_message = """
+        move_lines = self.env["account.move.line"]
+        for referrer in (False, True):
+            document = self._get_document_reference(referrer=referrer)
+            if not document:
+                continue
+            if "promotion_usage_ids" not in document._fields:
+                error_message = """
 Context: Populate allocation from reference document
 Database ID: %s
-Problem: Reference document model '%s' does not support automatic \
-allocation (it does not carry mixin.promotion_object)
+Problem: Model '%s' of '%s' does not support automatic allocation (it does \
+not carry mixin.promotion_object)
 Solution: Choose a reference document whose model inherits \
 mixin.promotion_object, or add rows to 'Allocations' manually
 """ % (
-                self.id,
-                self.document_reference._name,
-            )
-            raise UserError(_(error_message))
-        if not self.document_reference._get_promotion_move_lines():
+                    self.id,
+                    document._name,
+                    self._get_document_reference_label(referrer=referrer),
+                )
+                raise UserError(_(error_message))
+            move_lines |= document._get_promotion_move_lines()
+        if not move_lines:
             error_message = """
 Context: Populate allocation from reference document
 Database ID: %s
-Problem: Reference document '%s' has no eligible journal item to \
+Problem: No reference document of this usage has an eligible journal item to \
 allocate (reconcilable account, posted move, positive residual)
-Solution: Post the reference document, or wait until it has an \
+Solution: Post the reference document(s), or wait until they have an \
 outstanding receivable balance
 """ % (
                 self.id,
-                self.document_reference.display_name,
             )
             raise UserError(_(error_message))
 
