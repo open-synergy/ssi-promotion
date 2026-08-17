@@ -697,3 +697,847 @@ scenarios:
         method: "action_apply_promotion_code"
         expect_error:
           type: "UserError"
+
+  - name: "Side is re-derived every time Promotion Code is selected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S4-INC"
+          name: "Apply Promotion Code Side Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Side Journal"
+          code: "APPCS4"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Side Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Side Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create the referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Side Referrer"
+      - step: "Create another partner, referrer of nothing here"
+        action: "create"
+        model: "res.partner"
+        save_as: "outsider"
+        values:
+          name: "Apply Promotion Code Side Outsider"
+      - step: "Create the promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_ref"
+        values:
+          voucher_code: "APPCS4-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm the referrer's own promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh the referrer's own code before approval"
+        action: "assert"
+        target: "code_ref"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the referrer's own promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a promotion code owned by somebody else"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_other"
+        values:
+          voucher_code: "APPCS4-002"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: outsider.id"
+      - step: "Confirm the outsider's own promotion code"
+        action: "call"
+        target: "code_other"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh the outsider's own code before approval"
+        action: "assert"
+        target: "code_other"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the outsider's own promotion code"
+        action: "call"
+        target: "code_other"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create an invoice belonging to the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 400000.0
+                name: "Apply Promotion Code Side Referrer Line"
+                account_id: "REC: income_account.id"
+      - step: "Selecting a code owned by this document's partner derives Referrer"
+        action: "form"
+        model: "apply_promotion_code"
+        as_user: "base.user_admin"
+        save: false
+        context:
+          active_model: "account.move"
+          active_id: "REC: referrer_invoice.id"
+        ops:
+          - set: {promotion_code_id: "REC: code_ref"}
+          - assert:
+              side:
+                type: "value"
+                expected: "referrer"
+          - set: {promotion_code_id: "REC: code_other"}
+          - assert:
+              side:
+                type: "value"
+                expected: "customer"
+
+  - name: "Side Referrer attaches to the existing Draft usage instead of creating one"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S5-INC"
+          name: "Apply Promotion Code Attach Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Attach Journal"
+          code: "APPCS5"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Attach Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Attach Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Attach Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Attach Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCS5-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Attach Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer's own invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 700000.0
+                name: "Apply Promotion Code Attach Referrer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer's own invoice"
+        action: "call"
+        target: "referrer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Apply the code to the voucher user's own side first"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Apply the very same code to the referrer's own side"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "referrer_invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+          side: "referrer"
+        method: "action_apply_promotion_code"
+      - step: "Still exactly one usage exists for this code"
+        action: "search"
+        model: "promotion_code_usage"
+        domain: [["promotion_code_id", "=", "REC: code.id"]]
+        save_as: "usage"
+        expect_count: 1
+      - step: "That one usage now carries both sides' own documents"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          document_reference:
+            type: "m2o"
+            expected: "REC: invoice"
+          referrer_document_reference:
+            type: "m2o"
+            expected: "REC: referrer_invoice"
+      - step: "The referrer's own allocation row was added"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"], ["source", "=", "referrer"]]
+        save_as: "referrer_alloc_row"
+        expect_count: 1
+      - step: "It targets the referrer invoice's own receivable line"
+        action: "assert"
+        target: "referrer_alloc_row"
+        asserts:
+          move_line_id:
+            type: "m2o"
+            expected: "REC: referrer_move_line"
+      - step: "The voucher user's own allocation row is untouched"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"], ["source", "=", "customer"]]
+        save_as: "customer_alloc_row"
+        expect_count: 1
+
+  - name: "Side Referrer is rejected with no candidate and with several candidates"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-N3-INC"
+          name: "Apply Promotion Code Candidate Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Candidate Journal"
+          code: "APPCN3"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Candidate Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Candidate Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Apply Promotion Code Candidate Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Candidate Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCN3-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Apply Promotion Code Candidate Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer's own invoice"
+        action: "call"
+        target: "invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 700000.0
+                name: "Apply Promotion Code Candidate Referrer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer's own invoice"
+        action: "call"
+        target: "referrer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "With no Draft usage at all, the referrer's own side is refused"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "referrer_invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+          side: "referrer"
+        method: "action_apply_promotion_code"
+        expect_error:
+          type: "UserError"
+      - step: "Apply the code to the voucher user's own side once"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Apply the code to the voucher user's own side a second time"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+        method: "action_apply_promotion_code"
+      - step: "Two Draft usages are now waiting for a referrer document"
+        action: "search"
+        model: "promotion_code_usage"
+        domain: [["promotion_code_id", "=", "REC: code.id"]]
+        save_as: "usages"
+        expect_count: 2
+      - step: "With two candidates, the referrer's own side is refused again"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "referrer_invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+          side: "referrer"
+        method: "action_apply_promotion_code"
+        expect_error:
+          type: "UserError"
+      - step: "Neither refusal attached anything"
+        action: "search"
+        model: "promotion_code_usage"
+        domain:
+          [
+            ["promotion_code_id", "=", "REC: code.id"],
+            [
+              "referrer_document_reference",
+              "=",
+              "EVAL: 'account.move,%d' % registry['referrer_invoice'].id",
+            ],
+          ]
+        save_as: "attached_usages"
+        expect_count: 0
+
+  - name: "Side Referrer with a disallowed reference model is rejected too"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-N4-INC"
+          name: "Apply Promotion Code Referrer Disallowed Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Referrer Disallowed Journal"
+          code: "APPCN4"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Referrer Disallowed Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create promotion type WITHOUT account.move as an allowed model"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Referrer Disallowed Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Referrer Disallowed Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "APPCN4-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 700000.0
+                name: "Apply Promotion Code Referrer Disallowed Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer's own invoice"
+        action: "call"
+        target: "referrer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "The disallowed model is refused on the referrer's own side as well"
+        action: "wizard"
+        model: "apply_promotion_code"
+        target: "referrer_invoice"
+        as_user: "base.user_admin"
+        values:
+          promotion_code_id: "REC: code.id"
+          side: "referrer"
+        method: "action_apply_promotion_code"
+        expect_error:
+          type: "UserError"
+
+  - name:
+      "Side is derived from a code passed in context, and from a document without the
+      mixin"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "APPLYPC-S6-INC"
+          name: "Apply Promotion Code Derivation Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Apply Promotion Code Derivation Journal"
+          code: "APPCS6"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Apply Promotion Code Derivation Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Apply Promotion Code Derivation Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create the referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Apply Promotion Code Derivation Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code_ref"
+        values:
+          voucher_code: "APPCS6-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+          partner_id: "REC: referrer.id"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code_ref"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code_ref"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create an invoice belonging to the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 400000.0
+                name: "Apply Promotion Code Derivation Line"
+                account_id: "REC: income_account.id"
+      - step: "A code handed over in the context is derived by the default itself"
+        action: "form"
+        model: "apply_promotion_code"
+        as_user: "base.user_admin"
+        save: false
+        context:
+          active_model: "account.move"
+          active_id: "REC: referrer_invoice.id"
+          default_promotion_code_id: "REC: code_ref.id"
+        asserts:
+          promotion_code_id:
+            type: "m2o"
+            expected: "REC: code_ref"
+          side:
+            type: "value"
+            expected: "referrer"
+      - step: "A document without the mixin derives Voucher User, it does not raise"
+        action: "form"
+        model: "apply_promotion_code"
+        as_user: "base.user_admin"
+        save: false
+        context:
+          active_model: "res.partner"
+          active_id: "REC: referrer.id"
+        ops:
+          - set: {promotion_code_id: "REC: code_ref"}
+          - assert:
+              side:
+                type: "value"
+                expected: "customer"

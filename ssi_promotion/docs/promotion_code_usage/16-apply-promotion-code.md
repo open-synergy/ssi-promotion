@@ -30,14 +30,23 @@
 4. Fill in the wizard:
    - **Promotion Code** _(required)_: Select the `promotion_code` to redeem. Only codes
      whose own Status is **Open** can be selected.
+   - **Side** _(required)_: Which party this invoice belongs to — **Voucher User** or
+     **Referrer**. Re-derived every time Promotion Code is selected: it becomes
+     **Referrer** when the invoice's own customer is the promotion code's own Partner,
+     and **Voucher User** otherwise. Can still be changed by hand.
    - **Voucher User**: Automatically filled from the invoice's own customer. Read-only.
    - **Date** _(required)_: Defaults to today. Copied to the new usage's own Usage Date.
 5. Click **Apply**.
 
 ## Post-Condition
 
-- A new `promotion_code_usage` record is created in **Draft** status, and its own form
-  is displayed.
-- Its own Reference Document points to the invoice; its own Voucher User matches the
-  invoice's own customer; its own Allocations is already filled with the invoice's own
-  eligible receivable journal item.
+- A `promotion_code_usage` record in **Draft** status is displayed on its own form.
+- With Side **Voucher User**, that record is newly created: its own Reference Document
+  points to the invoice; its own Voucher User matches the invoice's own customer; its
+  own Allocations is already filled with the invoice's own eligible receivable journal
+  item.
+- With Side **Referrer**, no record is created. The promotion code's own Draft usage
+  that was still waiting for one gets its own Referrer Reference Document pointed at
+  this invoice, and its own Allocations gains that invoice's own eligible receivable
+  journal item with Source **Referrer**. The wizard refuses when no such Draft usage
+  exists, and when more than one does.

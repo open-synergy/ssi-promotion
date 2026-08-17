@@ -10,6 +10,11 @@
         <form string="Apply Promotion Code">
             <group name="main" colspan="4" col="2">
                 <field name="promotion_code_id" />
+                <!-- After 'Promotion Code' on purpose: selecting a code
+                     re-derives 'Side' (onchange_side), so a 'Side'
+                     shown first would silently discard a choice the
+                     user had just made by hand. -->
+                <field name="side" />
                 <field name="date" />
                 <field name="partner_id" />
             </group>
