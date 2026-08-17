@@ -2,7 +2,7 @@
 # Copyright 2026 PT. Simetri Sinergi Indonesia
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PromotionCodeUsageRecognitionLine(models.Model):
@@ -10,12 +10,14 @@ class PromotionCodeUsageRecognitionLine(models.Model):
     Represents the debit/credit pair posted for one side (customer or
     referrer) of a usage's discount by a single Recognition document.
 
-    One record is generated per side of the usage's discount being
-    released: a usage whose promotion code has a referrer produces
-    two Recognition Lines (customer and referrer); one without a
-    referrer produces a single customer Line. Debit and credit
-    creation is delegated to the inherited
-    ``mixin.account_move_double_line``.
+    One record is generated per **deferred** side of the usage's
+    discount: two Recognition Lines when both sides are deferred, a
+    single one when only the customer or only the referrer is (see
+    ``promotion_code_usage_recognition._get_deferred_line_types``).
+    Each line debits its own side's Final Account and credits its own
+    side's Deferred Account, so it always releases exactly what that
+    side booked. Debit and credit creation is delegated to the
+    inherited ``mixin.account_move_double_line``.
     """
 
     _name = "promotion_code_usage_recognition_line"
@@ -78,9 +80,16 @@ class PromotionCodeUsageRecognitionLine(models.Model):
     credit_account_id = fields.Many2one(
         string="Credit Account",
         comodel_name="account.account",
-        related="recognition_id.usage_id.deferred_account_id",
-        help="Deferred Account of the parent Recognition's own "
-        "usage, credited by this Recognition Line.",
+        compute="_compute_credit_account_id",
+        compute_sudo=True,
+        help="Deferred Account this line's own side of the usage was "
+        "booked to, credited by this Recognition Line: the usage's "
+        "own 'Deferred Account' for the customer side, its 'Referrer "
+        "Deferred Account' for a referrer side deferred on its own. "
+        "Resolved from the usage's own ``_get_deferred_account`` -- "
+        "the same resolver that picked the account when the usage was "
+        "approved, so a line always credits back exactly what it "
+        "debited.",
     )
     move_id = fields.Many2one(
         string="Move",
@@ -111,6 +120,34 @@ class PromotionCodeUsageRecognitionLine(models.Model):
         related="recognition_id.currency_id",
         help="Currency inherited from the parent Recognition " "document.",
     )
+
+    @api.depends(
+        "line_type",
+        "recognition_id.usage_id.deferred_account_id",
+        "recognition_id.usage_id.referrer_deferred_account_id",
+        "recognition_id.usage_id.referrer_recognition_method",
+    )
+    def _compute_credit_account_id(self):
+        """Resolve the Deferred Account this line credits, per side.
+
+        Reading the usage's own 'Deferred Account' for *every* line
+        was wrong the moment each side got a recognition method of its
+        own: on a usage deferred for the referrer alone, the voucher
+        user's own 'Deferred Account' is empty, so the referrer line
+        credited nothing at all and the journal entry was refused by
+        the database (``account_move_line_check_accountable_required_
+        fields``).
+
+        :return: nothing; assigns ``credit_account_id``
+        """
+        for record in self:
+            result = self.env["account.account"]
+            usage = record.recognition_id.usage_id
+            if usage:
+                result = usage._get_deferred_account(
+                    referrer=record.line_type == "referrer"
+                )
+            record.credit_account_id = result
 
     def _get_standard_label(self, direction):
         """Return the move line label.

@@ -5,7 +5,7 @@
 from datetime import date as datetime_date
 
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 
 from odoo.addons.ssi_decorator import ssi_decorator
@@ -16,13 +16,14 @@ class PromotionCodeUsageRecognition(models.Model):
     Represents one release of a promotion_code_usage's deferred
     discount into its own Final Account(s).
 
-    A usage whose own 'Recognition Method' is 'Deferred' books its
-    journal entry line(s) to Deferred Account instead of their own
-    Final Account. This document later moves 'Amount' -- once for
-    the full 'Amount Deferred', or several times -- from Deferred
-    Account to each journal entry's own Final Account: one Line for
-    the customer, and a second Line for the referrer when the usage's
-    promotion code has one.
+    A usage side whose own recognition method is 'Deferred' books its
+    journal entry line to a Deferred Account instead of its own Final
+    Account. This document later moves 'Amount' -- once for the full
+    'Amount Deferred', or several times -- from Deferred Account to
+    each journal entry's own Final Account, with one Line **per
+    deferred side only**: a usage recognized on the spot for the
+    voucher user but deferred for the referrer issues a single
+    'referrer' Line, and no 'customer' Line at all.
     """
 
     _name = "promotion_code_usage_recognition"
@@ -167,11 +168,11 @@ class PromotionCodeUsageRecognition(models.Model):
         inverse_name="recognition_id",
         readonly=True,
         copy=False,
-        help="One technical line per side of the usage's discount "
-        "(customer, and referrer when the usage's promotion code has "
-        "one), each carrying the debit/credit pair posted for it. "
-        "Generated when this document is Done; cleared again if it "
-        "is cancelled.",
+        help="One technical line per deferred side of the usage's "
+        "discount (customer, referrer, or both -- a side recognized "
+        "on the spot gets no line at all), each carrying the "
+        "debit/credit pair posted for it. Generated when this "
+        "document is Done; cleared again if it is cancelled.",
     )
     note = fields.Text(
         string="Note",
@@ -278,20 +279,28 @@ Solution: Select a Date on or after the usage's own Usage Date
 
     @api.constrains("usage_id")
     def _check_usage_recognition_method_deferred(self):
-        """Forbid recognizing a usage whose Recognition Method is not
-        Deferred.
+        """Forbid recognizing a usage with no deferred side at all.
 
-        :raises ValidationError: when ``usage_id.recognition_method``
-            is not ``deferred``.
+        Read per side (``promotion_code_usage._get_recognition_method``)
+        rather than off the voucher user's own 'Recognition Method'
+        alone: a usage recognized on the spot for the voucher user but
+        deferred for the referrer does carry a deferred amount, and
+        must be recognizable. Only a usage where *neither* side is
+        deferred has nothing to release.
+
+        :raises ValidationError: when neither the voucher user's nor
+            the referrer's own recognition method is ``deferred``.
         """
         for record in self:
-            if record.usage_id and record.usage_id.recognition_method != "deferred":
+            if record.usage_id and not record._get_deferred_line_types():
                 error_message = """
 Document Type: %s
 Context: Select usage to recognize
 Database ID: %s
-Problem: Usage '%s' own Recognition Method is not 'Deferred'
-Solution: Select a usage whose own Recognition Method is 'Deferred'
+Problem: Usage '%s' has no deferred side: neither its own Recognition \
+Method nor its Referrer Recognition Method is 'Deferred'
+Solution: Select a usage whose own Recognition Method, or whose Referrer \
+Recognition Method, is 'Deferred'
 """ % (
                     record._description,
                     record.id,
@@ -303,15 +312,17 @@ Solution: Select a usage whose own Recognition Method is 'Deferred'
     def _10_create_accounting_entry(self):
         """Create and post this document's ``account.move``.
 
-        Creates the header move, one
-        ``promotion_code_usage_recognition_line`` for the customer
-        side (always) and a second one for the referrer side (only
-        when the usage's promotion code has a referrer), rounded to
-        the currency's own precision with the rounding remainder
-        charged to the last line so the move stays balanced, then
-        posts the move.
+        Creates the header move, then one
+        ``promotion_code_usage_recognition_line`` per **deferred**
+        side of the usage (see ``_get_deferred_line_types``) -- which
+        may be the customer alone, the referrer alone, or both --
+        rounded to the currency's own precision with the rounding
+        remainder charged to the last line so the move stays
+        balanced, then posts the move.
 
         :return: nothing
+        :raises UserError: via ``_create_recognition_lines`` when the
+            usage has no deferred side left to release
         """
         self.ensure_one()
         self._create_standard_move()
@@ -320,22 +331,77 @@ Solution: Select a usage whose own Recognition Method is 'Deferred'
             recognition_line._create_standard_ml()
         self._post_standard_move()
 
-    def _create_recognition_lines(self):
-        """Create one Recognition Line per side of the usage's discount.
+    def _get_deferred_line_types(self):
+        """List the sides of the usage this document has to release.
 
-        Each side's own share is its own deferred amount (see
+        A side qualifies only while its own recognition method
+        (``promotion_code_usage._get_recognition_method``) is
+        ``deferred`` -- an ``immediate`` side already debited its own
+        Final Account when the usage was approved, so releasing it
+        again would book the discount twice. The referrer side
+        additionally requires the usage's promotion code to have a
+        referrer at all, since no referrer journal entry is issued
+        without one.
+
+        Read through ``sudo()``: answering this needs the usage's own
+        promotion code, and that model carries a record rule scoped to
+        ``user_id == user.id``. A user may perfectly well own a usage
+        whose promotion code belongs to somebody else, and refusing to
+        save their recognition over it -- with an Access Error naming
+        a model they never asked about -- would be a security check
+        firing on a technical lookup. The very same fields are already
+        read this way by ``promotion_code_usage._compute_amount_to_
+        recognize`` (``compute_sudo=True``).
+
+        :return: a list holding ``'customer'``, ``'referrer'``, both,
+            or neither, in that order
+        """
+        self.ensure_one()
+        usage = self.usage_id.sudo()
+        result = []
+        if usage._get_recognition_method() == "deferred":
+            result.append("customer")
+        if (
+            usage.promotion_code_id.partner_id
+            and usage._get_recognition_method(referrer=True) == "deferred"
+        ):
+            result.append("referrer")
+        return result
+
+    def _create_recognition_lines(self):
+        """Create one Recognition Line per deferred side of the usage.
+
+        Each deferred side's own share is its own deferred amount (see
         ``_get_line_type_base_amount``) scaled by this document's own
         Ratio, rounded to the Company Currency's own precision. The
         rounding remainder is charged to the last line so the move
-        stays balanced against this document's own Amount.
+        stays balanced against this document's own Amount. Sides
+        recognized on the spot are skipped entirely (see
+        ``_get_deferred_line_types``).
 
         :return: the created
             ``promotion_code_usage_recognition_line`` recordset
+        :raises UserError: when the usage has no deferred side left,
+            so this document would post a journal entry with no line
         """
         self.ensure_one()
         Line = self.env["promotion_code_usage_recognition_line"]
-        has_referrer = bool(self.usage_id.promotion_code_id.partner_id)
-        line_types = ["customer", "referrer"] if has_referrer else ["customer"]
+        line_types = self._get_deferred_line_types()
+        if not line_types:
+            error_message = """
+Document Type: %s
+Context: Create recognition accounting entry
+Database ID: %s
+Problem: Usage '%s' has no deferred side left to release: neither its own \
+Recognition Method nor its Referrer Recognition Method is 'Deferred'
+Solution: Cancel this document, or set 'Recognition Method' (or 'Referrer \
+Recognition Method') on the usage back to 'Deferred'
+""" % (
+                self._description,
+                self.id,
+                self.usage_id.display_name,
+            )
+            raise UserError(_(error_message))
         precision = self.company_currency_id.decimal_places
         amounts = [
             float_round(

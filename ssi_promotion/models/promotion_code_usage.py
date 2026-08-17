@@ -337,12 +337,13 @@ class PromotionCodeUsage(models.Model):
         store=True,
         compute_sudo=True,
         help="Total amount this usage's journal entry line(s) debited "
-        "to Deferred Account, due to be released by "
-        "promotion_code_usage_recognition documents: 'Discount "
-        "Amount' plus 'Referrer Discount Amount' when this usage's "
-        "promotion code has a referrer (each side's own journal entry "
-        "line carries its own amount), 'Discount Amount' alone "
-        "otherwise.",
+        "to a Deferred Account, due to be released by "
+        "promotion_code_usage_recognition documents. Only the deferred "
+        "sides count: 'Discount Amount' while 'Recognition Method' is "
+        "Deferred, plus 'Referrer Discount Amount' while this usage's "
+        "promotion code has a referrer whose own recognition method is "
+        "Deferred too (each side's own journal entry line carries its "
+        "own amount). Zero while neither side is deferred.",
     )
     amount_recognized = fields.Float(
         string="Amount Recognized",
@@ -689,26 +690,41 @@ class PromotionCodeUsage(models.Model):
         "discount_amount",
         "referrer_discount_amount",
         "promotion_code_id.partner_id",
+        "recognition_method",
+        "referrer_recognition_method",
+        "referrer_recognition_date",
+        "referrer_deferred_account_id",
+        "referrer_recognition_journal_id",
     )
     def _compute_amount_to_recognize(self):
         """Compute the total amount due to be released by recognitions.
 
-        Adds 'Referrer Discount Amount' to 'Discount Amount' when
-        this usage's promotion code has a referrer, since each side's
+        Only the deferred sides count. The voucher user contributes
+        'Discount Amount' while its own recognition method
+        (``_get_recognition_method``) is ``deferred``; the referrer
+        contributes 'Referrer Discount Amount' while this usage's
+        promotion code has a referrer *and* the referrer's own method
+        is ``deferred`` too. An ``immediate`` side already debited its
+        own Final Account when the usage was approved, so there is
+        nothing left for a recognition document to release for it.
+
+        The two amounts coincide only while the promotion type's own
+        'Referrer Discount Type' is 'Same as Customer'; each side's
         own journal entry line carries its own amount (see
         ``_prepare_customer_move_data`` /
-        ``_prepare_referrer_move_data``). Both sides still coincide
-        while the promotion type's own 'Referrer Discount Type' is
-        'Same as Customer'. Falls back to 'Discount Amount' alone
-        when the promotion code has no referrer, since no referrer
-        journal entry is issued at all.
+        ``_prepare_referrer_move_data``).
 
         :return: nothing; assigns ``amount_to_recognize``
         """
         for record in self:
-            result = record.discount_amount
-            if record.promotion_code_id.partner_id:
-                result = record.discount_amount + record.referrer_discount_amount
+            result = 0.0
+            if record._get_recognition_method() == "deferred":
+                result += record.discount_amount
+            if (
+                record.promotion_code_id.partner_id
+                and record._get_recognition_method(referrer=True) == "deferred"
+            ):
+                result += record.referrer_discount_amount
             record.amount_to_recognize = result
 
     @api.depends(
@@ -1512,6 +1528,12 @@ items sharing the same account
         ('partner_id' set) and 'Allocations' has at least one
         'referrer' row. A source without an allocation row does not
         issue a journal entry.
+
+        Each entry's own debit account is routed by *that side's* own
+        recognition method (``_get_discount_account``), not by a
+        single switch shared by both: the voucher user may debit its
+        Final Account here while the referrer debits 'Referrer
+        Deferred Account', or the other way round.
         """
         self._create_customer_move()
         self._create_referrer_move()
@@ -1787,21 +1809,64 @@ account fallback) on the promotion type, or 'Deferred Account' while \
             return product
         return product._get_product_account(usage_code=usage.code)
 
+    def _get_recognition_method(self, referrer=False):
+        """Resolve the recognition method one side of this usage follows.
+
+        Single place deciding what 'Same as Customer' means: the
+        referrer's own 'Referrer Recognition Method' wins, except
+        while it is ``same`` -- the referrer then follows the voucher
+        user's own 'Recognition Method'. Every per-side decision of
+        this usage reads this method instead of the raw fields, so a
+        side deferred on its own is never mistaken for the other
+        side's setting.
+
+        :param referrer: resolve the referrer's own method instead of
+            the voucher user's
+        :return: ``'immediate'`` or ``'deferred'``
+        """
+        self.ensure_one()
+        if not referrer:
+            return self.recognition_method
+        if self.referrer_recognition_method == "same":
+            return self.recognition_method
+        return self.referrer_recognition_method
+
+    def _get_deferred_account(self, referrer=False):
+        """Resolve the Deferred Account one side of this usage debits.
+
+        The referrer keeps its own 'Referrer Deferred Account', except
+        while its own 'Referrer Recognition Method' is ``same`` -- it
+        then follows the voucher user's own 'Deferred Account', the
+        very account it was already debiting before the referrer got
+        a recognition method of its own.
+
+        :param referrer: resolve the referrer's own account instead of
+            the voucher user's
+        :return: an ``account.account`` record, possibly empty
+        """
+        self.ensure_one()
+        if referrer and self.referrer_recognition_method != "same":
+            return self.referrer_deferred_account_id
+        return self.deferred_account_id
+
     def _get_discount_account(self, referrer=False):
         """Resolve the account a journal entry line of this usage debits.
 
-        Returns this usage's own 'Deferred Account' while
-        'Recognition Method' is ``deferred``; otherwise falls back to
-        ``_get_final_account``, keeping the Immediate behaviour
-        unchanged.
+        Each side is routed by its own recognition method
+        (``_get_recognition_method``): a ``deferred`` side debits its
+        own Deferred Account (``_get_deferred_account``), an
+        ``immediate`` side debits its own Final Account
+        (``_get_final_account``). Both sides therefore live side by
+        side in one usage -- the voucher user may be recognized on
+        the spot while the referrer's own reward stays deferred.
 
         :param referrer: resolve the referrer's account instead of
             the voucher user's
         :return: an ``account.account`` record, possibly empty
         """
         self.ensure_one()
-        if self.recognition_method == "deferred":
-            return self.deferred_account_id
+        if self._get_recognition_method(referrer=referrer) == "deferred":
+            return self._get_deferred_account(referrer=referrer)
         return self._get_final_account(referrer=referrer)
 
     def _prepare_customer_move_data(self, receivable_account):
