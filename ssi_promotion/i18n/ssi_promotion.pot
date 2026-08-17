@@ -1927,6 +1927,7 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__partner_id
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__apply_promotion_code__side__referrer
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_allocation__source__referrer
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_recognition_line__line_type__referrer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_search
@@ -2123,6 +2124,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_allocation__sequence
 msgid "Sequence"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_apply_promotion_code__side
+msgid "Side"
 msgstr ""
 
 #. module: ssi_promotion
@@ -2360,6 +2366,7 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_apply_promotion_code__partner_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__partner_id
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__apply_promotion_code__side__customer
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_allocation__source__customer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_search
 msgid "Voucher User"
@@ -2392,6 +2399,16 @@ msgid ""
 "Which of the usage's own two journal entries is reconciled against 'Journal "
 "Item': the voucher user's own ('Voucher User'), or the promotion code's "
 "referrer own ('Referrer')."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_apply_promotion_code__side
+msgid ""
+"Which party the caller document belongs to. 'Voucher User' creates a new "
+"usage for it. 'Referrer' attaches it to the 'Referrer Reference Document' of"
+" the Draft usage that is already there, instead of creating a second one. "
+"Derived from the selected 'Promotion Code', and editable -- a referrer can "
+"also redeem somebody else's code."
 msgstr ""
 
 #. module: ssi_promotion
