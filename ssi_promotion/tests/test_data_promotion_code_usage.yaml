@@ -5901,3 +5901,140 @@ scenarios:
           message_contains: "Referrer Recognition Date"
         values:
           referrer_recognition_date: 2024-08-01
+
+  # Guard: an EMPTY recognition date on a deferred usage is accepted, not
+  # rejected and not crashed on. Both date fields are stored computes with
+  # readonly=False, so a Draft usage really can end up with either of them
+  # cleared -- the 'not date' arm of both date constraints exists exactly for
+  # that state, and this scenario is the only thing that walks it.
+  - name: "Clearing either recognition date on a deferred usage is accepted"
+    steps:
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create the voucher user's own deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PROMO-BOTHDEF-1"
+          name: "Promotion Both Deferred Customer Account"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create the referrer's own deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account"
+        values:
+          code: "PROMO-BOTHDEF-2"
+          name: "Promotion Both Deferred Referrer Account"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create a promotion type deferring both sides"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Both Sides Deferred Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 6500.0
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-BOTHDEF-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Both Sides Deferred Customer"
+      - step: "Create the usage with both sides deferred"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          date: 2024-09-10
+          deferred_account_id: "REC: deferred_account.id"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Assert both dates started out defaulted to the usage date"
+        action: "assert"
+        target: "usage"
+        asserts:
+          recognition_method:
+            type: "value"
+            expected: "deferred"
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          recognition_date:
+            type: "value"
+            expected: 2024-09-10
+          referrer_recognition_date:
+            type: "value"
+            expected: 2024-09-10
+      - step:
+          "Clearing the referrer recognition date is accepted -- there is no date left
+          to compare against the usage date"
+        action: "write"
+        target: "usage"
+        values:
+          referrer_recognition_date: false
+      - step: "Assert the empty referrer recognition date survived"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          referrer_recognition_date:
+            type: "value"
+            operator: "is_falsy"
+      - step:
+          "Clearing the voucher user's own recognition date is accepted the same way"
+        action: "write"
+        target: "usage"
+        values:
+          recognition_date: false
+      - step: "Assert the empty recognition date survived"
+        action: "assert"
+        target: "usage"
+        asserts:
+          recognition_method:
+            type: "value"
+            expected: "deferred"
+          recognition_date:
+            type: "value"
+            operator: "is_falsy"
