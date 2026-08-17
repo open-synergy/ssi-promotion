@@ -774,8 +774,12 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition_line__credit_account_id
 msgid ""
-"Deferred Account of the parent Recognition's own usage, credited by this "
-"Recognition Line."
+"Deferred Account this line's own side of the usage was booked to, credited "
+"by this Recognition Line: the usage's own 'Deferred Account' for the "
+"customer side, its 'Referrer Deferred Account' for a referrer side deferred "
+"on its own. Resolved from the usage's own ``_get_deferred_account`` -- the "
+"same resolver that picked the account when the usage was approved, so a line"
+" always credits back exactly what it debited."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1489,10 +1493,10 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_recognition__recognition_line_ids
 msgid ""
-"One technical line per side of the usage's discount (customer, and referrer "
-"when the usage's promotion code has one), each carrying the debit/credit "
-"pair posted for it. Generated when this document is Done; cleared again if "
-"it is cancelled."
+"One technical line per deferred side of the usage's discount (customer, "
+"referrer, or both -- a side recognized on the spot gets no line at all), "
+"each carrying the debit/credit pair posted for it. Generated when this "
+"document is Done; cleared again if it is cancelled."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1896,8 +1900,8 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_create_due_promotion_recognition__date
 msgid ""
 "Recognition documents are created for every usage whose own Recognition Date"
-" falls on or before this date, and this is also the Date of every document "
-"created."
+" -- or whose own Referrer Recognition Date -- falls on or before this date, "
+"and this is also the Date of every document created."
 msgstr ""
 
 #. module: ssi_promotion
@@ -2184,11 +2188,13 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__amount_to_recognize
 msgid ""
-"Total amount this usage's journal entry line(s) debited to Deferred Account,"
-" due to be released by promotion_code_usage_recognition documents: 'Discount"
-" Amount' plus 'Referrer Discount Amount' when this usage's promotion code "
-"has a referrer (each side's own journal entry line carries its own amount), "
-"'Discount Amount' alone otherwise."
+"Total amount this usage's journal entry line(s) debited to a Deferred "
+"Account, due to be released by promotion_code_usage_recognition documents. "
+"Only the deferred sides count: 'Discount Amount' while 'Recognition Method' "
+"is Deferred, plus 'Referrer Discount Amount' while this usage's promotion "
+"code has a referrer whose own recognition method is Deferred too (each "
+"side's own journal entry line carries its own amount). Zero while neither "
+"side is deferred."
 msgstr ""
 
 #. module: ssi_promotion
