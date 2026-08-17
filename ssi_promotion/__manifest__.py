@@ -4,7 +4,7 @@
 
 {
     "name": "Promotion",
-    "version": "14.0.1.9.1",
+    "version": "14.0.1.10.0",
     "website": "https://simetri-sinergi.id",
     "author": "OpenSynergy Indonesia, PT. Simetri Sinergi Indonesia",
     "contributors": [
