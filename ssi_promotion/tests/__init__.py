@@ -7,6 +7,7 @@ from . import test_promotion_code
 from . import test_mixin_promotion_object
 from . import test_promotion_code_usage
 from . import test_promotion_code_usage_allocation
+from . import test_promotion_code_usage_allocation_sufficiency
 from . import test_promotion_code_usage_populate_allocation
 from . import test_promotion_code_usage_referrer_document
 from . import test_promotion_code_usage_recognition

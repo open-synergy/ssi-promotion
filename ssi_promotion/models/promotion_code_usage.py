@@ -56,12 +56,14 @@ class PromotionCodeUsage(models.Model):
     row of one source is also this usage's own source for that
     side's credit line account (see '_get_allocation_account'), so
     every row of one source must share one account. Opening a usage
-    first validates every row and that per-source account sharing
-    (see '_15_check_allocation'), then reconciles each source's own
-    journal entry receivable line against its own allocation rows in
-    order (see '_30_reconcile'). Cancelling the usage undoes that
-    reconciliation before its own journal entry(-ies) are deleted
-    (see '_05_unreconcile').
+    first refuses any source whose rows hold less residual amount
+    than that source's own discount amount (see
+    '_20_check_allocation_sufficiency'), validates every row and that
+    per-source account sharing (see '_15_check_allocation'), then
+    reconciles each source's own journal entry receivable line
+    against its own allocation rows in order (see '_30_reconcile').
+    Cancelling the usage undoes that reconciliation before its own
+    journal entry(-ies) are deleted (see '_05_unreconcile').
     """
 
     _name = "promotion_code_usage"
@@ -1514,6 +1516,110 @@ items sharing the same account
             return self.promotion_code_id.partner_id
         return self.partner_id
 
+    # K3. Allocation Sufficiency Check (pre-open hook)
+    @ssi_decorator.pre_open_check()
+    def _20_check_allocation_sufficiency(self):
+        """Reject a usage whose 'Allocations' cannot absorb its own
+        discount.
+
+        Runs on the pre-check of the confirm-to-open transition
+        (approval, ``action_open``), before the state actually changes
+        and long before any journal entry exists -- both
+        ``_10_create_accounting_entry`` and ``_30_reconcile`` are
+        post-open hooks. Each side is measured on its own (see
+        ``_check_allocation_sufficiency``): a side whose journal entry
+        would outlive its own 'Allocations' leaves an unreconciled
+        credit balance behind on the source partner, with no document
+        of its own tracking it.
+
+        :raises UserError: via ``_check_allocation_sufficiency`` when
+            either side's own 'Allocations' hold less residual amount
+            than that side's own discount amount
+        """
+        self.ensure_one()
+        for source in ("customer", "referrer"):
+            self._check_allocation_sufficiency(source)
+
+    def _check_allocation_sufficiency(self, source):
+        """Check one 'Source' can absorb its own discount amount.
+
+        A 'Source' without a single allocation row is skipped rather
+        than rejected: it issues no journal entry at all (see
+        ``_create_customer_move`` / ``_create_referrer_move``), so
+        there is nothing left dangling for it. The comparison uses
+        ``float_compare`` on the company currency's own decimal
+        places, the very same reading of exhaustion
+        ``_reconcile_allocation_source`` uses, and only rejects a
+        *smaller* total -- 'Allocations' worth more than the discount
+        stay valid, their surplus simply never consumed.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :raises UserError: when that 'Source' has allocation rows
+            whose total 'Amount Residual' is below its own discount
+            amount
+        """
+        self.ensure_one()
+        lines = self.allocation_ids.filtered(
+            lambda allocation, source=source: allocation.source == source
+        )
+        if not lines:
+            return
+        discount_amount = self._get_allocation_discount_amount(source)
+        amount_available = sum(lines.mapped("amount_residual"))
+        precision = self.env.company.currency_id.decimal_places
+        if (
+            float_compare(
+                amount_available,
+                discount_amount,
+                precision_digits=precision,
+            )
+            >= 0
+        ):
+            return
+        error_message = """
+Context: Open promotion code usage
+Database ID: %s
+Problem: Allocation rows under Source '%s' only offer %s of residual \
+amount, which is less than that side's own discount amount of %s
+Solution: Add allocation rows under Source '%s' until their total \
+residual amount covers that side's own discount amount, or allocate \
+journal items that still carry a larger residual amount
+""" % (
+            self.id,
+            self._get_allocation_source_label(source),
+            amount_available,
+            discount_amount,
+            self._get_allocation_source_label(source),
+        )
+        raise UserError(_(error_message))
+
+    def _get_allocation_discount_amount(self, source):
+        """Resolve the discount amount one 'Source' has to absorb.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: 'Referrer Discount Amount' when ``'referrer'``,
+            'Discount Amount' otherwise -- each side's own journal
+            entry carries its own amount (see
+            ``_prepare_customer_move_data`` /
+            ``_prepare_referrer_move_data``)
+        """
+        self.ensure_one()
+        if source == "referrer":
+            return self.referrer_discount_amount
+        return self.discount_amount
+
+    def _get_allocation_source_label(self, source):
+        """Resolve the user-facing label of an allocation 'Source'.
+
+        :param source: ``'customer'`` or ``'referrer'``
+        :return: the label shown in the 'Source' selection, so a
+            rejected usage names the side the user sees on the form
+        """
+        self.ensure_one()
+        if source == "referrer":
+            return "Referrer"
+        return "Voucher User"
+
     # L. Accounting Entry Creation (post-open hook)
     @ssi_decorator.post_open_action()
     def _10_create_accounting_entry(self):
@@ -1662,6 +1768,14 @@ items sharing the same account
         own journal entry receivable line against this usage's own
         'Allocations', in ``_order`` (grouped by 'Source'), skipping
         rows once that source's journal entry runs out of residual.
+
+        Every source reaching this hook is already known to hold
+        enough residual amount to absorb its own discount: the
+        pre-open check ``_20_check_allocation_sufficiency`` rejects
+        the usage otherwise, before the journal entry is even
+        created. A journal entry reconciled here therefore always
+        ends up fully consumed, never leaving a credit balance
+        dangling on the source partner.
         """
         self.ensure_one()
         self._reconcile_allocation_source("customer")
@@ -1677,6 +1791,13 @@ items sharing the same account
         side and is checked for a positive residual instead (see
         ``_check_allocation_line``). Exhaustion is therefore read
         off a zero residual, not a positive one.
+
+        The loop stops on the journal entry running out, never on
+        the allocation rows running out first: that second ending is
+        already ruled out before this method runs, by the pre-open
+        check ``_20_check_allocation_sufficiency``, which measures
+        this very source's own rows against its own discount amount
+        using the same precision read here.
 
         :param source: ``'customer'`` or ``'referrer'``
         :return: nothing
