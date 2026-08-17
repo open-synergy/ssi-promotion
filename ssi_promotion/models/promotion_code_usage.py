@@ -43,6 +43,13 @@ class PromotionCodeUsage(models.Model):
     'Recognition State' track that release; they stay 'Not
     Applicable' while Recognition Method is Immediate.
 
+    The referrer's own side of that deferral is configured separately
+    through 'Referrer Recognition Method', 'Referrer Recognition
+    Date', 'Referrer Deferred Account', and 'Referrer Recognition
+    Journal', all defaulted from the promotion type. 'Referrer
+    Recognition Method' defaults to 'Same as Customer', which means
+    the referrer keeps following 'Recognition Method'.
+
     allocation_ids lists reconcilable account.move.line records this
     usage's own journal entry(-ies) should reduce instead of only
     adding to the source partner's credit balance. Every allocation
@@ -258,6 +265,59 @@ class PromotionCodeUsage(models.Model):
         "recognition documents created against this usage. "
         "Defaulted from the promotion type's own 'Recognition "
         "Journal'.",
+    )
+    referrer_recognition_method = fields.Selection(
+        string="Referrer Recognition Method",
+        selection=[
+            ("same", "Same as Customer"),
+            ("immediate", "Immediate"),
+            ("deferred", "Deferred"),
+        ],
+        compute="_compute_referrer_recognition_method",
+        store=True,
+        readonly=False,
+        compute_sudo=True,
+        help="Defaulted from the promotion type's own 'Referrer "
+        "Recognition Method', but may still be overridden manually "
+        "while this usage is in Draft. 'Same as Customer' keeps the "
+        "referrer following this usage's own 'Recognition Method'; "
+        "Deferred routes the referrer journal entry line created on "
+        "approval to 'Referrer Deferred Account' instead of its Final "
+        "Account, independently of the voucher user's own side.",
+    )
+    referrer_recognition_date = fields.Date(
+        string="Referrer Recognition Date",
+        compute="_compute_referrer_recognition_date",
+        store=True,
+        readonly=False,
+        compute_sudo=True,
+        help="Date the referrer's own deferred amount is due to be "
+        "recognized. Defaulted to 'Usage Date', but may still be "
+        "overridden manually while this usage is in Draft -- a "
+        "referral reward falling in a later fiscal year is exactly "
+        "why it is kept apart from 'Recognition Date'.",
+    )
+    referrer_deferred_account_id = fields.Many2one(
+        string="Referrer Deferred Account",
+        comodel_name="account.account",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Account debited on the referrer journal entry line "
+        "created for this usage instead of its Final Account, while "
+        "this usage's own 'Referrer Recognition Method' is Deferred. "
+        "Defaulted from the promotion type's own 'Referrer Deferred "
+        "Account'. Required while 'Referrer Recognition Method' is "
+        "Deferred.",
+    )
+    referrer_recognition_journal_id = fields.Many2one(
+        string="Referrer Recognition Journal",
+        comodel_name="account.journal",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+        help="Accounting journal used by promotion_code_usage_"
+        "recognition documents releasing this usage's own 'Referrer "
+        "Deferred Account'. Defaulted from the promotion type's own "
+        "'Referrer Recognition Journal'.",
     )
     amount_to_recognize = fields.Float(
         string="Amount To Recognize",
@@ -539,6 +599,31 @@ class PromotionCodeUsage(models.Model):
         for record in self:
             record.recognition_date = record.date
 
+    @api.depends("type_id.referrer_recognition_method")
+    def _compute_referrer_recognition_method(self):
+        """Default Referrer Recognition Method from the type's config.
+
+        Falls back to ``'same'`` -- the referrer follows the voucher
+        user's own 'Recognition Method' -- when this usage has no
+        promotion type yet, matching the promotion type's own default.
+
+        :return: nothing; assigns ``referrer_recognition_method``
+        """
+        for record in self:
+            result = "same"
+            if record.type_id:
+                result = record.type_id.referrer_recognition_method
+            record.referrer_recognition_method = result
+
+    @api.depends("date")
+    def _compute_referrer_recognition_date(self):
+        """Default Referrer Recognition Date to this usage's Usage Date.
+
+        :return: nothing; assigns ``referrer_recognition_date``
+        """
+        for record in self:
+            record.referrer_recognition_date = record.date
+
     @api.depends(
         "discount_amount",
         "referrer_discount_amount",
@@ -648,6 +733,32 @@ class PromotionCodeUsage(models.Model):
         if self.type_id:
             self.recognition_journal_id = self.type_id.recognition_journal_id
 
+    @api.onchange("type_id")
+    def onchange_referrer_deferred_account_id(self):
+        """Default Referrer Deferred Account from the promotion type's
+        own Referrer Deferred Account.
+
+        :return: nothing
+        """
+        self.referrer_deferred_account_id = False
+        if self.type_id:
+            self.referrer_deferred_account_id = (
+                self.type_id.referrer_deferred_account_id
+            )
+
+    @api.onchange("type_id")
+    def onchange_referrer_recognition_journal_id(self):
+        """Default Referrer Recognition Journal from the promotion
+        type's own Referrer Recognition Journal.
+
+        :return: nothing
+        """
+        self.referrer_recognition_journal_id = False
+        if self.type_id:
+            self.referrer_recognition_journal_id = (
+                self.type_id.referrer_recognition_journal_id
+            )
+
     # H. Constrains
     @api.constrains(
         "document_reference",
@@ -725,6 +836,51 @@ type so it defaults automatically
         return bool(self.deferred_account_id)
 
     @api.constrains(
+        "referrer_recognition_method",
+        "referrer_deferred_account_id",
+    )
+    def _check_referrer_deferred_account_required(self):
+        """Require Referrer Deferred Account whenever Referrer
+        Recognition Method is Deferred.
+
+        Deliberately kept apart from
+        ``_check_deferred_account_required`` so the error message can
+        name the offending side: merging both sides into one
+        constraint leaves the user guessing which field is wrong.
+
+        :raises ValidationError: when 'Referrer Recognition Method' is
+            ``deferred`` and 'Referrer Deferred Account' is empty.
+        """
+        for record in self:
+            if not record._check_referrer_deferred_account_required_condition():
+                error_message = """
+Context: Set referrer recognition method on promotion code usage
+Database ID: %s
+Problem: Referrer Recognition Method is 'Deferred' but Referrer Deferred \
+Account is empty
+Solution: Set 'Referrer Deferred Account' on this usage, or on its \
+promotion type so it defaults automatically
+""" % (
+                    record.id,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_referrer_deferred_account_required_condition(self):
+        """Check whether Referrer Deferred Account is set when required.
+
+        'Same as Customer' leaves the referrer following the voucher
+        user's own rule, so the referrer's own fields may stay empty --
+        only ``deferred`` bites here.
+
+        :return: ``True`` when 'Referrer Recognition Method' is not
+            ``deferred``, or when 'Referrer Deferred Account' is set
+        """
+        self.ensure_one()
+        if self.referrer_recognition_method != "deferred":
+            return True
+        return bool(self.referrer_deferred_account_id)
+
+    @api.constrains(
         "recognition_method",
         "recognition_date",
         "date",
@@ -764,6 +920,56 @@ Solution: Set 'Recognition Date' to a date on or after 'Usage Date'
         if not self.recognition_date or not self.date:
             return True
         return self.recognition_date >= self.date
+
+    @api.constrains(
+        "referrer_recognition_method",
+        "referrer_recognition_date",
+        "date",
+    )
+    def _check_referrer_recognition_date_not_before_date(self):
+        """Require Referrer Recognition Date on/after Usage Date while
+        Referrer Recognition Method is Deferred.
+
+        Deliberately kept apart from
+        ``_check_recognition_date_not_before_date`` so the error
+        message can name the offending side.
+
+        :raises ValidationError: when 'Referrer Recognition Method' is
+            ``deferred`` and 'Referrer Recognition Date' falls before
+            'Usage Date'.
+        """
+        for record in self:
+            if not record._check_referrer_recognition_date_not_before_date_condition():
+                error_message = """
+Context: Set referrer recognition date on promotion code usage
+Database ID: %s
+Problem: Referrer Recognition Date (%s) is earlier than Usage Date (%s) \
+while Referrer Recognition Method is 'Deferred'
+Solution: Set 'Referrer Recognition Date' to a date on or after 'Usage \
+Date'
+""" % (
+                    record.id,
+                    record.referrer_recognition_date,
+                    record.date,
+                )
+                raise ValidationError(_(error_message))
+
+    def _check_referrer_recognition_date_not_before_date_condition(self):
+        """Check whether Referrer Recognition Date respects Usage Date.
+
+        'Same as Customer' leaves the referrer following the voucher
+        user's own rule, so only ``deferred`` bites here.
+
+        :return: ``True`` when 'Referrer Recognition Method' is not
+            ``deferred``, or when 'Referrer Recognition Date' is not
+            before 'Usage Date'
+        """
+        self.ensure_one()
+        if self.referrer_recognition_method != "deferred":
+            return True
+        if not self.referrer_recognition_date or not self.date:
+            return True
+        return self.referrer_recognition_date >= self.date
 
     # I. Validity Check (pre-confirm hook)
     def _check_validity(self):

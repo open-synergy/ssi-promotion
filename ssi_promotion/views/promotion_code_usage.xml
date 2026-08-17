@@ -113,6 +113,21 @@
                             />
                     </group>
                     <group
+                            name="promotion_code_usage_referrer_recognition_group"
+                            string="Referrer Recognition"
+                        >
+                        <field name="referrer_recognition_method" />
+                        <field name="referrer_recognition_date" />
+                        <field
+                                name="referrer_deferred_account_id"
+                                attrs="{'invisible': [('referrer_recognition_method', '!=', 'deferred')]}"
+                            />
+                        <field
+                                name="referrer_recognition_journal_id"
+                                attrs="{'invisible': [('referrer_recognition_method', '!=', 'deferred')]}"
+                            />
+                    </group>
+                    <group
                             name="promotion_code_usage_accounting_entry_group"
                             string="Accounting Entry"
                         >
