@@ -6038,3 +6038,298 @@ scenarios:
           recognition_date:
             type: "value"
             operator: "is_falsy"
+
+  - name: "Immediate voucher user and deferred referrer debit different accounts"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-MIX-INC"
+          name: "Promotion Mixed Side Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create the referrer's own deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account"
+        values:
+          code: "PROMO-MIX-RDEF"
+          name: "Promotion Mixed Side Referrer Deferred Asset"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Mixed Side Journal"
+          code: "PROMOMIX"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Mixed Side Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create a type Immediate for the voucher user, Deferred for the referrer"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Mixed Side Recognition Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 60000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 25000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "immediate"
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          referrer_recognition_journal_id: "REC: journal.id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Mixed Side Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-MIX-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Mixed Side Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Mixed Side Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Mixed Side Referrer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer receivable invoice"
+        action: "call"
+        target: "referrer_recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create the mixed-side promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          referrer_deferred_account_id: "REC: referrer_deferred_account.id"
+          referrer_recognition_journal_id: "REC: journal.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+            - - 0
+              - 0
+              - sequence: 10
+                source: "referrer"
+                move_line_id: "REC: referrer_recv_move_line.id"
+      - step: "Assert each side kept its own recognition method"
+        action: "assert"
+        target: "usage"
+        asserts:
+          recognition_method:
+            type: "value"
+            expected: "immediate"
+          referrer_recognition_method:
+            type: "value"
+            expected: "deferred"
+          discount_amount:
+            type: "value"
+            expected: 60000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 25000.0
+      - step:
+          "Assert Amount To Recognize holds the referrer amount alone, not the sum of
+          both sides"
+        action: "assert"
+        target: "usage"
+        asserts:
+          amount_to_recognize:
+            type: "value"
+            expected: 25000.0
+          amount_deferred:
+            type: "value"
+            expected: 25000.0
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+          referrer_move_id:
+            type: "value"
+            operator: "is_truthy"
+      - step: "Find the customer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "customer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step:
+          "Assert the Immediate voucher user side debits its own Final Account right
+          away"
+        action: "assert"
+        target: "customer_discount_line"
+        asserts:
+          account_id.code:
+            type: "value"
+            expected: "PROMO-MIX-INC"
+          debit:
+            type: "value"
+            expected: 60000.0
+      - step: "Find the referrer accounting entry's own discount line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: usage.referrer_move_id.id"],
+            ["account_id.internal_type", "!=", "receivable"],
+          ]
+        save_as: "referrer_discount_line"
+        limit: 1
+        expect_count: 1
+      - step:
+          "Assert the Deferred referrer side debits its own Referrer Deferred Account
+          instead"
+        action: "assert"
+        target: "referrer_discount_line"
+        asserts:
+          account_id.code:
+            type: "value"
+            expected: "PROMO-MIX-RDEF"
+          debit:
+            type: "value"
+            expected: 25000.0

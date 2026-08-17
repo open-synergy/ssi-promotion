@@ -9,10 +9,18 @@ from odoo.exceptions import UserError
 class CreateDuePromotionRecognition(models.TransientModel):
     """
     Wizard that releases every due, deferred promotion_code_usage --
-    ``recognition_state`` ``pending`` and ``recognition_date`` on or
+    ``recognition_state`` ``pending`` and *either* side's own due date
+    (``recognition_date`` or ``referrer_recognition_date``) on or
     before the selected Date -- into one draft
     ``promotion_code_usage_recognition`` document each, for the
     usage's own full ``amount_deferred``.
+
+    Both dates are looked at because each side of a usage carries its
+    own one: a referral reward may fall due long before or after the
+    voucher user's own discount, and a usage due only because of its
+    'Referrer Recognition Date' is due all the same -- as long as the
+    referrer side really is deferred on its own (see
+    ``_get_due_usage_ids``).
     """
 
     _name = "create_due_promotion_recognition"
@@ -22,9 +30,10 @@ class CreateDuePromotionRecognition(models.TransientModel):
         string="Date",
         required=True,
         default=fields.Date.today,
-        help="Recognition documents are created for every usage "
-        "whose own Recognition Date falls on or before this date, "
-        "and this is also the Date of every document created.",
+        help="Recognition documents are created for every usage whose "
+        "own Recognition Date -- or whose own Referrer Recognition "
+        "Date -- falls on or before this date, and this is also the "
+        "Date of every document created.",
     )
     usage_ids = fields.Many2many(
         string="Usages",
@@ -59,13 +68,36 @@ class CreateDuePromotionRecognition(models.TransientModel):
     def _get_due_usage_ids(self, date):
         """Search deferred usages due for recognition as of date.
 
-        :param date: latest Recognition Date to include, or
+        A usage qualifies when *either* side's own due date --
+        'Recognition Date' or 'Referrer Recognition Date' -- falls on
+        or before date. Matching on 'Recognition Date' alone would
+        leave behind every usage that fell due through its referral
+        side only.
+
+        The referral arm only counts while that side is deferred on
+        its own: 'Referrer Recognition Date' is defaulted on *every*
+        usage, referrer or not, so an arm reading it unconditionally
+        would report a usage as due the day it was created --
+        including usages whose promotion code has no referrer at all,
+        and usages whose referrer merely follows the voucher user
+        ('Same as Customer'), which is already covered by the first
+        arm.
+
+        :param date: latest due date to include, on either side, or
             ``False`` for no upper bound
         :return: list of matching ``promotion_code_usage`` ids
         """
         domain = [("recognition_state", "=", "pending")]
         if date:
-            domain.append(("recognition_date", "<=", date))
+            domain += [
+                "|",
+                ("recognition_date", "<=", date),
+                "&",
+                "&",
+                ("promotion_code_id.partner_id", "!=", False),
+                ("referrer_recognition_method", "=", "deferred"),
+                ("referrer_recognition_date", "<=", date),
+            ]
         return self.env["promotion_code_usage"].search(domain).ids
 
     def action_create_due_recognition(self):

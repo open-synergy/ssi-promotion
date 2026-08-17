@@ -359,3 +359,188 @@ scenarios:
         expect_error:
           type: "UserError"
           message_contains: "No Usage is due for recognition"
+
+  - name: "A usage due only through its Referrer Recognition Date is caught"
+    steps:
+      - step: "Get main company"
+        action: "ref"
+        xml_id: "base.main_company"
+        save_as: "company"
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account2"
+        values:
+          code: "CDPR-INC2"
+          name: "Create Due Recognition Income 2"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create the voucher user's own deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account2"
+        values:
+          code: "CDPR-DEF2"
+          name: "Create Due Recognition Deferred Asset 2"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create the referrer's own deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "referrer_deferred_account2"
+        values:
+          code: "CDPR-RDEF2"
+          name: "Create Due Recognition Referrer Deferred Asset 2"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal2"
+        values:
+          name: "Create Due Recognition Sales Journal 2"
+          code: "CDPRJ2"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product2"
+        values:
+          name: "Create Due Recognition Product 2"
+          type: "service"
+          property_account_income_id: "REC: income_account2.id"
+      - step: "Create a type deferred on both sides, each with its own account"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype2"
+        values:
+          name: "Create Due Recognition Two Sided Deferred Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account2.id"
+          discount_type: "fixed"
+          discount_amount: 5000.0
+          referrer_discount_type: "fixed"
+          referrer_discount_amount: 2000.0
+          journal_id: "REC: journal2.id"
+          product_id: "REC: product2.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account2.id"
+          recognition_journal_id: "REC: journal2.id"
+          referrer_recognition_method: "deferred"
+          referrer_deferred_account_id: "REC: referrer_deferred_account2.id"
+          referrer_recognition_journal_id: "REC: journal2.id"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer2"
+        values:
+          name: "Create Due Recognition Referrer"
+      - step: "Create promotion code with referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code2"
+        values:
+          voucher_code: "CDPR-002"
+          type_id: "REC: ptype2.id"
+          partner_id: "REC: referrer2.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code2"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code2"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer2"
+        values:
+          name: "Create Due Recognition Two Sided Customer"
+      - step:
+          "Create a usage whose referral side is already due while its own side is not"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage_referrer_due"
+        values:
+          promotion_code_id: "REC: code2.id"
+          partner_id: "REC: customer2.id"
+          date: "EVAL: date.today() - timedelta(days=60)"
+          deferred_account_id: "REC: deferred_account2.id"
+          recognition_journal_id: "REC: journal2.id"
+          recognition_date: "EVAL: date.today() + timedelta(days=30)"
+          referrer_deferred_account_id: "REC: referrer_deferred_account2.id"
+          referrer_recognition_journal_id: "REC: journal2.id"
+          referrer_recognition_date: "EVAL: date.today() - timedelta(days=5)"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the two-sided usage"
+        action: "call"
+        target: "usage_referrer_due"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the two-sided usage"
+        action: "call"
+        target: "usage_referrer_due"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+          amount_to_recognize:
+            type: "value"
+            expected: 7000.0
+          recognition_state:
+            type: "value"
+            expected: "pending"
+      - step: "Open the wizard fresh, as of today"
+        action: "create"
+        model: "create_due_promotion_recognition"
+        save_as: "wizard_referrer"
+        as_user: "base.user_admin"
+        values: {}
+      - step:
+          "The wizard catches it today, although its own Recognition Date is still 30
+          days away"
+        action: "assert"
+        target: "wizard_referrer"
+        asserts:
+          usage_ids:
+            type: "m2m"
+            check: "contains"
+            expected_records:
+              - "REC: usage_referrer_due"
+      - step:
+          "Before either side falls due it is left alone -- and so is every other usage,
+          none of which has a deferred referrer side"
+        action: "form"
+        model: "create_due_promotion_recognition"
+        save: true
+        save_as: "wizard_before_due"
+        as_user: "base.user_admin"
+        values:
+          date: "EVAL: date.today() - timedelta(days=45)"
+        asserts:
+          usage_ids:
+            type: "m2m"
+            check: "count"
+            expected_count: 0
