@@ -243,9 +243,15 @@ allocation row
         "move_line_id",
     )
     def _check_move_line_promotion_object(self):
-        """Require 'Journal Item' to be an eligible line of the
-        reference document, when that document carries
-        ``mixin.promotion_object``.
+        """Require 'Journal Item' to be an eligible line of this
+        row's own side reference document, when that document
+        carries ``mixin.promotion_object``.
+
+        Which document that is follows 'Source': a 'Referrer' row is
+        measured against '# Usage''s own 'Referrer Reference
+        Document', falling back to its 'Reference Document' when the
+        referrer's own field is empty, so usages carrying a single
+        document keep behaving as they did before that field existed.
 
         Reference documents that do not carry the mixin are left
         unconstrained by this rule, preserving the pre-existing
@@ -269,21 +275,34 @@ posted move, positive residual)
 """ % (
                     record.id,
                     record.move_line_id.display_name,
-                    record.usage_id.document_reference.display_name,
+                    record._get_promotion_object_reference().display_name,
                 )
                 raise ValidationError(_(error_message))
 
-    def _check_move_line_promotion_object_condition(self):
-        """Check 'Journal Item' passes the reference document's own
-        promotion object contract.
+    def _get_promotion_object_reference(self):
+        """Resolve the reference document this row is measured
+        against.
 
-        :return: ``True`` when '# Usage''s own 'Reference Document'
+        :return: '# Usage''s own document for this row's own
+            'Source', as resolved by
+            ``promotion_code_usage._get_effective_document_reference``
+        """
+        self.ensure_one()
+        return self.usage_id._get_effective_document_reference(
+            referrer=self.source == "referrer"
+        )
+
+    def _check_move_line_promotion_object_condition(self):
+        """Check 'Journal Item' passes its own side reference
+        document's promotion object contract.
+
+        :return: ``True`` when this row's own side reference document
             is empty, its model does not carry
             ``mixin.promotion_object``, or 'Journal Item' is part of
             its own ``_get_promotion_move_lines()``
         """
         self.ensure_one()
-        reference = self.usage_id.document_reference
+        reference = self._get_promotion_object_reference()
         if not reference:
             return True
         if "promotion_usage_ids" not in reference._fields:

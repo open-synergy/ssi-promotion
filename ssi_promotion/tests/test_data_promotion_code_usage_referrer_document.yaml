@@ -1,0 +1,720 @@
+options:
+  auto_refresh: true
+
+scenarios:
+  - name: "Populate Allocation fills each side from its own reference document"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "REFDOC-S1-INC"
+          name: "Referrer Document Populate Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Referrer Document Populate Journal"
+          code: "REFDOCS1"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Referrer Document Populate Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type allowing account.move as reference"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Document Populate Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Document Populate Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Document Populate Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REFDOCS1-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create a posted receivable invoice for the voucher user"
+        action: "create"
+        model: "account.move"
+        save_as: "customer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Document Populate Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the voucher user's own invoice"
+        action: "call"
+        target: "customer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Create a posted receivable invoice for the referrer"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 500000.0
+                name: "Referrer Document Populate Referrer Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the referrer's own invoice"
+        action: "call"
+        target: "referrer_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the voucher user invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: customer_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "customer_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Find the referrer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: referrer_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "referrer_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create a draft usage pointing at one document per side"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference:
+            "EVAL: 'account.move,%d' % registry['customer_invoice'].id"
+          referrer_document_reference:
+            "EVAL: 'account.move,%d' % registry['referrer_invoice'].id"
+      - step: "Run Populate Allocation"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "Both sides produced exactly one allocation row each"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "all_alloc_rows"
+        expect_count: 2
+      - step: "Find the Voucher User row"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"], ["source", "=", "customer"]]
+        save_as: "customer_alloc_row"
+        expect_count: 1
+      - step: "The Voucher User row targets the voucher user's own journal item"
+        action: "assert"
+        target: "customer_alloc_row"
+        asserts:
+          move_line_id:
+            type: "m2o"
+            expected: "REC: customer_move_line"
+          partner_id:
+            type: "m2o"
+            expected: "REC: customer"
+          sequence:
+            type: "value"
+            expected: 5
+      - step: "Find the Referrer row"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"], ["source", "=", "referrer"]]
+        save_as: "referrer_alloc_row"
+        expect_count: 1
+      - step: "The Referrer row targets the referrer's own journal item"
+        action: "assert"
+        target: "referrer_alloc_row"
+        asserts:
+          move_line_id:
+            type: "m2o"
+            expected: "REC: referrer_move_line"
+          partner_id:
+            type: "m2o"
+            expected: "REC: referrer"
+          sequence:
+            type: "value"
+            expected: 10
+      - step: "The voucher user's own document reports this usage"
+        action: "assert"
+        target: "customer_invoice"
+        asserts:
+          promotion_usage_count:
+            type: "value"
+            expected: 1
+          promotion_usage_ids:
+            type: "m2m"
+            check: "contains"
+            expected_records:
+              - "REC: usage"
+      - step: "The referrer's own document reports this usage too"
+        action: "assert"
+        target: "referrer_invoice"
+        asserts:
+          promotion_usage_count:
+            type: "value"
+            expected: 1
+          promotion_usage_ids:
+            type: "m2m"
+            check: "contains"
+            expected_records:
+              - "REC: usage"
+      - step: "Running Populate Allocation again creates nothing new"
+        action: "call"
+        target: "usage"
+        method: "action_populate_allocation"
+        as_user: "base.user_admin"
+      - step: "The row count stays at two"
+        action: "search"
+        model: "promotion_code_usage_allocation"
+        domain: [["usage_id", "=", "REC: usage.id"]]
+        save_as: "final_alloc_rows"
+        expect_count: 2
+
+  - name: "Percentage discount measures each side against its own document"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "REFDOC-S2-INC"
+          name: "Referrer Document Percentage Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Referrer Document Percentage Journal"
+          code: "REFDOCS2"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Referrer Document Percentage Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type with a different percentage per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Document Percentage Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "percentage"
+          discount_percentage: 10.0
+          referrer_discount_type: "percentage"
+          referrer_discount_percentage: 4.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Document Percentage Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Document Percentage Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REFDOCS2-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create the voucher user's own invoice of 1.000.000"
+        action: "create"
+        model: "account.move"
+        save_as: "customer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Document Percentage Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Create the referrer's own invoice of 500.000"
+        action: "create"
+        model: "account.move"
+        save_as: "referrer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: referrer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 500000.0
+                name: "Referrer Document Percentage Referrer Line"
+                account_id: "REC: income_account.id"
+      - step: "Create a usage pointing at one document per side"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference:
+            "EVAL: 'account.move,%d' % registry['customer_invoice'].id"
+          referrer_document_reference:
+            "EVAL: 'account.move,%d' % registry['referrer_invoice'].id"
+      - step: "Each side applied its own percentage to its own document total"
+        action: "assert"
+        target: "usage"
+        asserts:
+          discount_amount:
+            type: "value"
+            expected: 100000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 20000.0
+
+  - name: "Percentage referrer discount falls back to the voucher user's document"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "REFDOC-S3-INC"
+          name: "Referrer Document Fallback Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Referrer Document Fallback Journal"
+          code: "REFDOCS3"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Referrer Document Fallback Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create promotion type with a different percentage per side"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Document Fallback Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "percentage"
+          discount_percentage: 10.0
+          referrer_discount_type: "percentage"
+          referrer_discount_percentage: 4.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Document Fallback Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Document Fallback Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REFDOCS3-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create the voucher user's own invoice of 1.000.000"
+        action: "create"
+        model: "account.move"
+        save_as: "customer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Document Fallback Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Create a usage WITHOUT a Referrer Reference Document"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference:
+            "EVAL: 'account.move,%d' % registry['customer_invoice'].id"
+      - step: "The referrer's own side measured the voucher user's own document"
+        action: "assert"
+        target: "usage"
+        asserts:
+          referrer_document_reference:
+            type: "value"
+            expected: null
+          discount_amount:
+            type: "value"
+            expected: 100000.0
+          referrer_discount_amount:
+            type: "value"
+            expected: 40000.0
+
+  - name: "Referrer Reference Document of a disallowed model is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "REFDOC-N1-INC"
+          name: "Referrer Document Disallowed Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Referrer Document Disallowed Journal"
+          code: "REFDOCN1"
+          type: "sale"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Referrer Document Disallowed Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Find account.move model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "account.move"]]
+        save_as: "account_move_model"
+        limit: 1
+        expect_count: 1
+      - step: "Find res.partner model"
+        action: "search"
+        model: "ir.model"
+        domain: [["model", "=", "res.partner"]]
+        save_as: "res_partner_model"
+        limit: 1
+        expect_count: 1
+      - step: "Create another type that allows res.partner"
+        action: "create"
+        model: "promotion_type"
+        save_as: "other_ptype"
+        values:
+          name: "Referrer Document Disallowed Other Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          discount_type: "fixed"
+          discount_amount: 1000.0
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: res_partner_model.id"
+      - step: "Create promotion type allowing account.move only"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Referrer Document Disallowed Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 50000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          allowed_model_ids:
+            - - 6
+              - 0
+              - - "REC: account_move_model.id"
+      - step: "Create voucher user partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Referrer Document Disallowed Customer"
+      - step: "Create referrer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "referrer"
+        values:
+          name: "Referrer Document Disallowed Referrer"
+      - step: "Create promotion code owned by the referrer"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "REFDOCN1-001"
+          type_id: "REC: ptype.id"
+          partner_id: "REC: referrer.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create the voucher user's own invoice"
+        action: "create"
+        model: "account.move"
+        save_as: "customer_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 1000000.0
+                name: "Referrer Document Disallowed Customer Line"
+                account_id: "REC: income_account.id"
+      - step: "Pointing the referrer's own side at a disallowed model is rejected"
+        action: "create"
+        model: "promotion_code_usage"
+        expect_error:
+          type: "ValidationError"
+          message_contains: "Referrer Reference Document"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          user_id: "REF: base.user_admin"
+          document_reference:
+            "EVAL: 'account.move,%d' % registry['customer_invoice'].id"
+          referrer_document_reference:
+            "EVAL: 'res.partner,%d' % registry['referrer'].id"

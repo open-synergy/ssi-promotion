@@ -74,6 +74,7 @@
             <xpath expr="//group[@name='header_right']" position="inside">
                 <field name="date" />
                 <field name="document_reference" />
+                <field name="referrer_document_reference" />
             </xpath>
             <xpath expr="//page[1]" position="before">
                 <page name="discount" string="Discount &amp; Accounting Entry">

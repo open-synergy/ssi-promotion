@@ -11,7 +11,8 @@ class MixinPromotionObject(models.AbstractModel):
     Inheriting a model into this mixin and setting its two
     configurator attributes below makes 'Promotion Code Usages' /
     'Num. of Promotion Code Usages' available on it (found by
-    matching ``promotion_code_usage.document_reference`` back to
+    matching either ``promotion_code_usage.document_reference`` or
+    ``promotion_code_usage.referrer_document_reference`` back to
     this record), and its own eligible receivable journal items
     reachable via ``_get_promotion_move_lines`` -- the same
     recordset ``promotion_code_usage.action_populate_allocation``
@@ -49,7 +50,8 @@ class MixinPromotionObject(models.AbstractModel):
         store=False,
         compute_sudo=True,
         help="promotion_code_usage records whose own 'Reference "
-        "Document' points back to this record.",
+        "Document' or 'Referrer Reference Document' points back to "
+        "this record.",
     )
     promotion_usage_count = fields.Integer(
         string="Num. of Promotion Code Usages",
@@ -62,15 +64,23 @@ class MixinPromotionObject(models.AbstractModel):
     def _get_promotion_usage_ids_criteria(self):
         """Build the domain matching this record's own usages.
 
-        ``document_reference`` is a ``fields.Reference``, stored as
-        text (``"<model>,<id>"``), so it can be searched with a
-        plain ``=`` against the same text built from this record.
+        Both ``document_reference`` and
+        ``referrer_document_reference`` are matched, so a record
+        named as the referrer's own document reports the usage
+        touching it just as the voucher user's own document does.
+        Both are ``fields.Reference``, stored as text
+        (``"<model>,<id>"``), so each can be searched with a plain
+        ``=`` against the same text built from this record.
 
         :return: a search domain for ``promotion_code_usage``
         """
         self.ensure_one()
         reference = "{},{}".format(self._name, self.id)
-        return [("document_reference", "=", reference)]
+        return [
+            "|",
+            ("document_reference", "=", reference),
+            ("referrer_document_reference", "=", reference),
+        ]
 
     def _compute_promotion_usage_ids(self):
         """Look up promotion_code_usage records referencing this
