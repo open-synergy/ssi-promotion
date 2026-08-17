@@ -82,6 +82,24 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_deferred_account_id
+msgid ""
+"Account debited on the referrer journal entry line created for this usage "
+"instead of its Final Account, while this usage's own 'Referrer Recognition "
+"Method' is Deferred. Defaulted from the promotion type's own 'Referrer "
+"Deferred Account'. Required while 'Referrer Recognition Method' is Deferred."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_deferred_account_id
+msgid ""
+"Account debited on the referrer journal entry line of a promotion_code_usage"
+" of this type instead of its Final Account, while that usage's own 'Referrer"
+" Recognition Method' is set to Deferred. Defaulted onto each new usage of "
+"this type, but may still be overridden manually on the usage itself."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage_allocation__account_id
 msgid "Account of 'Journal Item'."
 msgstr ""
@@ -118,11 +136,28 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_recognition_journal_id
+msgid ""
+"Accounting journal used by a promotion_code_usage_recognition document that "
+"releases a usage of this type's own Referrer Deferred Account. Defaulted "
+"onto each new usage of this type, but may still be overridden manually on "
+"the usage itself."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_journal_id
 msgid ""
 "Accounting journal used by promotion_code_usage_recognition documents "
 "created against this usage. Defaulted from the promotion type's own "
 "'Recognition Journal'."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_recognition_journal_id
+msgid ""
+"Accounting journal used by promotion_code_usage_recognition documents "
+"releasing this usage's own 'Referrer Deferred Account'. Defaulted from the "
+"promotion type's own 'Referrer Recognition Journal'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -674,6 +709,15 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_recognition_date
+msgid ""
+"Date the referrer's own deferred amount is due to be recognized. Defaulted "
+"to 'Usage Date', but may still be overridden manually while this usage is in"
+" Draft -- a referral reward falling in a later fiscal year is exactly why it"
+" is kept apart from 'Recognition Date'."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code__date_start
 msgid ""
 "Date this promotion code becomes valid. Required only when 'Promotion Type' "
@@ -703,8 +747,21 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__referrer_recognition_method
+msgid ""
+"Defaulted from the promotion type's own 'Referrer Recognition Method', but "
+"may still be overridden manually while this usage is in Draft. 'Same as "
+"Customer' keeps the referrer following this usage's own 'Recognition "
+"Method'; Deferred routes the referrer journal entry line created on approval"
+" to 'Referrer Deferred Account' instead of its Final Account, independently "
+"of the voucher user's own side."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_method__deferred
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__referrer_recognition_method__deferred
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__recognition_method__deferred
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_recognition_method__deferred
 msgid "Deferred"
 msgstr ""
 
@@ -1016,6 +1073,18 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_type__referrer_recognition_method
+msgid ""
+"How the discount granted to the referrer (promotion_code.partner_id) by a "
+"promotion_code_usage of this type is booked on its own journal entry: Same "
+"as Customer = the referrer follows the voucher user's own 'Recognition "
+"Method', Immediate = the referrer journal entry line debits its Final "
+"Account right away, Deferred = that line debits 'Referrer Deferred Account' "
+"instead, so the referrer's own discount can be recognized later "
+"independently of the voucher user's."
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_account_move__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_apply_promotion_code__id
 #: model:ir.model.fields,field_description:ssi_promotion.field_create_due_promotion_recognition__id
@@ -1074,7 +1143,9 @@ msgstr ""
 
 #. module: ssi_promotion
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__recognition_method__immediate
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__referrer_recognition_method__immediate
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__recognition_method__immediate
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_recognition_method__immediate
 msgid "Immediate"
 msgstr ""
 
@@ -1854,6 +1925,17 @@ msgid "Referrer Accounting Entry"
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_deferred_account_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_deferred_account_id
+msgid "Referrer Deferred Account"
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
+msgid "Referrer Deferred Recognition"
+msgstr ""
+
+#. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_type_view_form
 msgid "Referrer Discount"
@@ -1901,6 +1983,28 @@ msgstr ""
 #. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_receivable_move_line_id
 msgid "Referrer Receivable Journal Item"
+msgstr ""
+
+#. module: ssi_promotion
+#: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
+msgid "Referrer Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_recognition_date
+msgid "Referrer Recognition Date"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_recognition_journal_id
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_recognition_journal_id
+msgid "Referrer Recognition Journal"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__referrer_recognition_method
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__referrer_recognition_method
+msgid "Referrer Recognition Method"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1991,7 +2095,9 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage__referrer_recognition_method__same
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_discount_type__same
+#: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_type__referrer_recognition_method__same
 msgid "Same as Customer"
 msgstr ""
 
