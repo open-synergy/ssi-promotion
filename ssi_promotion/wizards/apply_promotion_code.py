@@ -6,6 +6,7 @@ from datetime import date
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.safe_eval import safe_eval
 
 
 class ApplyPromotionCode(models.TransientModel):
@@ -234,6 +235,75 @@ Reference Models includes '%s', or update that configuration
             )
             raise UserError(_(error_message))
 
+    def _get_localdict(self, document):
+        """Build the safe-eval context for the apply-check Python code.
+
+        Carries exactly five names, and ``side`` is one of them on
+        purpose: both sides go through this very same wizard, and only
+        the voucher user's own side has a claim to check, so a
+        configuration that cannot tell them apart cannot express the
+        rule it was added for.
+
+        :param document: the caller document record, already proven to
+            carry ``mixin.promotion_object`` by ``_check_document``
+        :return: dict passed as ``localdict`` to ``safe_eval``
+        """
+        self.ensure_one()
+        return {
+            "env": self.env,
+            "document": document,
+            "promotion_code": self.promotion_code_id,
+            "promotion_type": self.promotion_code_id.type_id,
+            "side": self.side,
+        }
+
+    def _check_apply_python_code(self, document):
+        """Let the promotion type's own rule refuse this application.
+
+        Runs ``type_id.apply_python_code`` with the localdict from
+        ``_get_localdict``. The code is expected to assign a boolean to
+        a ``result`` variable, and may assign a sentence to a
+        ``message`` variable explaining the refusal.
+
+        An unset ``result`` counts as ``True``, exactly like
+        ``promotion_code_usage._check_validity_python_code()`` -- a
+        half-written configuration must not silently block everything.
+        An empty code field is not evaluated at all, which is what
+        keeps every installed instance behaving as it did before this
+        check existed.
+
+        :param document: the caller document record
+        :raises UserError: when the code assigns a falsy ``result``
+        """
+        self.ensure_one()
+        code = self.promotion_code_id.type_id.apply_python_code
+        if not code:
+            return
+        localdict = self._get_localdict(document)
+        safe_eval(code, localdict, mode="exec", nocopy=True)
+        if localdict.get("result", True):
+            return
+        problem = localdict.get("message") or (
+            "Promotion code '%s' may not be applied to this document -- the "
+            "Apply Check Python Code of promotion type '%s' rejected it"
+            % (
+                self.promotion_code_id.display_name,
+                self.promotion_code_id.type_id.display_name,
+            )
+        )
+        error_message = """
+Context: Apply promotion code
+Database ID: %s
+Problem: %s
+Solution: Satisfy the rule written in the 'Apply Check Python Code' of \
+promotion type '%s', or update that configuration
+""" % (
+            self.id,
+            problem,
+            self.promotion_code_id.type_id.display_name,
+        )
+        raise UserError(_(error_message))
+
     def action_apply_promotion_code(self):
         """Apply this wizard's own promotion code to its caller
         document.
@@ -254,7 +324,13 @@ Reference Models includes '%s', or update that configuration
 
         Runs ``_check_document`` and ``_check_allowed_model`` first --
         both sides are held to the very same 'Allowed Reference
-        Models' rule -- then branches on 'Side': 'Voucher User'
+        Models' rule -- and then ``_check_apply_python_code``, the
+        instance's own rule. That one runs last of the three and
+        before the branch on 'Side', so the configuration it evaluates
+        reads a caller document already proven to exist and to be
+        allowed, and gets to see both sides.
+
+        Then branches on 'Side': 'Voucher User'
         creates a new usage (``_create_usage``), 'Referrer' attaches
         the caller document to one that already exists
         (``_attach_referrer_document``). Either way the resulting
@@ -272,6 +348,7 @@ Reference Models includes '%s', or update that configuration
         self._check_document()
         document = self._get_document()
         self._check_allowed_model(document)
+        self._check_apply_python_code(document)
         if self.side == "referrer":
             usage = self._attach_referrer_document(document)
         else:

@@ -16,6 +16,12 @@ class PromotionType(models.Model):
     validate a usage, and the accounting configuration used to generate
     the customer (and optional referrer) journal entry automatically.
 
+    A second Python rule, 'Apply Check Python Code', runs much earlier --
+    in the Apply Promotion Code wizard, before any usage exists -- so an
+    instance can refuse an application on its own terms while the
+    operator is still in the wizard. It does not replace 'Validity Check
+    Python Code', which stays the enforcing gate at confirm time.
+
     The discount rule granted to the referrer
     (promotion_code.partner_id) is configured separately from the voucher
     user's own through the 'Referrer Discount Type' family of fields,
@@ -140,6 +146,22 @@ class PromotionType(models.Model):
         "type is confirmed, in addition to the usage limit and validity "
         "period check. The code must assign True (valid) or False "
         "(invalid) to a variable named 'result'.",
+    )
+    apply_python_code = fields.Text(
+        string="Apply Check Python Code",
+        default="# Available variables: env, document, promotion_code, "
+        "promotion_type, side\n"
+        "# 'side' is either 'customer' or 'referrer'\n"
+        "# Assign True (allow) or False (reject) to 'result'\n"
+        "# Optionally assign a rejection reason to 'message'\n"
+        "result = True",
+        help="Python code executed by the Apply Promotion Code wizard before "
+        "a promotion_code_usage is created or attached, for both sides. The "
+        "code must assign True (allow) or False (reject) to a variable named "
+        "'result', and may assign a rejection sentence to a variable named "
+        "'message'. Leave empty to allow every application; this check is an "
+        "early feedback gate and does not replace 'Validity Check Python "
+        "Code', which still runs when the usage is confirmed.",
     )
     allowed_model_ids = fields.Many2many(
         string="Allowed Reference Models",
