@@ -78,10 +78,20 @@ class CreateDuePromotionRecognition(models.TransientModel):
         its own: 'Referrer Recognition Date' is defaulted on *every*
         usage, referrer or not, so an arm reading it unconditionally
         would report a usage as due the day it was created --
-        including usages whose promotion code has no referrer at all,
-        and usages whose referrer merely follows the voucher user
-        ('Same as Customer'), which is already covered by the first
-        arm.
+        including usages whose referrer merely follows the voucher
+        user ('Same as Customer'), which the first arm already covers.
+
+        Both arms stay on ``promotion_code_usage``'s own columns on
+        purpose. Reaching across to ``promotion_code_id.partner_id``
+        to also require a referrer would drag that model's own record
+        rule (``user_id == user.id``) into the subquery, silently
+        dropping usages whose promotion code belongs to somebody else
+        -- a wrong answer nobody would see. The over-inclusion left
+        behind is harmless: a usage without a referrer but with an
+        explicitly Deferred referrer method is deferred on its voucher
+        user side anyway (``recognition_state`` ``pending`` says so),
+        so it does have something to release; only its due date
+        arrives earlier.
 
         :param date: latest due date to include, on either side, or
             ``False`` for no upper bound
@@ -93,8 +103,6 @@ class CreateDuePromotionRecognition(models.TransientModel):
                 "|",
                 ("recognition_date", "<=", date),
                 "&",
-                "&",
-                ("promotion_code_id.partner_id", "!=", False),
                 ("referrer_recognition_method", "=", "deferred"),
                 ("referrer_recognition_date", "<=", date),
             ]

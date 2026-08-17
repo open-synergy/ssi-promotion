@@ -343,11 +343,21 @@ Recognition Method, is 'Deferred'
         referrer at all, since no referrer journal entry is issued
         without one.
 
+        Read through ``sudo()``: answering this needs the usage's own
+        promotion code, and that model carries a record rule scoped to
+        ``user_id == user.id``. A user may perfectly well own a usage
+        whose promotion code belongs to somebody else, and refusing to
+        save their recognition over it -- with an Access Error naming
+        a model they never asked about -- would be a security check
+        firing on a technical lookup. The very same fields are already
+        read this way by ``promotion_code_usage._compute_amount_to_
+        recognize`` (``compute_sudo=True``).
+
         :return: a list holding ``'customer'``, ``'referrer'``, both,
             or neither, in that order
         """
         self.ensure_one()
-        usage = self.usage_id
+        usage = self.usage_id.sudo()
         result = []
         if usage._get_recognition_method() == "deferred":
             result.append("customer")

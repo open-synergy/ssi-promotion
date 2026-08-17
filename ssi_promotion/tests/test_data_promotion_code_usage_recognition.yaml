@@ -846,13 +846,25 @@ scenarios:
           ]
         save_as: "mixed_referrer_line"
         expect_count: 1
-      - step: "Assert the referrer line releases the referrer amount alone"
+      - step:
+          "Assert the referrer line releases the referrer amount alone, crediting back
+          the very account that side debited"
         action: "assert"
         target: "mixed_referrer_line"
         asserts:
           amount:
             type: "value"
             expected: 90000.0
+          # Sisi Referrer mendebit referrer_deferred_account_id saat
+          # approval, jadi ia harus mengkredit akun itu juga -- bukan
+          # deferred_account_id sisi Voucher User, yang pada usage
+          # campuran justru kosong.
+          credit_account_id.code:
+            type: "value"
+            expected: "PCUR-RDEF4"
+          debit_account_id.code:
+            type: "value"
+            expected: "PCUR-INC4"
       - step: "Assert the usage's own Amount Deferred reached zero"
         action: "assert"
         target: "usage_mixed"
