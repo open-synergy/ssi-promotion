@@ -94,6 +94,11 @@
                             widget="ace"
                             options="{'mode': 'python'}"
                         />
+                    <field
+                            name="apply_python_code"
+                            widget="ace"
+                            options="{'mode': 'python'}"
+                        />
                 </page>
                 <page name="reference" string="Reference Documents">
                     <field name="allowed_model_ids" widget="many2many_tags" />

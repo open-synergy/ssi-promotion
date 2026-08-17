@@ -17,6 +17,16 @@ class TestApplyPromotionCode(YamlTransactionCase):
         """
         self.run_yaml_scenario("test_data_apply_promotion_code.yaml")
 
+    def test_apply_python_code(self):
+        """Run the promotion type's own Apply Check Python Code
+        scenarios.
+
+        Kept in its own file, and so in its own transaction: the
+        scenarios of a single YAML file share one, and these ones each
+        rebuild a promotion type of their own.
+        """
+        self.run_yaml_scenario("test_data_apply_promotion_code_apply_python.yaml")
+
     def test_action_apply_promotion_code_returns_action(self):
         """Assert the window action returned by the wizard's own
         ``action_apply_promotion_code``.
