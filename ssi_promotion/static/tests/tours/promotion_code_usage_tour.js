@@ -605,7 +605,73 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             url: "/web",
         },
         [].concat(openUsagesMenuSteps, [
-            // Flow 2 — Open the record to cancel.
+            // Flow 2 — Remove the default state filter facet from the
+            // search bar. The default view (search_default_dom_draft/
+            // confirm/open on promotion_code_usage_action) only shows
+            // Draft, Waiting for Approval, and In Progress documents --
+            // this tour's own fixture is already Done by the time it
+            // is created (its Immediate promotion type leaves it with
+            // nothing deferred, so it lands on Done as soon as
+            // ``_run_workflow`` approves it, same as
+            // TOUR-PCU-FINISH), so it stays hidden until those three
+            // filters are toggled off. Idiom B (odoo-development-ui-test,
+            // patterns-advanced-gotchas.md §S) -- toggle each default
+            // filter off through the Filters menu, not the facet chip's
+            // own remove icon: for a *default* facet (search_default_
+            // dom_*) there is no async operation whose departure the
+            // facet-remove click can be gated on, and that gap is
+            // exactly ssi-promotion#78's own failure mode. The Filters
+            // dropdown itself (web.FilterMenu) does not set
+            // ``closeOnSelected``, so it stays open across all three
+            // toggles below. Labels are each filter's own ``string=``
+            // (ssi_transaction_confirm_mixin/ssi_transaction_open_mixin/
+            // ssi_transaction_mixin templates) -- "In Progress" for
+            // ``dom_open``, not "Open".
+            {
+                content: "Default-filtered list has settled",
+                trigger: ".o_data_row:contains(TOUR-PCU-EDIT)",
+                extra_trigger: ".o_list_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+            {
+                content: "Open the Filters menu",
+                trigger: ".o_search_options .o_filter_menu button",
+            },
+            {
+                content: "Toggle the Draft default filter off",
+                trigger: ".o_filter_menu .dropdown-item:contains(Draft)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                content: "Toggle the Waiting for Approval default filter off",
+                trigger: ".o_filter_menu .dropdown-item:contains(Waiting for Approval)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                content: "Toggle the In Progress default filter off",
+                trigger: ".o_filter_menu .dropdown-item:contains(In Progress)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Gerbang WAJIB — don't just assume the clicks "took"
+                // -- wait for the facet chip to actually be gone before
+                // relying on the list containing every state.
+                content: "Default state filter is removed",
+                trigger: "body:not(:has(.o_searchview_facet))",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+
+            // Flow 3 — Open the record to cancel.
             {
                 content: "Open the record",
                 trigger: ".o_data_row:contains(TOUR-PCU-CANCEL) .o_data_cell:first",
@@ -619,7 +685,7 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 },
             },
 
-            // Flow 3 — Click the Cancel button.
+            // Flow 4 — Click the Cancel button.
             // The Cancel button is type="action" (it opens the
             // base.select_cancel_reason wizard action) -- its "name"
             // attribute resolves to a numeric action id at render time,
@@ -631,7 +697,7 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 extra_trigger: ".o_form_view",
             },
 
-            // Flow 4 — In the wizard that appears, select the
+            // Flow 5 — In the wizard that appears, select the
             // Cancellation Reason.
             {
                 content: "Wizard is open",
@@ -655,14 +721,14 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 run: "click",
             },
 
-            // Flow 5 — Click Confirm.
+            // Flow 6 — Click Confirm.
             {
                 content: "Confirm the wizard",
                 trigger: ".modal-footer button[name='action_confirm']",
                 in_modal: true,
             },
 
-            // Flow 6 — Click OK on the confirmation dialog.
+            // Flow 7 — Click OK on the confirmation dialog.
             {
                 content: "Confirm the dialog",
                 trigger: ".modal-footer button.btn-primary",

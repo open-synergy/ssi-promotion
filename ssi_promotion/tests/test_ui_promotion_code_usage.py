@@ -407,10 +407,40 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             "still reads %r." % cls.usage_reopen.state
         )
 
-        # IK Pre-Condition of 10-cancel: Status is Draft (cancel_ok
-        # also allows Waiting for Approval and Open, but Draft is the
-        # simplest fixture to prepare).
+        # IK Pre-Condition of 10-cancel: Status is Done, with no
+        # Recognitions yet (cancel_ok also allows Draft, Waiting for
+        # Approval, and Open, but Done -- the newest allowed state,
+        # open-synergy/ssi-promotion#73 -- is the one most easily
+        # confused with the disallowed "Done with Recognitions" case,
+        # so it is the one this tour exercises). ``cls.code_pcu``'s
+        # own promotion type is Immediate (no deferred side), so
+        # running it through ``_run_workflow`` alone lands it on Done
+        # via the ``promotion_code_usage_open_2_done`` base.automation,
+        # the same mechanism ``usage_finish``/``usage_reopen`` rely on
+        # above -- without ever creating a
+        # ``promotion_code_usage_recognition`` document against it.
         cls.usage_cancel = cls._create_usage("TOUR-PCU-CANCEL")
+        cls._run_workflow(cls.usage_cancel)
+        cls.usage_cancel.invalidate_cache()
+        # Same rationale as usage_finish's own assert above -- and it
+        # also proves this usage has no Recognitions of its own, which
+        # is exactly the Pre-Condition this tour's Cancel button relies
+        # on being granted.
+        assert cls.usage_cancel.state == "done", (
+            "Fixture invariant violated: TOUR-PCU-CANCEL should have "
+            "moved itself to Done via the "
+            "promotion_code_usage_open_2_done base.automation once "
+            "its Immediate promotion type left it with nothing "
+            "deferred to wait for, but its own state still reads "
+            "%r." % cls.usage_cancel.state
+        )
+        assert not cls.usage_cancel.recognition_ids, (
+            "Fixture invariant violated: TOUR-PCU-CANCEL should have "
+            "no Recognitions of its own -- 10-cancel.md's own "
+            "Pre-Condition requires that for cancel_ok to grant Cancel "
+            "from Done, but this fixture has %d."
+            % len(cls.usage_cancel.recognition_ids)
+        )
 
         # IK Pre-Condition of 12-restart: Status is Cancelled.
         #
