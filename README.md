@@ -17,7 +17,7 @@ Available addons
 ----------------
 addon | version | maintainers | summary
 --- | --- | --- | ---
-[ssi_promotion](ssi_promotion/) | 14.0.1.17.0 |  | Promotion
+[ssi_promotion](ssi_promotion/) | 14.0.1.18.0 |  | Promotion
 [ssi_promotion_operating_unit](ssi_promotion_operating_unit/) | 14.0.1.2.0 |  | Promotion + Operating Unit
 
 [//]: # (end addons)
