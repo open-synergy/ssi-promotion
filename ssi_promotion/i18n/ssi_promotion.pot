@@ -170,11 +170,23 @@ msgid ""
 msgstr ""
 
 #. module: ssi_promotion
+#: model:base.automation,name:ssi_promotion.promotion_code_usage_open_2_done
+#: model:ir.actions.server,name:ssi_promotion.promotion_code_usage_action_done
+msgid "Action Done"
+msgstr ""
+
+#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage_recognition__message_needaction
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_type__message_needaction
 msgid "Action Needed"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:base.automation,name:ssi_promotion.promotion_code_usage_done_2_open
+#: model:ir.actions.server,name:ssi_promotion.promotion_code_usage_action_open
+msgid "Action Open"
 msgstr ""
 
 #. module: ssi_promotion
@@ -1659,9 +1671,10 @@ msgstr ""
 #: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_state
 msgid ""
 "Progress releasing this usage's own 'Amount To Recognize'. 'Not Applicable' "
-"while 'Recognition Method' is Immediate; otherwise 'Pending' until the first"
-" Done recognition, 'Partially Recognized' until 'Amount Recognized' reaches "
-"'Amount To Recognize', then 'Recognized'."
+"while 'Amount To Recognize' is zero -- neither side is Deferred, or a "
+"Deferred side's own discount amount is zero; otherwise 'Pending' until the "
+"first Done recognition, 'Partially Recognized' until 'Amount Recognized' "
+"reaches 'Amount To Recognize', then 'Recognized'."
 msgstr ""
 
 #. module: ssi_promotion
@@ -1878,6 +1891,11 @@ msgstr ""
 #. module: ssi_promotion
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_form
 msgid "Recognition"
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__recognition_completed
+msgid "Recognition Completed"
 msgstr ""
 
 #. module: ssi_promotion
@@ -2193,6 +2211,22 @@ msgstr ""
 msgid ""
 "Sum of 'Amount' of every Done promotion_code_usage_recognition document "
 "created against this usage."
+msgstr ""
+
+#. module: ssi_promotion
+#: model:ir.model.fields,help:ssi_promotion.field_promotion_code_usage__recognition_completed
+msgid ""
+"Technical flag read by this usage's own base.automation records "
+"(data/base_automation_data.xml) to drive its Open <-> Done transition while "
+"it has a deferred side. True once 'Amount Recognized' reaches 'Amount To "
+"Recognize' (or neither side is Deferred at all). Deliberately computed from "
+"'Discount Amount'/'Referrer Discount Amount'/'Recognition Method'/'Referrer "
+"Recognition Method'/'recognition_ids' directly, never by reading 'Amount To "
+"Recognize'/'Amount Recognized' themselves -- both stored on this same model,"
+" which would let base.automation's domain evaluation (triggered on every "
+"stored field computed on this model, not only 'state' changes) read this "
+"field while one of those two is itself mid-computation, corrupting it with a"
+" premature default value (open-synergy/ssi-promotion#72)."
 msgstr ""
 
 #. module: ssi_promotion
