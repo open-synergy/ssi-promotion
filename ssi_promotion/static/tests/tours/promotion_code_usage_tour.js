@@ -512,8 +512,26 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             {
                 content:
                     "Remove the default state filter to reveal " + "Done documents",
+                // The facet chip is rendered by the Owl `SearchBar`
+                // component and can re-render between this step
+                // becoming active and the click actually running,
+                // because `Tip.attach_to()` (web_tour/static/src/js/
+                // tip.js) is itself async and only resolves --
+                // triggering the click -- after that gap. The default
+                // `run: "click"` clicks `this.tip_widget.$anchor`, a
+                // reference captured BEFORE that gap; if the SearchBar
+                // re-rendered meanwhile that reference can be stale
+                // even though the selector still matches a live node
+                // elsewhere (see the fuller mechanism note on the same
+                // idiom in promotion_code_tour.js's 12-restart tour).
+                // Passing the selector explicitly to `actions.click()`
+                // instead forces a fresh `$(selector)` lookup at the
+                // moment the click runs, so it always lands on
+                // whichever facet-remove node is live at that instant.
                 trigger: ".o_searchview_facet .o_facet_remove",
-                run: "click",
+                run: function (actions) {
+                    actions.click(".o_searchview_facet .o_facet_remove");
+                },
             },
             {
                 // Gerbang: don't just assume the click "took" -- wait
@@ -764,11 +782,8 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             // of opening the Filters dropdown to toggle a Cancel
             // filter) avoids the Owl FilterMenu dropdown, whose open
             // state is not reliably set by a synthetic click in 14.0
-            // (odoo-development-ui-test, patterns.md §I/§J); the facet
-            // chip's remove icon is a plain DOM element with no such
-            // hazard, and this exact idiom is already proven by
-            // promotion_code_tour.js's own 12-restart tour. Here it is
-            // the very first interaction after navigating in, so
+            // (odoo-development-ui-test, patterns.md §I/§J). Here it
+            // is the very first interaction after navigating in, so
             // explicitly wait for one of the default-filtered rows
             // (TOUR-PCU-EDIT, a Draft fixture) before touching the
             // facet, to rule out clicking a transient pre-settle
@@ -785,8 +800,26 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 content:
                     "Remove the default state filter to reveal " +
                     "Cancelled documents",
+                // The facet chip is rendered by the Owl `SearchBar`
+                // component and can re-render between this step
+                // becoming active and the click actually running,
+                // because `Tip.attach_to()` (web_tour/static/src/js/
+                // tip.js) is itself async and only resolves --
+                // triggering the click -- after that gap. The default
+                // `run: "click"` clicks `this.tip_widget.$anchor`, a
+                // reference captured BEFORE that gap; if the SearchBar
+                // re-rendered meanwhile that reference can be stale
+                // even though the selector still matches a live node
+                // elsewhere (see the fuller mechanism note on the same
+                // idiom in promotion_code_tour.js's 12-restart tour).
+                // Passing the selector explicitly to `actions.click()`
+                // instead forces a fresh `$(selector)` lookup at the
+                // moment the click runs, so it always lands on
+                // whichever facet-remove node is live at that instant.
                 trigger: ".o_searchview_facet .o_facet_remove",
-                run: "click",
+                run: function (actions) {
+                    actions.click(".o_searchview_facet .o_facet_remove");
+                },
             },
             {
                 // Gerbang: don't just assume the click "took" -- wait

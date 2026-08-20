@@ -557,16 +557,12 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // of opening the Filters dropdown to toggle a Cancel
             // filter) avoids the Owl FilterMenu dropdown, whose open
             // state is not reliably set by a synthetic click in 14.0
-            // (odoo-development-ui-test, patterns.md §I/§J); the facet
-            // chip's remove icon is a plain DOM element with no such
-            // hazard, and this exact idiom is already proven by other
-            // SSI tours (e.g. school_grade_tour.js) -- there, though,
-            // the removal always happens well after the list's first
-            // real data fetch has settled. Here it is the very first
-            // interaction after navigating in, so explicitly wait for
-            // one of the default-filtered rows (TOUR-PC-EDIT, a Draft
-            // fixture) before touching the facet, to rule out clicking
-            // a transient pre-settle render of the search bar.
+            // (odoo-development-ui-test, patterns.md §I/§J). Here it is
+            // the very first interaction after navigating in, so
+            // explicitly wait for one of the default-filtered rows
+            // (TOUR-PC-EDIT, a Draft fixture) before touching the
+            // facet, to rule out clicking a transient pre-settle
+            // render of the search bar.
             {
                 content: "Default-filtered list has settled",
                 trigger: ".o_data_row:contains(TOUR-PC-EDIT)",
@@ -579,8 +575,38 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
                 content:
                     "Remove the default state filter to reveal " +
                     "Cancelled documents",
+                // The facet chip is rendered by the Owl `SearchBar`
+                // component (addons/web/static/src/js/control_panel/
+                // search_bar.js, t-foreach="model.get('facets')" in
+                // addons/web/static/src/xml/base.xml) and can
+                // re-render between this step becoming active and the
+                // click actually running: `Tip.attach_to()`
+                // (web_tour/static/src/js/tip.js) is itself async
+                // (`await this.appendTo(document.body)`), and only
+                // once that resolves does `_to_next_running_step`
+                // (web_tour/static/src/js/tour_manager.js) invoke the
+                // click. The default `run: "click"` clicks
+                // `this.tip_widget.$anchor`, a reference captured
+                // BEFORE that async gap
+                // (web_tour/static/src/js/
+                // running_tour_action_helper.js, `_get_action_values`)
+                // -- if the SearchBar re-rendered in the meantime that
+                // reference can be stale even though the selector
+                // still matches a live node elsewhere, exactly the
+                // race `_to_next_running_step` itself documents
+                // ("it has been re-rendered and thus the selector
+                // still has a match in the DOM, but executing the step
+                // with that $anchor won't work"). Passing the selector
+                // explicitly to `actions.click()` instead forces a
+                // fresh `$(selector)` lookup at the moment the click
+                // runs (web_tour/static/src/js/tour_utils.js,
+                // `get_jquery_element_from_selector`), so the click
+                // always lands on whichever facet-remove node is live
+                // at that instant.
                 trigger: ".o_searchview_facet .o_facet_remove",
-                run: "click",
+                run: function (actions) {
+                    actions.click(".o_searchview_facet .o_facet_remove");
+                },
             },
             {
                 // Gerbang: don't just assume the click "took" -- wait
