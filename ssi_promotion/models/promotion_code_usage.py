@@ -383,6 +383,26 @@ class PromotionCodeUsage(models.Model):
         "'Amount Recognized' reaches 'Amount To Recognize', then "
         "'Recognized'.",
     )
+    recognition_completed = fields.Boolean(
+        string="Recognition Completed",
+        compute="_compute_recognition_completed",
+        store=True,
+        compute_sudo=True,
+        help="Technical flag read by this usage's own base.automation "
+        "records (data/base_automation_data.xml) to drive its Open <-> "
+        "Done transition while it has a deferred side. True once "
+        "'Amount Recognized' reaches 'Amount To Recognize' (or "
+        "neither side is Deferred at all). Deliberately computed from "
+        "'Discount Amount'/'Referrer Discount Amount'/'Recognition "
+        "Method'/'Referrer Recognition Method'/'recognition_ids' "
+        "directly, never by reading 'Amount To Recognize'/'Amount "
+        "Recognized' themselves -- both stored on this same model, "
+        "which would let base.automation's domain evaluation "
+        "(triggered on every stored field computed on this model, "
+        "not only 'state' changes) read this field while one of "
+        "those two is itself mid-computation, corrupting it with a "
+        "premature default value (open-synergy/ssi-promotion#72).",
+    )
     recognition_ids = fields.One2many(
         string="Recognitions",
         comodel_name="promotion_code_usage_recognition",
@@ -720,15 +740,33 @@ class PromotionCodeUsage(models.Model):
         :return: nothing; assigns ``amount_to_recognize``
         """
         for record in self:
-            result = 0.0
-            if record._get_recognition_method() == "deferred":
-                result += record.discount_amount
-            if (
-                record.promotion_code_id.partner_id
-                and record._get_recognition_method(referrer=True) == "deferred"
-            ):
-                result += record.referrer_discount_amount
-            record.amount_to_recognize = result
+            record.amount_to_recognize = record._get_amount_to_recognize_raw()
+
+    def _get_amount_to_recognize_raw(self):
+        """Compute 'Amount To Recognize' straight from its raw sources.
+
+        Shared by ``_compute_amount_to_recognize`` (assigns the
+        stored field) and ``_compute_recognition_completed``, which
+        reads this number without ever touching the stored 'Amount To
+        Recognize' field itself -- both fields being stored on this
+        same model, base.automation's domain evaluation (triggered on
+        every stored field computed on this model, not only on
+        writes to 'state') would otherwise read 'Amount To Recognize'
+        while it is itself mid-computation, corrupting it with a
+        premature default value (open-synergy/ssi-promotion#72).
+
+        :return: the amount, ``0.0`` while neither side is Deferred
+        """
+        self.ensure_one()
+        result = 0.0
+        if self._get_recognition_method() == "deferred":
+            result += self.discount_amount
+        if (
+            self.promotion_code_id.partner_id
+            and self._get_recognition_method(referrer=True) == "deferred"
+        ):
+            result += self.referrer_discount_amount
+        return result
 
     @api.depends(
         "recognition_ids.state",
@@ -740,10 +778,23 @@ class PromotionCodeUsage(models.Model):
         :return: nothing; assigns ``amount_recognized``
         """
         for record in self:
-            done_recognitions = record.recognition_ids.filtered(
-                lambda recognition: recognition.state == "done"
-            )
-            record.amount_recognized = sum(done_recognitions.mapped("amount"))
+            record.amount_recognized = record._get_amount_recognized_raw()
+
+    def _get_amount_recognized_raw(self):
+        """Compute 'Amount Recognized' straight from its raw sources.
+
+        Shared by ``_compute_amount_recognized`` (assigns the stored
+        field) and ``_compute_recognition_completed``, for the same
+        reason documented on ``_get_amount_to_recognize_raw``.
+
+        :return: sum of 'Amount' of every Done row of
+            'Recognitions' (``recognition_ids``)
+        """
+        self.ensure_one()
+        done_recognitions = self.recognition_ids.filtered(
+            lambda recognition: recognition.state == "done"
+        )
+        return sum(done_recognitions.mapped("amount"))
 
     @api.depends(
         "amount_to_recognize",
@@ -801,6 +852,46 @@ class PromotionCodeUsage(models.Model):
         ):
             return "recognized"
         return "partial"
+
+    @api.depends(
+        "discount_amount",
+        "referrer_discount_amount",
+        "promotion_code_id.partner_id",
+        "recognition_method",
+        "referrer_recognition_method",
+        "referrer_recognition_date",
+        "referrer_deferred_account_id",
+        "referrer_recognition_journal_id",
+        "recognition_ids.state",
+        "recognition_ids.amount",
+    )
+    def _compute_recognition_completed(self):
+        """Compute 'Recognition Completed' for the automation domains.
+
+        Deliberately re-derives 'Amount To Recognize' / 'Amount
+        Recognized' through ``_get_amount_to_recognize_raw`` /
+        ``_get_amount_recognized_raw`` instead of reading
+        'amount_to_recognize'/'amount_recognized' -- see
+        'Recognition Completed'`s own field help for why that
+        distinction matters (open-synergy/ssi-promotion#72).
+
+        :return: nothing; assigns ``recognition_completed``
+        """
+        precision = self.env.company.currency_id.decimal_places
+        for record in self:
+            amount_to_recognize = record._get_amount_to_recognize_raw()
+            if float_is_zero(amount_to_recognize, precision_digits=precision):
+                record.recognition_completed = True
+                continue
+            amount_recognized = record._get_amount_recognized_raw()
+            record.recognition_completed = (
+                float_compare(
+                    amount_recognized,
+                    amount_to_recognize,
+                    precision_digits=precision,
+                )
+                >= 0
+            )
 
     # G2. Onchange Methods
     @api.onchange("type_id")

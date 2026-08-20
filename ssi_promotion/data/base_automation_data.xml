@@ -6,12 +6,20 @@
 <record id="promotion_code_usage_open_2_done" model="base.automation">
     <field name="action_server_id" ref="promotion_code_usage_action_done" />
     <field name="trigger">on_write</field>
+    <!-- Watches 'recognition_completed', NOT 'recognition_state': see
+         that field's own help (open-synergy/ssi-promotion#72). Both
+         'recognition_state' and 'amount_to_recognize'/'amount_recognized'
+         are stored on this same model, so base.automation's domain
+         evaluation (triggered on every stored field computed on this
+         model) reading any of them mid-computation of another corrupts
+         it with a premature default value. 'recognition_completed' is
+         computed straight from raw, non-cyclical sources instead. -->
     <field
             name="filter_pre_domain"
-        >[('state','=','open'),('recognition_state','in',['pending','partial'])]</field>
+        >[('state','=','open'),('recognition_completed','=',False)]</field>
     <field
             name="filter_domain"
-        >[('state','=','open'),('recognition_state','in',['not_applicable','recognized'])]</field>
+        >[('state','=','open'),('recognition_completed','=',True)]</field>
 </record>
 
 <record id="promotion_code_usage_done_2_open" model="base.automation">
@@ -19,9 +27,9 @@
     <field name="trigger">on_write</field>
     <field
             name="filter_pre_domain"
-        >[('state','=','done'),('recognition_state','in',['not_applicable','recognized'])]</field>
+        >[('state','=','done'),('recognition_completed','=',True)]</field>
     <field
             name="filter_domain"
-        >[('state','=','done'),('recognition_state','in',['pending','partial'])]</field>
+        >[('state','=','done'),('recognition_completed','=',False)]</field>
 </record>
 </odoo>
