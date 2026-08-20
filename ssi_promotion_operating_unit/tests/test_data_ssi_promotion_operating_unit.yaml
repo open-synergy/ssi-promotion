@@ -100,7 +100,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "OU-PROP-001"
+          name: "OU-PROP-001"
           type_id: "EVAL: registry['ptype'].id"
           operating_unit_id: "REF: operating_unit.main_operating_unit"
 
@@ -131,7 +131,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_usage"
         values:
-          voucher_code: "OU-PROP-002"
+          name: "OU-PROP-002"
           type_id: "EVAL: registry['ptype_usage'].id"
 
       - step: "Create voucher user partner"
@@ -177,7 +177,7 @@ scenarios:
         model: "promotion_code"
         save_as: "rule_code"
         values:
-          voucher_code: "OU-RULE-001"
+          name: "OU-RULE-001"
           type_id: "EVAL: registry['ptype_rule'].id"
           operating_unit_id: "REC: ou_a.id"
           user_id: "REF: base.user_admin"
@@ -235,7 +235,7 @@ scenarios:
         model: "promotion_code"
         save_as: "usage_rule_code"
         values:
-          voucher_code: "OU-RULE-002"
+          name: "OU-RULE-002"
           type_id: "EVAL: registry['ptype_usage_rule'].id"
 
       - step: "Create voucher user partner"
