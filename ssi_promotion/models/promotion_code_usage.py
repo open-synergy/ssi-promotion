@@ -87,15 +87,16 @@ class PromotionCodeUsage(models.Model):
     _automatically_insert_view_element = True
     _automatically_insert_open_button = False
     _automatically_insert_open_policy_fields = False
+    _automatically_insert_done_button = False
+    _automatically_insert_done_policy_fields = False
 
     # C. Form View Attributes
-    _statusbar_visible_label = "draft,confirm,open"
+    _statusbar_visible_label = "draft,confirm,open,done"
     _policy_field_order = [
         "confirm_ok",
         "approve_ok",
         "reject_ok",
         "restart_approval_ok",
-        "done_ok",
         "cancel_ok",
         "restart_ok",
         "manual_number_ok",
@@ -104,7 +105,6 @@ class PromotionCodeUsage(models.Model):
         "action_confirm",
         "action_approve",
         "action_reject",
-        "action_done",
         "%(ssi_transaction_cancel_mixin.base_select_cancel_reason_action)d",
         "action_restart",
     ]
