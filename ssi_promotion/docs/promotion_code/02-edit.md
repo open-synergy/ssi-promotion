@@ -21,9 +21,9 @@
 2. Find and open the record to edit.
 3. Click the **Edit** button.
 4. Open the **Note** tab.
-5. Change the **Note** field, or any other editable field (**Voucher Code**, **Promotion
-   Type**, **Referrer**, **Date Start**, **Date End**, or the fields in the **Discount &
-   Usage** tab).
+5. Change the **Note** field, or any other editable field (**Promotion Type**,
+   **Referrer**, **Date Start**, **Date End**, or the fields in the **Discount & Usage**
+   tab).
 6. Click **Save**.
 
 ## Post-Condition

@@ -20,8 +20,10 @@
 1. Open the **Promotion ‣ Codes** menu.
 2. Click the **New** button. **(14.0: "Create")**
 3. Fill in the required fields:
-   - **Voucher Code** _(required)_: Enter the code the customer will redeem to use this
-     promotion. Must be unique across all promotion codes.
+   - **# Document**: Left as **/**. The system issues the voucher code the customer
+     redeems automatically when the record is approved. A user in group _Codes —
+     Validator_ with the _Manual Number_ policy may type the code here instead, while
+     the record is still in Draft.
    - **Promotion Type** _(required)_: Select the `promotion_type` that determines the
      discount rule, usage limit, validity period, and accounting entry configuration for
      this code.
@@ -43,3 +45,5 @@
 ## Post-Condition
 
 - A new record is created in **Draft** status.
+- **# Document** is still **/**, unless a Manual Number was typed in step 3. The voucher
+  code is only issued when the record is approved.
