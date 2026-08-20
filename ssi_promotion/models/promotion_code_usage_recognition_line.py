@@ -153,7 +153,7 @@ class PromotionCodeUsageRecognitionLine(models.Model):
         """Return the move line label.
 
         Combines the parent Recognition document's own number with
-        the usage's own promotion code voucher code.
+        the usage's own promotion code.
 
         :param direction: ``'debit'`` or ``'credit'`` (unused, both
             sides share the same label)
@@ -162,5 +162,5 @@ class PromotionCodeUsageRecognitionLine(models.Model):
         self.ensure_one()
         return "%s - %s" % (
             self.recognition_id.name,
-            self.recognition_id.usage_id.promotion_code_id.voucher_code,
+            self.recognition_id.usage_id.promotion_code_id.name,
         )

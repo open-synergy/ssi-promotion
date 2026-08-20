@@ -2081,12 +2081,12 @@ account fallback) on the promotion type, or 'Deferred Account' while \
         """Build the label shared by both lines of a journal entry.
 
         Combines this usage's own document number with its own
-        promotion code's voucher code.
+        promotion code's code.
 
         :return: the composed label string
         """
         self.ensure_one()
-        return "%s - %s" % (self.name, self.promotion_code_id.voucher_code)
+        return "%s - %s" % (self.name, self.promotion_code_id.name)
 
     def _prepare_discount_line_data(self, partner, account, amount):
         """Build the debit (discount) ``account.move.line`` values dict.

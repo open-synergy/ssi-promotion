@@ -87,7 +87,6 @@ class PromotionCode(models.Model):
     # F. Field Definitions
     voucher_code = fields.Char(
         string="Voucher Code",
-        required=True,
         readonly=True,
         states={"draft": [("readonly", False)]},
         help="Code the customer redeems to use this promotion. Must be "
