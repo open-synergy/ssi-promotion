@@ -77,17 +77,12 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
                 },
             },
 
-            // Flow 3 — Fill in the required fields (Voucher Code,
-            // Promotion Type). Discount & Usage tab fields are
-            // auto-filled by onchange once Promotion Type is picked --
-            // out of tour scope (value verification is unit-test
-            // territory).
-            {
-                content: "Fill in the Voucher Code",
-                trigger: ".o_field_widget[name='voucher_code']",
-                extra_trigger: ".o_form_view.o_form_editable",
-                run: "text TOUR-PC-CREATE",
-            },
+            // Flow 3 — Fill in the required fields (Promotion Type).
+            // # Document is left as "/" -- the system issues it on
+            // approve (see Post-Condition); Discount & Usage tab
+            // fields are auto-filled by onchange once Promotion Type
+            // is picked -- out of tour scope (value verification is
+            // unit-test territory).
             {
                 content: "Select the Promotion Type",
                 trigger: ".o_field_many2one[name='type_id'] input",
