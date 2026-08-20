@@ -509,34 +509,57 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                     // Assertion only.
                 },
             },
+            //
+            // Idiom B (toggle each active filter off through the
+            // Filters dropdown) instead of idiom A (click the facet's
+            // remove icon), per odoo-development-ui-test's patterns-
+            // advanced-gotchas.md §S -- see the fuller root-cause note
+            // on the same swap in promotion_code_tour.js's 12-restart
+            // tour (issue #78: candidate-1, a fresh `$(selector)`
+            // lookup via `actions.click()`, still failed the gate
+            // below 4 of 5 local runs because a `search_default_dom_*`
+            // facet has no "operation settled" signal to gate the
+            // facet-remove click on). Idiom B has zero recorded
+            // failures across 63 files / 18 repos.
             {
-                content:
-                    "Remove the default state filter to reveal " + "Done documents",
-                // The facet chip is rendered by the Owl `SearchBar`
-                // component and can re-render between this step
-                // becoming active and the click actually running,
-                // because `Tip.attach_to()` (web_tour/static/src/js/
-                // tip.js) is itself async and only resolves --
-                // triggering the click -- after that gap. The default
-                // `run: "click"` clicks `this.tip_widget.$anchor`, a
-                // reference captured BEFORE that gap; if the SearchBar
-                // re-rendered meanwhile that reference can be stale
-                // even though the selector still matches a live node
-                // elsewhere (see the fuller mechanism note on the same
-                // idiom in promotion_code_tour.js's 12-restart tour).
-                // Passing the selector explicitly to `actions.click()`
-                // instead forces a fresh `$(selector)` lookup at the
-                // moment the click runs, so it always lands on
-                // whichever facet-remove node is live at that instant.
-                trigger: ".o_searchview_facet .o_facet_remove",
-                run: function (actions) {
-                    actions.click(".o_searchview_facet .o_facet_remove");
+                content: "Open the Filters menu",
+                trigger: ".o_search_options .o_filter_menu button",
+            },
+            {
+                // Label = the filter's `string` in
+                // ssi_transaction_mixin's mixin_transaction_views.xml
+                // (dom_draft).
+                content: "Toggle off the Draft filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(Draft)",
+                run: function () {
+                    this.$anchor[0].click();
                 },
             },
             {
-                // Gerbang: don't just assume the click "took" -- wait
+                // Label = ssi_transaction_confirm_mixin's
+                // mixin_transaction_confirm_templates.xml (dom_confirm).
+                content: "Toggle off the Waiting for Approval filter",
+                trigger:
+                    ".o_filter_menu .dropdown-item:contains(" + "Waiting for Approval)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_open_mixin's
+                // mixin_transaction_open_templates.xml (dom_open).
+                content: "Toggle off the In Progress filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(In Progress)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Gerbang: don't just assume the clicks "took" -- wait
                 // for the facet chip to actually be gone before relying
-                // on the list containing every state.
+                // on the list containing every state. Kept unchanged
+                // from candidate-1 -- this gate works correctly and is
+                // mandatory (odoo-development-ui-test, patterns.md §S).
                 content: "Default state filter is removed",
                 trigger: "body:not(:has(.o_searchview_facet))",
                 run: function () {
@@ -796,35 +819,57 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                     // Assertion only.
                 },
             },
+            //
+            // Idiom B (toggle each active filter off through the
+            // Filters dropdown) instead of idiom A (click the facet's
+            // remove icon), per odoo-development-ui-test's patterns-
+            // advanced-gotchas.md §S -- see the fuller root-cause note
+            // on the same swap in promotion_code_tour.js's 12-restart
+            // tour (issue #78: candidate-1, a fresh `$(selector)`
+            // lookup via `actions.click()`, still failed the gate
+            // below 4 of 5 local runs because a `search_default_dom_*`
+            // facet has no "operation settled" signal to gate the
+            // facet-remove click on). Idiom B has zero recorded
+            // failures across 63 files / 18 repos.
             {
-                content:
-                    "Remove the default state filter to reveal " +
-                    "Cancelled documents",
-                // The facet chip is rendered by the Owl `SearchBar`
-                // component and can re-render between this step
-                // becoming active and the click actually running,
-                // because `Tip.attach_to()` (web_tour/static/src/js/
-                // tip.js) is itself async and only resolves --
-                // triggering the click -- after that gap. The default
-                // `run: "click"` clicks `this.tip_widget.$anchor`, a
-                // reference captured BEFORE that gap; if the SearchBar
-                // re-rendered meanwhile that reference can be stale
-                // even though the selector still matches a live node
-                // elsewhere (see the fuller mechanism note on the same
-                // idiom in promotion_code_tour.js's 12-restart tour).
-                // Passing the selector explicitly to `actions.click()`
-                // instead forces a fresh `$(selector)` lookup at the
-                // moment the click runs, so it always lands on
-                // whichever facet-remove node is live at that instant.
-                trigger: ".o_searchview_facet .o_facet_remove",
-                run: function (actions) {
-                    actions.click(".o_searchview_facet .o_facet_remove");
+                content: "Open the Filters menu",
+                trigger: ".o_search_options .o_filter_menu button",
+            },
+            {
+                // Label = the filter's `string` in
+                // ssi_transaction_mixin's mixin_transaction_views.xml
+                // (dom_draft).
+                content: "Toggle off the Draft filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(Draft)",
+                run: function () {
+                    this.$anchor[0].click();
                 },
             },
             {
-                // Gerbang: don't just assume the click "took" -- wait
+                // Label = ssi_transaction_confirm_mixin's
+                // mixin_transaction_confirm_templates.xml (dom_confirm).
+                content: "Toggle off the Waiting for Approval filter",
+                trigger:
+                    ".o_filter_menu .dropdown-item:contains(" + "Waiting for Approval)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_open_mixin's
+                // mixin_transaction_open_templates.xml (dom_open).
+                content: "Toggle off the In Progress filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(In Progress)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Gerbang: don't just assume the clicks "took" -- wait
                 // for the facet chip to actually be gone before relying
-                // on the list containing every state.
+                // on the list containing every state. Kept unchanged
+                // from candidate-1 -- this gate works correctly and is
+                // mandatory (odoo-development-ui-test, patterns.md §S).
                 content: "Default state filter is removed",
                 trigger: "body:not(:has(.o_searchview_facet))",
                 run: function () {
