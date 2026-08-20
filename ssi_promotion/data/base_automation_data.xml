@@ -6,17 +6,22 @@
 <record id="promotion_code_usage_open_2_done" model="base.automation">
     <field name="action_server_id" ref="promotion_code_usage_action_done" />
     <field name="trigger">on_write</field>
-    <!-- Watches 'recognition_completed', NOT 'recognition_state': see
-         that field's own help (open-synergy/ssi-promotion#72). Both
-         'recognition_state' and 'amount_to_recognize'/'amount_recognized'
-         are stored on this same model, so base.automation's domain
-         evaluation (triggered on every stored field computed on this
-         model) reading any of them mid-computation of another corrupts
-         it with a premature default value. 'recognition_completed' is
-         computed straight from raw, non-cyclical sources instead. -->
-    <field
-            name="filter_pre_domain"
-        >[('state','=','open'),('recognition_completed','=',False)]</field>
+    <!-- 'filter_pre_domain' deliberately does NOT mention
+         'recognition_completed', only 'state' (open-synergy/
+         ssi-promotion#72, confirmed empirically with an instrumented
+         local run). base.automation's on_write hook is ALSO wired
+         through the ORM's own per-field recompute callback
+         (BaseModel._compute_field_value, see base_automation.py's
+         make_compute_field_value): when 'recognition_completed'
+         itself is the field being recomputed, 'filter_pre_domain' is
+         evaluated (_filter_pre) BEFORE that recompute's real value has
+         landed in cache, so a domain that reads the very field
+         currently mid-computation never observes its post-write value
+         and never matches. 'filter_domain' (_filter_post_export_domain,
+         evaluated AFTER the recompute completes) is the only domain
+         allowed to read it. 'state' is safe in both because it is a
+         plain, non-computed field, never itself mid-computation. -->
+    <field name="filter_pre_domain">[('state','=','open')]</field>
     <field
             name="filter_domain"
         >[('state','=','open'),('recognition_completed','=',True)]</field>
@@ -25,9 +30,9 @@
 <record id="promotion_code_usage_done_2_open" model="base.automation">
     <field name="action_server_id" ref="promotion_code_usage_action_open" />
     <field name="trigger">on_write</field>
-    <field
-            name="filter_pre_domain"
-        >[('state','=','done'),('recognition_completed','=',True)]</field>
+    <!-- See 'promotion_code_usage_open_2_done' above for why
+         'filter_pre_domain' only ever mentions 'state'. -->
+    <field name="filter_pre_domain">[('state','=','done')]</field>
     <field
             name="filter_domain"
         >[('state','=','done'),('recognition_completed','=',False)]</field>
