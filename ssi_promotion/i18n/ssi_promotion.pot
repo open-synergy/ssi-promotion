@@ -506,13 +506,6 @@ msgid "Code"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,help:ssi_promotion.field_promotion_code__voucher_code
-msgid ""
-"Code the customer redeems to use this promotion. Must be unique across all "
-"promotion codes."
-msgstr ""
-
-#. module: ssi_promotion
 #: model:ir.ui.menu,name:ssi_promotion.promotion_code_menu
 msgid "Codes"
 msgstr ""
@@ -2410,22 +2403,12 @@ msgid "Viewer"
 msgstr ""
 
 #. module: ssi_promotion
-#: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code__voucher_code
-msgid "Voucher Code"
-msgstr ""
-
-#. module: ssi_promotion
 #: model:ir.model.fields,field_description:ssi_promotion.field_apply_promotion_code__partner_id
 #: model:ir.model.fields,field_description:ssi_promotion.field_promotion_code_usage__partner_id
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__apply_promotion_code__side__customer
 #: model:ir.model.fields.selection,name:ssi_promotion.selection__promotion_code_usage_allocation__source__customer
 #: model_terms:ir.ui.view,arch_db:ssi_promotion.promotion_code_usage_view_search
 msgid "Voucher User"
-msgstr ""
-
-#. module: ssi_promotion
-#: model:ir.model.constraint,message:ssi_promotion.constraint_promotion_code_voucher_code_unique
-msgid "Voucher code must be unique!"
 msgstr ""
 
 #. module: ssi_promotion
