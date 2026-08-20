@@ -68,7 +68,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCS1-001"
+          name: "APPCS1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -246,7 +246,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCS2-001"
+          name: "APPCS2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -392,7 +392,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCS3-001"
+          name: "APPCS3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -544,7 +544,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCN1-001"
+          name: "APPCN1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -638,7 +638,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCN2-001"
+          name: "APPCN2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -770,7 +770,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_ref"
         values:
-          voucher_code: "APPCS4-001"
+          name: "APPCS4-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"
@@ -804,7 +804,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_other"
         values:
-          voucher_code: "APPCS4-002"
+          name: "APPCS4-002"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: outsider.id"
@@ -941,7 +941,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCS5-001"
+          name: "APPCS5-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"
@@ -1151,7 +1151,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCN3-001"
+          name: "APPCN3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"
@@ -1336,7 +1336,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCN4-001"
+          name: "APPCN4-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"
@@ -1466,7 +1466,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_ref"
         values:
-          voucher_code: "APPCS6-001"
+          name: "APPCS6-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"

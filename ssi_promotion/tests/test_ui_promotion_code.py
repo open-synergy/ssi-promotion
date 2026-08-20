@@ -45,9 +45,23 @@ class TestUiPromotionCode(HttpSavepointCase):
         # IK Pre-Condition of 02-edit / 04-confirm: Status is Draft.
         cls.code_edit = cls._create_code("TOUR-PC-EDIT")
         # IK Pre-Condition of 03-delete: Status is Draft and the
-        # document number is still "/" -- do NOT give this one an
-        # explicit name (see docs/promotion_code/03-delete.md).
-        cls.code_delete = cls._create_code("TOUR-PC-DELETE")
+        # document number is still "/" (see docs/promotion_code/
+        # 03-delete.md) -- ``unlink()`` refuses any other value
+        # (``_check_document_number_unlink``). ``_create_code`` below
+        # always sets ``name`` explicitly, so this one fixture is
+        # built inline instead, keeping the search text the tour
+        # looks for on the now-otherwise-unused ``voucher_code``
+        # field. EXCLUDED from the voucher_code -> name migration
+        # (open-synergy/ssi-promotion#70) for this reason; lifted
+        # once ``voucher_code`` itself is removed and the delete tour
+        # is revised to match (open-synergy/ssi-promotion#67).
+        cls.code_delete = cls.env["promotion_code"].create(
+            {
+                "voucher_code": "TOUR-PC-DELETE",
+                "type_id": cls.promotion_type.id,
+                "user_id": cls.admin.id,
+            }
+        )
         cls.code_confirm = cls._create_code("TOUR-PC-CONFIRM")
 
         # IK Pre-Condition of 05-approve / 06-reject: Status is
@@ -95,7 +109,7 @@ class TestUiPromotionCode(HttpSavepointCase):
         # IK Pre-Condition of 13-reset-number: Status is Draft, with a
         # manually-assigned document number to reset back to "/" so
         # the tour can observe the change.
-        cls.code_reset = cls._create_code("TOUR-PC-RESET", name="TOUR-PC-RESET-MANUAL")
+        cls.code_reset = cls._create_code("TOUR-PC-RESET-MANUAL")
 
         # IK Pre-Condition of 14-restart-approval: Status is Waiting
         # for Approval. The shipped "Standard" policy.template has no
@@ -110,8 +124,8 @@ class TestUiPromotionCode(HttpSavepointCase):
         # group and would otherwise be read stale (cached ``False``
         # from before this ``action_confirm()``'s write to "confirm").
         # Named "REAPPROVAL", not "RESTART-APPROVAL": the latter shares
-        # the "TOUR-PC-RESTART" prefix with ``code_restart``'s voucher
-        # code above, and the tour's ``:contains(TOUR-PC-RESTART)``
+        # the "TOUR-PC-RESTART" prefix with ``code_restart``'s document
+        # number above, and the tour's ``:contains(TOUR-PC-RESTART)``
         # trigger for that other tour does a *substring* match -- it
         # would silently open this record instead once both are made
         # visible by the same search filter (see promotion_code_tour.js
@@ -136,24 +150,20 @@ class TestUiPromotionCode(HttpSavepointCase):
         )
 
     @classmethod
-    def _create_code(cls, voucher_code, name=False):
+    def _create_code(cls, name):
         """Create one draft ``promotion_code`` fixture.
 
-        :param voucher_code: value for the unique ``voucher_code``
-            field, also used by the tours to locate the row in the
-            list view
-        :param name: document number to assign explicitly (skipping
-            the default ``/``), or a falsy value to keep ``/``
+        :param name: document number to assign explicitly, also used
+            by the tours to locate the row in the list view
         :return: the created ``promotion_code`` record
         """
-        vals = {
-            "voucher_code": voucher_code,
-            "type_id": cls.promotion_type.id,
-            "user_id": cls.admin.id,
-        }
-        if name:
-            vals["name"] = name
-        return cls.env["promotion_code"].create(vals)
+        return cls.env["promotion_code"].create(
+            {
+                "name": name,
+                "type_id": cls.promotion_type.id,
+                "user_id": cls.admin.id,
+            }
+        )
 
     @classmethod
     def _run_to_open(cls, record):

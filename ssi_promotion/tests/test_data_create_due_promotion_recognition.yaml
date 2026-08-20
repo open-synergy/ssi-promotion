@@ -70,7 +70,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "CDPR-001"
+          name: "CDPR-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -448,7 +448,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code2"
         values:
-          voucher_code: "CDPR-002"
+          name: "CDPR-002"
           type_id: "REC: ptype2.id"
           partner_id: "REC: referrer2.id"
           user_id: "REF: base.user_admin"

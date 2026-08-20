@@ -57,7 +57,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "SUFF-S1-001"
+          name: "SUFF-S1-001"
           type_id: "REC: ptype.id"
           discount_amount: 350000.0
           # WAJIB: record rule promotion_code_internal_user_rule hanya
@@ -255,7 +255,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "SUFF-S2-001"
+          name: "SUFF-S2-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           discount_amount: 100000.0
@@ -484,7 +484,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "SUFF-S3-001"
+          name: "SUFF-S3-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           discount_amount: 350000.0
@@ -657,7 +657,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "SUFF-S4-001"
+          name: "SUFF-S4-001"
           type_id: "REC: ptype.id"
           discount_amount: 350000.0
           # WAJIB: lihat catatan T-05 pada skenario pertama.
@@ -879,7 +879,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "SUFF-S5-001"
+          name: "SUFF-S5-001"
           type_id: "REC: ptype.id"
           discount_amount: 350000.0
           # WAJIB: lihat catatan T-05 pada skenario pertama.

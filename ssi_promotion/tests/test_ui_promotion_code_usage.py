@@ -85,7 +85,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         )
         code = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-CDPR-CODE",
+                "name": "TOUR-CDPR-CODE",
                 "type_id": promotion_type.id,
             }
         )
@@ -162,7 +162,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         # test-authoring time.
         cls.code_pcu = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-PCU-CODE",
+                "name": "TOUR-PCU-CODE",
                 "type_id": cls.promotion_type_pcu.id,
                 "user_id": cls.admin.id,
             }
@@ -299,7 +299,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         )
         code_pcu_deferred = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-PCU-DEF-CODE",
+                "name": "TOUR-PCU-DEF-CODE",
                 "type_id": promotion_type_pcu_deferred.id,
                 "user_id": cls.admin.id,
             }
@@ -532,7 +532,7 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         )
         cls.code_apc = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-APC-CODE",
+                "name": "TOUR-APC-CODE",
                 "type_id": cls.promotion_type_apc.id,
                 "user_id": cls.admin.id,
             }

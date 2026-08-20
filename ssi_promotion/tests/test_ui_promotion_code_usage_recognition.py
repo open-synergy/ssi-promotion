@@ -79,7 +79,7 @@ class TestUiPromotionCodeUsageRecognition(HttpSavepointCase):
         )
         code = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-PCUR-CODE",
+                "name": "TOUR-PCUR-CODE",
                 "type_id": promotion_type.id,
             }
         )

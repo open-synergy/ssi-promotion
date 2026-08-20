@@ -74,7 +74,7 @@ class TestApplyPromotionCode(YamlTransactionCase):
         admin = self.env.ref("base.user_admin")
         code = self.env["promotion_code"].create(
             {
-                "voucher_code": "APPLYPC-RETURN-001",
+                "name": "APPLYPC-RETURN-001",
                 "type_id": promotion_type.id,
                 "user_id": admin.id,
             }
