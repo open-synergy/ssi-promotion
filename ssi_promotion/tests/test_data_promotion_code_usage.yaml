@@ -56,7 +56,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-FIX-001"
+          name: "USAGE-FIX-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: record rule promotion_code_internal_user_rule hanya
           # meloloskan pemiliknya sendiri; tanpa ini record mewarisi
@@ -327,7 +327,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-PCT-001"
+          name: "USAGE-PCT-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -419,7 +419,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-PY-001"
+          name: "USAGE-PY-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -522,7 +522,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-REFERRER-001"
+          name: "USAGE-REFERRER-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -802,7 +802,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-CANCEL-001"
+          name: "USAGE-CANCEL-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -1063,7 +1063,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-DEF-001"
+          name: "USAGE-DEF-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1181,7 +1181,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-DEF-002"
+          name: "USAGE-DEF-002"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -1404,7 +1404,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-IMM-001"
+          name: "USAGE-IMM-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1558,7 +1558,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-ONCHANGE-001"
+          name: "USAGE-ONCHANGE-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1630,7 +1630,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-NEG-001"
+          name: "USAGE-NEG-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1708,7 +1708,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-NEG-002"
+          name: "USAGE-NEG-002"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1830,7 +1830,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "DISALLOWED-001"
+          name: "DISALLOWED-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -1936,7 +1936,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "LIMIT-001"
+          name: "LIMIT-001"
           type_id: "REC: ptype.id"
           usage_limit: 1
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -2079,7 +2079,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "INVALID-001"
+          name: "INVALID-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -2150,7 +2150,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "NOCONFIG-001"
+          name: "NOCONFIG-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -2351,7 +2351,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "NORECV-001"
+          name: "NORECV-001"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
           type_id: "REC: ptype.id"
@@ -2493,7 +2493,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "GUARD-001"
+          name: "GUARD-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -2779,7 +2779,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-A-001"
+          name: "USG-A-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -3020,7 +3020,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-B-001"
+          name: "USG-B-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -3246,7 +3246,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-C-001"
+          name: "USG-C-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -3478,7 +3478,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-D-001"
+          name: "USG-D-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -3743,7 +3743,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-E-001"
+          name: "USG-E-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -4051,7 +4051,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-F-001"
+          name: "USG-F-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -4309,7 +4309,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USG-G-001"
+          name: "USG-G-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -4483,7 +4483,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDSAME-001"
+          name: "USAGE-RDSAME-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -4710,7 +4710,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDFIX-001"
+          name: "USAGE-RDFIX-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -5023,7 +5023,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDPCT-001"
+          name: "USAGE-RDPCT-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -5131,7 +5131,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDPY-001"
+          name: "USAGE-RDPY-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           usage_limit: 7
@@ -5242,7 +5242,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDNONE-001"
+          name: "USAGE-RDNONE-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -5446,7 +5446,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-A2R-001"
+          name: "USAGE-A2R-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -5587,7 +5587,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-A2N-001"
+          name: "USAGE-A2N-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
@@ -5707,7 +5707,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDEF-001"
+          name: "USAGE-RDEF-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -5846,7 +5846,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RDEF-NEG-001"
+          name: "USAGE-RDEF-NEG-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -5975,7 +5975,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-BOTHDEF-001"
+          name: "USAGE-BOTHDEF-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -6143,7 +6143,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-MIX-001"
+          name: "USAGE-MIX-001"
           type_id: "REC: ptype.id"
           partner_id: "REC: referrer.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
@@ -6418,7 +6418,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-DONECANC-001"
+          name: "USAGE-DONECANC-001"
           type_id: "REC: ptype.id"
           # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
           # approval creates customer accounting entry" di atas.
@@ -6630,7 +6630,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "USAGE-RECBLOCK-001"
+          name: "USAGE-RECBLOCK-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"

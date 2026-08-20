@@ -107,7 +107,7 @@ class TestCreateDuePromotionRecognition(YamlTransactionCase):
         )
         code = self.env["promotion_code"].create(
             {
-                "voucher_code": "CDPRPY-001",
+                "name": "CDPRPY-001",
                 "type_id": ptype.id,
             }
         )

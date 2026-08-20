@@ -68,7 +68,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "MIXPO-001"
+          name: "MIXPO-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"

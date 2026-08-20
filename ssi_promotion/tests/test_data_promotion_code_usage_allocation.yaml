@@ -57,7 +57,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-S1-001"
+          name: "ALLOC-S1-001"
           type_id: "REC: ptype.id"
           # WAJIB: record rule promotion_code_internal_user_rule hanya
           # meloloskan pemiliknya sendiri (jebakan T-05).
@@ -252,7 +252,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-S2-001"
+          name: "ALLOC-S2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -458,7 +458,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-S3-001"
+          name: "ALLOC-S3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -683,7 +683,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-S4-001"
+          name: "ALLOC-S4-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -892,7 +892,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG1-001"
+          name: "ALLOC-NEG1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1045,7 +1045,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG2-001"
+          name: "ALLOC-NEG2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1200,7 +1200,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG3-001"
+          name: "ALLOC-NEG3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1353,7 +1353,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG4-001"
+          name: "ALLOC-NEG4-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1504,7 +1504,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG5-001"
+          name: "ALLOC-NEG5-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1662,7 +1662,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-POS1-001"
+          name: "ALLOC-POS1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -1874,7 +1874,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-POS2-001"
+          name: "ALLOC-POS2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -2049,7 +2049,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG6-001"
+          name: "ALLOC-NEG6-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -2280,7 +2280,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-CFG1-001"
+          name: "ALLOC-CFG1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -2475,7 +2475,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-CFG2-001"
+          name: "ALLOC-CFG2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -2665,7 +2665,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-CFG3-001"
+          name: "ALLOC-CFG3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -2848,7 +2848,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "ALLOC-NEG7-001"
+          name: "ALLOC-NEG7-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"

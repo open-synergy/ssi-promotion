@@ -21,7 +21,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "DRAFT-001"
+          name: "DRAFT-001"
           type_id: "EVAL: registry['ptype'].id"
       - step: "Assert created in draft"
         action: "assert"
@@ -30,7 +30,7 @@ scenarios:
           id:
             type: "value"
             operator: "is_truthy"
-          voucher_code:
+          name:
             type: "value"
             expected: "DRAFT-001"
           state:
@@ -61,7 +61,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "REF-001"
+          name: "REF-001"
           type_id: "EVAL: registry['ptype'].id"
           partner_id: "EVAL: registry['referrer'].id"
       - step: "Assert referrer set"
@@ -90,7 +90,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "WF-001"
+          name: "WF-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: record rule promotion_code_internal_user_rule hanya
           # meloloskan pemiliknya sendiri; tanpa ini record mewarisi
@@ -150,7 +150,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "DONE-001"
+          name: "DONE-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 di skenario "Workflow draft to open
           # via approval" di atas.
@@ -211,7 +211,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "CANCEL-001"
+          name: "CANCEL-001"
           type_id: "EVAL: registry['ptype'].id"
           # WAJIB: lihat catatan T-05 di skenario "Workflow draft to open
           # via approval" di atas.
@@ -244,8 +244,12 @@ scenarios:
         action: "form"
         model: "promotion_code"
         save: false
+        # No document number here: on an unsaved Form, ``policy_template_id``
+        # is never set (it is only assigned inside the ORM ``create()``
+        # override, mixin_policy.py), so ``manual_number_ok`` computes
+        # False and ``name`` stays readonly for the whole life of this
+        # Form -- unrelated to the onchange under test.
         values:
-          voucher_code: "ONCHANGE-001"
           type_id: "REC: ptype"
         asserts:
           discount_type:
@@ -277,8 +281,10 @@ scenarios:
         action: "form"
         model: "promotion_code"
         save: false
+        # No document number here: see "Onchange type_id sets discount
+        # and usage limit" above for why ``name`` stays readonly on an
+        # unsaved Form.
         values:
-          voucher_code: "ONCHANGE-002"
           date_start: 2024-07-01
           type_id: "REC: ptype"
         asserts:
@@ -306,7 +312,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "REFDISC-001"
+          name: "REFDISC-001"
           type_id: "REC: ptype.id"
       - step: "Assert referrer discount inherited from type"
         action: "assert"
@@ -326,7 +332,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_explicit"
         values:
-          voucher_code: "REFDISC-002"
+          name: "REFDISC-002"
           type_id: "REC: ptype.id"
           referrer_discount_amount: 175000.0
       - step: "Assert explicit referrer amount is not overridden"
@@ -356,8 +362,10 @@ scenarios:
         action: "form"
         model: "promotion_code"
         save: false
+        # No document number here: see "Onchange type_id sets discount
+        # and usage limit" above for why ``name`` stays readonly on an
+        # unsaved Form.
         values:
-          voucher_code: "ONCHANGE-003"
           type_id: "REC: ptype"
         asserts:
           referrer_discount_type:

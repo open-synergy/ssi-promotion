@@ -131,7 +131,7 @@ class TestPromotionCodeUsageRecognition(YamlTransactionCase):
         referrer = self.env["res.partner"].create({"name": "Recognition Referrer"})
         code = self.env["promotion_code"].create(
             {
-                "voucher_code": "RECOG-LINE-001",
+                "name": "RECOG-LINE-001",
                 "type_id": ptype.id,
                 "partner_id": referrer.id,
             }

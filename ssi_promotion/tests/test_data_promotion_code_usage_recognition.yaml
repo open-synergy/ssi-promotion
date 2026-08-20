@@ -70,7 +70,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "RECOG-001"
+          name: "RECOG-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -383,7 +383,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code_immediate"
         values:
-          voucher_code: "RECOG-IMM-001"
+          name: "RECOG-IMM-001"
           type_id: "REC: ptype_immediate.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -504,7 +504,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code3"
         values:
-          voucher_code: "RECOG-2S-001"
+          name: "RECOG-2S-001"
           type_id: "REC: ptype3.id"
           partner_id: "REC: referrer3.id"
           user_id: "REF: base.user_admin"
@@ -743,7 +743,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code4"
         values:
-          voucher_code: "RECOG-MIX-001"
+          name: "RECOG-MIX-001"
           type_id: "REC: ptype4.id"
           partner_id: "REC: referrer4.id"
           user_id: "REF: base.user_admin"
@@ -965,7 +965,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code5"
         values:
-          voucher_code: "RECOG-IMM2-001"
+          name: "RECOG-IMM2-001"
           type_id: "REC: ptype5.id"
           partner_id: "REC: referrer5.id"
           user_id: "REF: base.user_admin"
@@ -1087,7 +1087,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code6"
         values:
-          voucher_code: "RECOG-LOST-001"
+          name: "RECOG-LOST-001"
           type_id: "REC: ptype6.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"

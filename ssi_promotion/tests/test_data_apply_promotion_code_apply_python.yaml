@@ -69,7 +69,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP1-001"
+          name: "APPCP1-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -212,7 +212,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP2-001"
+          name: "APPCP2-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -347,7 +347,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP3-001"
+          name: "APPCP3-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -489,7 +489,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP4-001"
+          name: "APPCP4-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
           partner_id: "REC: referrer.id"
@@ -656,7 +656,7 @@ scenarios:
             result = (
                 bool(env.user)
                 and document.partner_id.name == "Apply Python Context Customer"
-                and promotion_code.voucher_code == "APPCP5-001"
+                and promotion_code.name == "APPCP5-001"
                 and promotion_type.discount_amount == 50000.0
             )
             message = "The context handed to the block was not what it expected"
@@ -675,7 +675,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP5-001"
+          name: "APPCP5-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
@@ -743,7 +743,7 @@ scenarios:
         target: "ptype"
         values:
           apply_python_code: |
-            result = promotion_code.voucher_code == "APPCP5-SOMEBODY-ELSE"
+            result = promotion_code.name == "APPCP5-SOMEBODY-ELSE"
             message = "The context handed to the block was not what it expected"
       - step: "Now the comparison fails, proving it really read promotion_code"
         action: "wizard"
@@ -832,7 +832,7 @@ scenarios:
         model: "promotion_code"
         save_as: "code"
         values:
-          voucher_code: "APPCP6-001"
+          name: "APPCP6-001"
           type_id: "REC: ptype.id"
           user_id: "REF: base.user_admin"
       - step: "Confirm promotion code"
