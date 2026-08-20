@@ -263,9 +263,115 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         cls.usage_reject.with_user(cls.admin).action_confirm()
         cls.usage_reject.invalidate_cache()
 
-        # IK Pre-Condition of 09-finish: Status is Open.
-        cls.usage_finish = cls._create_usage("TOUR-PCU-FINISH")
+        # ── Fixtures for 09-finish / 17-reopen: both transitions are
+        # driven by base.automation off ``recognition_state``, not a
+        # button (see docs/promotion_code_usage/09-finish.md and
+        # 17-reopen.md) -- so the triggering
+        # promotion_code_usage_recognition document is completed (and,
+        # for 17-reopen, then cancelled) here in Python, and the tour
+        # itself only opens the already-transitioned record and reads
+        # its statusbar (odoo-development-ui-test skill,
+        # scope-and-boundaries.md §1 rule 6). This needs its own
+        # Deferred promotion type -- ``cls.promotion_type_pcu`` stays
+        # Immediate since every other tour fixture in this file still
+        # depends on it landing straight on Done.
+        pcu_deferred_account = cls.env["account.account"].create(
+            {
+                "code": "TOURPCUW-DEF",
+                "name": "TOUR PCUW Deferred",
+                "user_type_id": account_type_asset.id,
+            }
+        )
+        promotion_type_pcu_deferred = cls.env["promotion_type"].create(
+            {
+                "name": "TOUR PCUW Deferred Type",
+                "code": "/",
+                "discount_usage_id": income_usage.id,
+                "discount_type": "fixed",
+                "discount_amount": 250.0,
+                "journal_id": pcu_journal.id,
+                "product_id": pcu_product.id,
+                "account_id": pcu_income_account.id,
+                "recognition_method": "deferred",
+                "deferred_account_id": pcu_deferred_account.id,
+                "recognition_journal_id": pcu_journal.id,
+            }
+        )
+        code_pcu_deferred = cls.env["promotion_code"].create(
+            {
+                "voucher_code": "TOUR-PCU-DEF-CODE",
+                "type_id": promotion_type_pcu_deferred.id,
+                "user_id": cls.admin.id,
+            }
+        )
+        cls._run_workflow(code_pcu_deferred)
+        customer_pcu_deferred = cls.env["res.partner"].create(
+            {"name": "TOUR PCU Deferred Customer"}
+        )
+
+        # IK Pre-Condition of 09-finish: Status is Open, Recognition
+        # State is Pending -- reached here, then fully recognized so
+        # the usage moves itself to Done without any button on this
+        # record.
+        cls.usage_finish = cls.env["promotion_code_usage"].create(
+            {
+                "name": "TOUR-PCU-FINISH",
+                "promotion_code_id": code_pcu_deferred.id,
+                "partner_id": customer_pcu_deferred.id,
+                "user_id": cls.admin.id,
+                "deferred_account_id": pcu_deferred_account.id,
+                "recognition_journal_id": pcu_journal.id,
+            }
+        )
         cls._run_workflow(cls.usage_finish)
+        recognition_finish = cls.env["promotion_code_usage_recognition"].create(
+            {
+                "usage_id": cls.usage_finish.id,
+                "date": cls.usage_finish.date,
+                "amount": cls.usage_finish.amount_to_recognize,
+                "journal_id": pcu_journal.id,
+                "user_id": cls.admin.id,
+            }
+        )
+        cls._run_workflow(recognition_finish)
+        cls.usage_finish.invalidate_cache()
+
+        # IK Pre-Condition of 17-reopen: Status is Done, Recognition
+        # State is Recognized -- reached the same way as usage_finish
+        # above, then the recognition is cancelled so the usage moves
+        # itself back to Open without any button on this record.
+        cls.usage_reopen = cls.env["promotion_code_usage"].create(
+            {
+                "name": "TOUR-PCU-REOPEN",
+                "promotion_code_id": code_pcu_deferred.id,
+                "partner_id": customer_pcu_deferred.id,
+                "user_id": cls.admin.id,
+                "deferred_account_id": pcu_deferred_account.id,
+                "recognition_journal_id": pcu_journal.id,
+            }
+        )
+        cls._run_workflow(cls.usage_reopen)
+        recognition_reopen = cls.env["promotion_code_usage_recognition"].create(
+            {
+                "usage_id": cls.usage_reopen.id,
+                "date": cls.usage_reopen.date,
+                "amount": cls.usage_reopen.amount_to_recognize,
+                "journal_id": pcu_journal.id,
+                "user_id": cls.admin.id,
+            }
+        )
+        cls._run_workflow(recognition_reopen)
+        recognition_reopen_cancel_reason = cls.env["base.cancel_reason"].create(
+            {
+                "name": "TOUR PCU Recognition Cancel Reason",
+                "code": "TOURPCURCXL",
+                "global_use": True,
+            }
+        )
+        recognition_reopen.with_user(cls.admin).action_cancel(
+            cancel_reason=recognition_reopen_cancel_reason
+        )
+        cls.usage_reopen.invalidate_cache()
 
         # IK Pre-Condition of 10-cancel: Status is Draft (cancel_ok
         # also allows Waiting for Approval and Open, but Draft is the
@@ -531,6 +637,15 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         """
         self.start_tour(
             "/web", "ssi_promotion_promotion_code_usage_finish", login="admin"
+        )
+
+    def test_reopen(self):
+        """Run the reopen tour for ``promotion_code_usage``.
+
+        IK: docs/promotion_code_usage/17-reopen.md
+        """
+        self.start_tour(
+            "/web", "ssi_promotion_promotion_code_usage_reopen", login="admin"
         )
 
     def test_cancel(self):

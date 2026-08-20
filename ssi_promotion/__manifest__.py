@@ -28,6 +28,7 @@
         "ssi_product_usage_account_type",
         "ssi_m2o_configurator_mixin",
         "web_tour",
+        "base_automation",
     ],
     "data": [
         "security/ir_module_category_data.xml",
@@ -61,6 +62,8 @@
         "policy_template/promotion_code.xml",
         "policy_template/promotion_code_usage.xml",
         "policy_template/promotion_code_usage_recognition.xml",
+        "data/ir_actions_server_data.xml",
+        "data/base_automation_data.xml",
         "menu.xml",
         "views/promotion_type.xml",
         "views/promotion_code.xml",

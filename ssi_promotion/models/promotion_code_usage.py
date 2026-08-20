@@ -376,10 +376,11 @@ class PromotionCodeUsage(models.Model):
         store=True,
         compute_sudo=True,
         help="Progress releasing this usage's own 'Amount To "
-        "Recognize'. 'Not Applicable' while 'Recognition Method' is "
-        "Immediate; otherwise 'Pending' until the first Done "
-        "recognition, 'Partially Recognized' until 'Amount "
-        "Recognized' reaches 'Amount To Recognize', then "
+        "Recognize'. 'Not Applicable' while 'Amount To Recognize' is "
+        "zero -- neither side is Deferred, or a Deferred side's own "
+        "discount amount is zero; otherwise 'Pending' until the "
+        "first Done recognition, 'Partially Recognized' until "
+        "'Amount Recognized' reaches 'Amount To Recognize', then "
         "'Recognized'.",
     )
     recognition_ids = fields.One2many(
@@ -759,7 +760,6 @@ class PromotionCodeUsage(models.Model):
             )
 
     @api.depends(
-        "recognition_method",
         "amount_to_recognize",
         "amount_recognized",
     )
@@ -774,13 +774,21 @@ class PromotionCodeUsage(models.Model):
     def _get_recognition_state(self):
         """Resolve this usage's own recognition progress state.
 
+        Read from 'Amount To Recognize' / 'Amount Recognized' instead
+        of 'Recognition Method', so a usage whose voucher user side is
+        Immediate but referrer side is Deferred (or the other way
+        round) is not mistakenly reported 'Not Applicable' while it
+        still has a non-zero amount left to release -- see
+        ``_compute_amount_to_recognize``, which already sums only the
+        sides whose own method is Deferred.
+
         :return: ``'not_applicable'``, ``'pending'``, ``'partial'``,
             or ``'recognized'``
         """
         self.ensure_one()
-        if self.recognition_method != "deferred":
-            return "not_applicable"
         precision = self.env.company.currency_id.decimal_places
+        if float_is_zero(self.amount_to_recognize, precision_digits=precision):
+            return "not_applicable"
         if float_is_zero(self.amount_recognized, precision_digits=precision):
             return "pending"
         if (
@@ -2218,6 +2226,41 @@ account fallback) on the promotion type, or 'Deferred Account' while \
                 "referrer_receivable_move_line_id": False,
             }
         )
+
+    # N. Auto-Transition Confirm -> Done (override action_open)
+    def action_open(self):
+        """Open this usage, then finish it on the spot when nothing is
+        left deferred.
+
+        Overrides ``mixin.transaction_open`` so a usage with no
+        Deferred side (voucher user and referrer both Immediate, or
+        referrer-less with an Immediate voucher user) never stalls in
+        'Open' waiting for a manual 'Done' click. Calls ``super()``
+        first so every post-open hook (accounting entry creation &
+        posting, allocation reconciliation, sequence numbering) runs
+        before 'Recognition State' is read -- a ``base.automation``
+        watching this transition would fire *inside* ``write()``,
+        before those hooks run (see
+        ``patterns/auto-transition-data.md``), so this direction
+        cannot use the data-driven pattern used by the Open <-> Done
+        transition below. Safe to call a second time (the Done <->
+        Open ``base.automation`` reuses this very method to reopen):
+        every post-open hook is idempotent, and
+        ``mixin.sequence._create_sequence`` keeps an already assigned
+        number.
+
+        Runs with 'Recognition State' already reflecting the correct
+        side amounts, since ``amount_to_recognize`` only depends on
+        'Discount Amount' / 'Referrer Discount Amount' and each
+        side's own recognition method -- none of which the post-open
+        hooks change.
+
+        :return: nothing
+        """
+        super().action_open()
+        for record in self.sudo():
+            if record.recognition_state == "not_applicable":
+                record.action_done()
 
     # J. Insert Form Element Decorator
     @ssi_decorator.insert_on_form_view()

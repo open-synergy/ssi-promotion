@@ -587,7 +587,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert only the customer accounting entry was issued"
         action: "assert"
         target: "usage"
@@ -795,7 +795,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert the accounting entry receivable line is fully reconciled"
         action: "assert"
         target: "usage"
@@ -980,7 +980,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the allocation row created for this usage"
         action: "search"
         model: "promotion_code_usage_allocation"

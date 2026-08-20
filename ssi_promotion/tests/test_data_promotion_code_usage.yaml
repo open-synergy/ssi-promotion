@@ -169,7 +169,13 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
+          recognition_state:
+            type: "value"
+            expected: "not_applicable"
+          amount_to_recognize:
+            type: "value"
+            expected: 0.0
       - step: "Assert customer accounting entry created"
         action: "assert"
         target: "usage"
@@ -649,7 +655,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert both accounting entries created"
         action: "assert"
         target: "usage"
@@ -730,6 +736,10 @@ scenarios:
         action: "ref"
         xml_id: "account.data_account_type_revenue"
         save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
       - step: "Create income account"
         action: "create"
         model: "account.account"
@@ -738,6 +748,14 @@ scenarios:
           code: "PROMO-CANCEL"
           name: "Promotion Cancel Income"
           user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PROMO-CANCEL-DEF"
+          name: "Promotion Cancel Deferred Asset"
+          user_type_id: "REC: deferred_acc_type.id"
       - step: "Create sales journal"
         action: "create"
         model: "account.journal"
@@ -761,7 +779,9 @@ scenarios:
         save_as: "referrer"
         values:
           name: "Cancel Flow Referrer"
-      - step: "Create promotion type"
+      - step:
+          "Create promotion type (Deferred: this scenario needs the usage to stay Open
+          long enough to be cancelled through the wizard)"
         action: "create"
         model: "promotion_type"
         save_as: "ptype"
@@ -775,6 +795,8 @@ scenarios:
           discount_amount: 2500.0
           journal_id: "REC: journal.id"
           product_id: "REC: product.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
       - step: "Create promotion code with referrer"
         action: "create"
         model: "promotion_code"
@@ -888,6 +910,7 @@ scenarios:
         values:
           promotion_code_id: "REC: code.id"
           partner_id: "REC: customer.id"
+          deferred_account_id: "REC: deferred_account.id"
           # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
           user_id: "REF: base.user_admin"
           allocation_ids:
@@ -926,6 +949,9 @@ scenarios:
           state:
             type: "value"
             expected: "open"
+          recognition_state:
+            type: "value"
+            expected: "pending"
       - step: "Assert both accounting entries exist and are posted before cancel"
         action: "assert"
         target: "usage"
@@ -1480,7 +1506,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -1980,7 +2006,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Create second usage"
         action: "create"
         model: "promotion_code_usage"
@@ -2401,7 +2427,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert no customer accounting entry was issued"
         action: "assert"
         target: "usage"
@@ -2574,7 +2600,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert customer accounting entry created"
         action: "assert"
         target: "usage"
@@ -2866,7 +2892,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -3107,7 +3133,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -3333,7 +3359,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -3565,7 +3591,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -3873,7 +3899,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the customer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -4181,7 +4207,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Find the referrer accounting entry's own discount line"
         action: "search"
         model: "account.move.line"
@@ -4600,7 +4626,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert both accounting entries total the same amount"
         action: "assert"
         target: "usage"
@@ -4837,7 +4863,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert each accounting entry totals its own side's amount"
         action: "assert"
         target: "usage"
@@ -5322,7 +5348,7 @@ scenarios:
         asserts:
           state:
             type: "value"
-            expected: "open"
+            expected: "done"
       - step: "Assert only the customer accounting entry was issued"
         action: "assert"
         target: "usage"
@@ -6281,6 +6307,9 @@ scenarios:
           state:
             type: "value"
             expected: "open"
+          recognition_state:
+            type: "value"
+            expected: "pending"
           move_id:
             type: "value"
             operator: "is_truthy"

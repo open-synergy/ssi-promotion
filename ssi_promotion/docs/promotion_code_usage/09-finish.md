@@ -6,7 +6,10 @@
 >
 > **Menu:** Promotion ‣ Usages
 >
-> **Actor:** user in group _Usages — User_
+> **Actor:** system (`base.automation` record `promotion_code_usage_open_2_done`, no
+> user action) — in practice triggered by the user who completes this usage's last
+> pending `promotion_code_usage_recognition` document (see
+> `docs/promotion_code_usage_recognition/05-approve.md`)
 >
 > **State:** `open` → `done`
 >
@@ -15,16 +18,21 @@
 ## Pre-Condition
 
 - **Record:** Status is **Open**.
-- **Config:** The shipped "Standard" `policy.template` for this model grants `done_ok`
-  for state `open` to group _Usages — User_.
-- **Access:** User is in group _Usages — User_.
+- **Record:** **Recognition State** is **Pending** or **Partially Recognized** — this
+  usage still has a deferred side waiting to be released.
 
 ## Flow
 
-1. Open the **Promotion ‣ Usages** menu.
-2. Open the record to finish.
-3. Click the **Done** button.
-4. Click **OK** on the confirmation dialog.
+This transition is triggered automatically by the system. No user action is performed on
+this record itself.
+
+The system automatically changes status to **Done** when this usage's own **Recognition
+State** becomes **Recognized** — that is, once the last
+`promotion_code_usage_recognition` document against this usage reaches Done and **Amount
+Recognized** reaches **Amount To Recognize** (see
+`docs/promotion_code_usage_recognition/05-approve.md`). At that point every deferred
+side of this usage has been fully released, so there is nothing left to wait for and the
+usage finishes on its own.
 
 ## Post-Condition
 

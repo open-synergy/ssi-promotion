@@ -408,12 +408,14 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             },
 
             // Post-Condition — Sole approval level fulfilled: this
-            // document is automatically opened, status jumps straight
-            // to Open.
+            // document is automatically opened, and since it has no
+            // deferred side (Recognition State Not Applicable) it
+            // finishes in the very same operation, status landing
+            // straight on Done (docs/promotion_code_usage/05-approve.md).
             {
-                content: "Status is Open",
+                content: "Status is Done",
                 trigger:
-                    ".o_statusbar_status .o_arrow_button[data-value='open'].btn-primary",
+                    ".o_statusbar_status .o_arrow_button[data-value='done'].btn-primary",
                 run: function () {
                     // Assertion only.
                 },
@@ -470,6 +472,14 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
     );
 
     // IK: docs/promotion_code_usage/09-finish.md
+    //
+    // Triggered by base.automation off recognition_state, not a button
+    // (see the IK's own Flow) -- the triggering
+    // promotion_code_usage_recognition document is already completed
+    // in Python (setUpClass), so this tour only opens the
+    // already-finished record and reads its statusbar
+    // (odoo-development-ui-test skill, scope-and-boundaries.md §1
+    // rule 6).
     tour.register(
         "ssi_promotion_promotion_code_usage_finish",
         {
@@ -477,7 +487,8 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             url: "/web",
         },
         [].concat(openUsagesMenuSteps, [
-            // Flow 2 — Open the record to finish.
+            // Flow — Open the record whose deferred side is fully
+            // recognized.
             {
                 content: "Open the record",
                 trigger: ".o_data_row:contains(TOUR-PCU-FINISH) .o_data_cell:first",
@@ -491,25 +502,55 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                 },
             },
 
-            // Flow 3 — Click the Done button.
-            {
-                content: "Click the Done button",
-                trigger: ".o_statusbar_buttons button[name='action_done']",
-                extra_trigger: ".o_form_view",
-            },
-
-            // Flow 4 — Click OK on the confirmation dialog.
-            {
-                content: "Confirm the dialog",
-                trigger: ".modal-footer button.btn-primary",
-                in_modal: true,
-            },
-
-            // Post-Condition — Status changes to Done.
+            // Post-Condition — Status is Done, reached on its own.
             {
                 content: "Status is Done",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='done'].btn-primary",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+        ])
+    );
+
+    // IK: docs/promotion_code_usage/17-reopen.md
+    //
+    // Triggered by base.automation off recognition_state, not a button
+    // (see the IK's own Flow) -- the triggering
+    // promotion_code_usage_recognition document is already completed
+    // and cancelled in Python (setUpClass), so this tour only opens
+    // the already-reopened record and reads its statusbar
+    // (odoo-development-ui-test skill, scope-and-boundaries.md §1
+    // rule 6).
+    tour.register(
+        "ssi_promotion_promotion_code_usage_reopen",
+        {
+            test: true,
+            url: "/web",
+        },
+        [].concat(openUsagesMenuSteps, [
+            // Flow — Open the record whose Done recognition was
+            // cancelled.
+            {
+                content: "Open the record",
+                trigger: ".o_data_row:contains(TOUR-PCU-REOPEN) .o_data_cell:first",
+                extra_trigger: ".o_list_view",
+            },
+            {
+                content: "Record is open",
+                trigger: ".o_form_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+
+            // Post-Condition — Status is back on Open, reached on its
+            // own.
+            {
+                content: "Status is Open",
+                trigger:
+                    ".o_statusbar_status .o_arrow_button[data-value='open'].btn-primary",
                 run: function () {
                     // Assertion only.
                 },

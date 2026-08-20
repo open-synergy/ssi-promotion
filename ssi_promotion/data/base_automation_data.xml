@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="promotion_code_usage_open_2_done" model="base.automation">
+    <field name="action_server_id" ref="promotion_code_usage_action_done" />
+    <field name="trigger">on_write</field>
+    <field
+            name="filter_pre_domain"
+        >[('state','=','open'),('recognition_state','in',['pending','partial'])]</field>
+    <field
+            name="filter_domain"
+        >[('state','=','open'),('recognition_state','in',['not_applicable','recognized'])]</field>
+</record>
+
+<record id="promotion_code_usage_done_2_open" model="base.automation">
+    <field name="action_server_id" ref="promotion_code_usage_action_open" />
+    <field name="trigger">on_write</field>
+    <field
+            name="filter_pre_domain"
+        >[('state','=','done'),('recognition_state','in',['not_applicable','recognized'])]</field>
+    <field
+            name="filter_domain"
+        >[('state','=','done'),('recognition_state','in',['pending','partial'])]</field>
+</record>
+</odoo>
