@@ -31,14 +31,6 @@ class PromotionCode(models.Model):
         "mixin.transaction_date_duration",
     ]
 
-    _sql_constraints = [
-        (
-            "voucher_code_unique",
-            "unique(voucher_code)",
-            "Voucher code must be unique!",
-        ),
-    ]
-
     # A. Multiple Approval Attributes
     _approval_from_state = "draft"
     _approval_to_state = "open"
@@ -85,13 +77,6 @@ class PromotionCode(models.Model):
     _create_sequence_state = "open"
 
     # F. Field Definitions
-    voucher_code = fields.Char(
-        string="Voucher Code",
-        readonly=True,
-        states={"draft": [("readonly", False)]},
-        help="Code the customer redeems to use this promotion. Must be "
-        "unique across all promotion codes.",
-    )
     type_id = fields.Many2one(
         string="Promotion Type",
         comodel_name="promotion_type",

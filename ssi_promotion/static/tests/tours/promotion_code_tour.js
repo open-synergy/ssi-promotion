@@ -188,7 +188,12 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             url: "/web",
         },
         [].concat(openCodesMenuSteps, [
-            // Flow 2 — Open the record to delete.
+            // Flow 2 — Find the record by its Referrer, then open it.
+            // The document number column cannot be used here: this
+            // fixture's is still "/" (Pre-Condition), rendered
+            // "*<id>" by name_get() -- "TOUR-PC-DELETE" below matches
+            // the Referrer column instead (test_ui_promotion_code.py,
+            // cls.delete_referrer).
             {
                 content: "Open the record",
                 trigger: ".o_data_row:contains(TOUR-PC-DELETE) .o_data_cell:first",

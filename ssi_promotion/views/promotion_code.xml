@@ -14,7 +14,6 @@
     <field name="arch" type="xml">
         <data>
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="voucher_code" />
                 <field name="type_id" />
                 <field name="partner_id" />
             </xpath>
@@ -42,7 +41,6 @@
     <field name="arch" type="xml">
         <data>
             <xpath expr="//field[@name='company_id']" position="after">
-                <field name="voucher_code" />
                 <field name="type_id" />
                 <field name="partner_id" />
                 <field name="date_start" />
@@ -62,7 +60,6 @@
     <field name="arch" type="xml">
         <data>
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="voucher_code" />
                 <field name="type_id" />
                 <field name="partner_id" />
             </xpath>
