@@ -487,7 +487,46 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             url: "/web",
         },
         [].concat(openUsagesMenuSteps, [
-            // Flow — Open the record whose deferred side is fully
+            // Flow 2 — Remove the default state filter facet from the
+            // search bar. The default view (search_default_dom_draft/
+            // confirm/open on promotion_code_usage_action) only shows
+            // Draft, Waiting for Approval, and Open documents -- this
+            // tour's own fixture is already Done by the time it is
+            // created (base.automation fired in setUpClass, see the
+            // note above), so it stays hidden until that facet is
+            // removed. Same idiom as promotion_code_usage_tour.js's
+            // own 12-restart tour (odoo-development-ui-test,
+            // patterns.md §I/§J -- avoid the Owl FilterMenu dropdown):
+            // wait for a default-filtered row to prove the list has
+            // settled, then remove the facet chip and wait for it to
+            // actually be gone before relying on the list containing
+            // every state.
+            {
+                content: "Default-filtered list has settled",
+                trigger: ".o_data_row:contains(TOUR-PCU-EDIT)",
+                extra_trigger: ".o_list_view",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+            {
+                content:
+                    "Remove the default state filter to reveal " + "Done documents",
+                trigger: ".o_searchview_facet .o_facet_remove",
+                run: "click",
+            },
+            {
+                // Gerbang: don't just assume the click "took" -- wait
+                // for the facet chip to actually be gone before relying
+                // on the list containing every state.
+                content: "Default state filter is removed",
+                trigger: "body:not(:has(.o_searchview_facet))",
+                run: function () {
+                    // Assertion only.
+                },
+            },
+
+            // Flow 3 — Open the record whose deferred side is fully
             // recognized.
             {
                 content: "Open the record",
