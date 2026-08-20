@@ -6362,3 +6362,440 @@ scenarios:
           debit:
             type: "value"
             expected: 25000.0
+
+  - name:
+      "Cancelling a Done Immediate usage with no recognition deletes the accounting
+      entry"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-DONECANC"
+          name: "Promotion Done Cancel Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Done Cancel Sales Journal"
+          code: "PROMODONEC"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Done Cancel Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step:
+          "Create immediate promotion type (no deferred side: this scenario needs the
+          usage to land on Done by itself, with no manual Done button left to press)"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Done Cancel Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 1500.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "immediate"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-DONECANC-001"
+          type_id: "REC: ptype.id"
+          # WAJIB: lihat catatan T-05 pada skenario "Fixed discount usage
+          # approval creates customer accounting entry" di atas.
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh code before approval (fresh policy field read)"
+        action: "assert"
+        target: "code"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Done Cancel Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Done Cancel Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          # WAJIB: lihat catatan T-05 pada "Create promotion code" di atas.
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Refresh usage before approval (fresh policy field read)"
+        action: "assert"
+        target: "usage"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step:
+          "Approve usage -- lands on Done by itself, no Done button, no recognition ever
+          created"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          recognition_state:
+            type: "value"
+            expected: "not_applicable"
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+      - step: "Create the cancellation reason"
+        action: "create"
+        model: "base.cancel_reason"
+        save_as: "reason"
+        values:
+          name: "Done Cancel Reason"
+          code: "PCUDONECANC"
+      - step: "Cancel the Done usage via the wizard"
+        action: "wizard"
+        model: "base.select_cancel_reason"
+        target: "usage"
+        as_user: "base.user_admin"
+        values:
+          cancel_reason_id: "REC: reason.id"
+        method: "action_confirm"
+        asserts:
+          state:
+            type: "value"
+            expected: "cancel"
+      - step: "Assert the accounting entry and its journal item field are cleared"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          move_id:
+            type: "value"
+            operator: "is_falsy"
+          receivable_move_line_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "Cancelling a Done Deferred usage that already has a recognition is rejected"
+    steps:
+      - step: "Get revenue account type"
+        action: "ref"
+        xml_id: "account.data_account_type_revenue"
+        save_as: "acc_type"
+      - step: "Get current assets account type"
+        action: "ref"
+        xml_id: "account.data_account_type_current_assets"
+        save_as: "deferred_acc_type"
+      - step: "Create income account"
+        action: "create"
+        model: "account.account"
+        save_as: "income_account"
+        values:
+          code: "PROMO-RECBLOCK"
+          name: "Promotion Recognition Block Income"
+          user_type_id: "REC: acc_type.id"
+      - step: "Create deferred account"
+        action: "create"
+        model: "account.account"
+        save_as: "deferred_account"
+        values:
+          code: "PROMO-RECBLOCK-D"
+          name: "Promotion Recognition Block Deferred"
+          user_type_id: "REC: deferred_acc_type.id"
+      - step: "Create sales journal"
+        action: "create"
+        model: "account.journal"
+        save_as: "journal"
+        values:
+          name: "Promotion Recognition Block Sales Journal"
+          code: "PROMORECBLK"
+          type: "sale"
+          company_id: "REC: company.id"
+      - step: "Create discount product"
+        action: "create"
+        model: "product.product"
+        save_as: "product"
+        values:
+          name: "Promotion Recognition Block Product"
+          type: "service"
+          property_account_income_id: "REC: income_account.id"
+      - step: "Create deferred promotion type"
+        action: "create"
+        model: "promotion_type"
+        save_as: "ptype"
+        values:
+          name: "Recognition Block Type"
+          code: "/"
+          discount_usage_id:
+            "REF: ssi_product_usage_account_type.product_usage_type_income"
+          account_id: "REC: income_account.id"
+          discount_type: "fixed"
+          discount_amount: 6000.0
+          journal_id: "REC: journal.id"
+          product_id: "REC: product.id"
+          recognition_method: "deferred"
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+      - step: "Create promotion code"
+        action: "create"
+        model: "promotion_code"
+        save_as: "code"
+        values:
+          voucher_code: "USAGE-RECBLOCK-001"
+          type_id: "REC: ptype.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm promotion code"
+        action: "call"
+        target: "code"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve promotion code"
+        action: "call"
+        target: "code"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+      - step: "Create customer partner"
+        action: "create"
+        model: "res.partner"
+        save_as: "customer"
+        values:
+          name: "Recognition Block Customer"
+      - step: "Create a posted receivable invoice for the customer"
+        action: "create"
+        model: "account.move"
+        save_as: "recv_invoice"
+        values:
+          move_type: "out_invoice"
+          partner_id: "REC: customer.id"
+          journal_id: "REC: journal.id"
+          invoice_line_ids:
+            - - 0
+              - 0
+              - product_id: "REC: product.id"
+                quantity: 1
+                price_unit: 100000.0
+                name: "Recognition Block Customer Allocation Line"
+                account_id: "REC: income_account.id"
+      - step: "Post the customer receivable invoice"
+        action: "call"
+        target: "recv_invoice"
+        method: "action_post"
+        as_user: "base.user_admin"
+      - step: "Find the customer invoice's own receivable line"
+        action: "search"
+        model: "account.move.line"
+        domain:
+          [
+            ["move_id", "=", "REC: recv_invoice.id"],
+            ["account_id.internal_type", "=", "receivable"],
+          ]
+        save_as: "recv_move_line"
+        limit: 1
+        expect_count: 1
+      - step: "Create deferred promotion code usage"
+        action: "create"
+        model: "promotion_code_usage"
+        save_as: "usage"
+        values:
+          promotion_code_id: "REC: code.id"
+          partner_id: "REC: customer.id"
+          date: 2024-07-01
+          deferred_account_id: "REC: deferred_account.id"
+          recognition_journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+          allocation_ids:
+            - - 0
+              - 0
+              - sequence: 10
+                source: "customer"
+                move_line_id: "REC: recv_move_line.id"
+      - step: "Confirm usage"
+        action: "call"
+        target: "usage"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve usage"
+        action: "call"
+        target: "usage"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+          recognition_state:
+            type: "value"
+            expected: "pending"
+          move_id:
+            type: "value"
+            operator: "is_truthy"
+      - step: "Create the full recognition"
+        action: "create"
+        model: "promotion_code_usage_recognition"
+        save_as: "recognition_full"
+        values:
+          usage_id: "REC: usage.id"
+          date: 2024-07-10
+          amount: 6000.0
+          journal_id: "REC: journal.id"
+          user_id: "REF: base.user_admin"
+      - step: "Confirm the full recognition"
+        action: "call"
+        target: "recognition_full"
+        method: "action_confirm"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "confirm"
+      - step: "Approve the full recognition"
+        action: "call"
+        target: "recognition_full"
+        method: "action_approve_approval"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+      - step:
+          "Assert the usage moved itself to Done, fully recognized, with no button
+          pressed"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          recognition_state:
+            type: "value"
+            expected: "recognized"
+      - step: "Create the cancellation reason"
+        action: "create"
+        model: "base.cancel_reason"
+        save_as: "reason"
+        values:
+          name: "Recognition Block Cancel Reason"
+          code: "PCURECBLKCR"
+      - step:
+          "Cancelling the Done usage is rejected -- it already has a recognition
+          document"
+        action: "wizard"
+        model: "base.select_cancel_reason"
+        target: "usage"
+        as_user: "base.user_admin"
+        values:
+          cancel_reason_id: "REC: reason.id"
+        method: "action_confirm"
+        expect_error:
+          type: "UserError"
+          message_contains: "not allowed to cancel"
+      - step:
+          "Assert the usage stayed Done, and its own accounting entry is still intact"
+        action: "assert"
+        target: "usage"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          move_id.state:
+            type: "value"
+            expected: "posted"
