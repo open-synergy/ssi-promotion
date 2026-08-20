@@ -331,6 +331,46 @@ Recognition Method, is 'Deferred'
             recognition_line._create_standard_ml()
         self._post_standard_move()
 
+    @ssi_decorator.post_done_action()
+    def _20_trigger_usage_recognition_completed(self):
+        """Force the related usage's own 'Recognition Completed' to be
+        recomputed now, in this same transaction.
+
+        'Recognition Completed' (promotion_code_usage.py) is a stored
+        computed field whose only trigger this document's own write
+        touches is cross-model (``recognition_ids.state``/
+        ``recognition_ids.amount``). Odoo's ORM marks it "to compute"
+        as soon as this document reaches Done, but a stored computed
+        field is recomputed *lazily* -- only once something actually
+        reads it. Reading a plain, non-computed field on the usage
+        (such as 'Status' itself) does NOT force it: the ORM's own
+        prefetch batching deliberately EXCLUDES fields still pending
+        computation from an unrelated field's own batch read (see
+        Field.__get__ / BaseModel._fetch_field in odoo/fields.py and
+        odoo/models.py), precisely so that reading one field never
+        accidentally cascades into recomputing unrelated ones. Left
+        alone, nothing in this transaction ever forces 'Recognition
+        Completed' to run again, so the
+        promotion_code_usage_open_2_done base.automation record --
+        itself wired through the ORM's own per-field recompute hook,
+        ``BaseModel._compute_field_value`` (see
+        base_automation.py's ``make_compute_field_value``) -- never
+        gets the chance to observe the transition and never fires
+        (open-synergy/ssi-promotion#72, confirmed empirically: an
+        instrumented local run showed the automation's write/compute
+        hooks firing normally for every other write on this model,
+        but never once for 'Recognition Completed' past this
+        document's own approval).
+
+        Reading the field directly, instead, DOES force its own
+        recompute (``Field.__get__`` recomputes the field being
+        accessed unconditionally) -- which is exactly what a plain
+        ``mapped()`` read for its side effect buys here.
+
+        :return: nothing
+        """
+        self.mapped("usage_id").mapped("recognition_completed")
+
     def _get_deferred_line_types(self):
         """List the sides of the usage this document has to release.
 
@@ -473,6 +513,18 @@ Recognition Method') on the usage back to 'Deferred'
         """
         self.ensure_one()
         self.recognition_line_ids.unlink()
+
+    @ssi_decorator.post_cancel_action()
+    def _30_trigger_usage_recognition_completed(self):
+        """See ``_20_trigger_usage_recognition_completed`` -- same
+        rationale, for the Done -> Open direction
+        (promotion_code_usage_done_2_open) once this document's own
+        posted move and Recognition Lines are gone and 'Amount
+        Recognized' drops again.
+
+        :return: nothing
+        """
+        self.mapped("usage_id").mapped("recognition_completed")
 
     @ssi_decorator.insert_on_form_view()
     def _insert_form_element(self, view_arch):

@@ -44,12 +44,20 @@
 - If there are still pending approval levels, status remains **Waiting for Approval**
   and the next level becomes pending.
 - If all approval levels are fulfilled, this document is automatically opened: status
-  changes straight to **Open**. There is no separate manual "Start" step — the
-  transition happens as soon as the last approval level is fulfilled. A customer
-  accounting entry (a plain journal entry) is created and posted for **Voucher User** at
-  the same time (and a referrer accounting entry as well, if **Promotion Code** has a
-  referrer), so **Customer Accounting Entry** already shows status **Posted** and its
-  own receivable journal item is stored on this document. Each row on the **Allocation**
-  tab is then reconciled against its own **Source**'s accounting entry, in **Sequence**
-  order, until that accounting entry runs out of residual — rows reached afterwards keep
-  an empty **Partial Reconcile**.
+  first moves to **Open**. There is no separate manual "Start" step — the transition
+  happens as soon as the last approval level is fulfilled. A customer accounting entry
+  (a plain journal entry) is created and posted for **Voucher User** at the same time
+  (and a referrer accounting entry as well, if **Promotion Code** has a referrer), so
+  **Customer Accounting Entry** already shows status **Posted** and its own receivable
+  journal item is stored on this document. Each row on the **Allocation** tab is then
+  reconciled against its own **Source**'s accounting entry, in **Sequence** order, until
+  that accounting entry runs out of residual — rows reached afterwards keep an empty
+  **Partial Reconcile**. From there, status lands on one of two branches depending on
+  whether this usage has a deferred side:
+  - **No deferred side** (**Recognition State** is **Not Applicable** — neither side's
+    own **Recognition Method** is Deferred): status moves straight on to **Done**, in
+    the same operation. There is no separate "Finish" step to wait for.
+  - **Has a deferred side** (**Recognition State** is **Pending**): status stops at
+    **Open**. It moves on to **Done** by itself only once every deferred side has been
+    fully released by one or more `promotion_code_usage_recognition` documents — see
+    `docs/promotion_code_usage/09-finish.md`.

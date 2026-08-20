@@ -179,11 +179,16 @@ scenarios:
           move_id:
             type: "value"
             operator: "is_truthy"
-      - step: "Assert the usage is fully recognized"
+      - step:
+          "Assert the usage is fully recognized and has moved itself to Done, with no
+          button pressed"
         action: "assert"
         target: "usage"
         refresh: true
         asserts:
+          state:
+            type: "value"
+            expected: "done"
           amount_deferred:
             type: "value"
             expected: 0.0
@@ -221,11 +226,16 @@ scenarios:
             type: "o2m"
             check: "count"
             expected_count: 0
-      - step: "Assert the usage reflects the cancellation"
+      - step:
+          "Assert the usage reflects the cancellation and has reopened itself, with no
+          button pressed"
         action: "assert"
         target: "usage"
         refresh: true
         asserts:
+          state:
+            type: "value"
+            expected: "open"
           amount_recognized:
             type: "value"
             expected: 0.0
@@ -263,11 +273,14 @@ scenarios:
           state:
             type: "value"
             expected: "done"
-      - step: "Assert the usage is partially recognized"
+      - step: "Assert the usage is partially recognized and stays Open"
         action: "assert"
         target: "usage"
         refresh: true
         asserts:
+          state:
+            type: "value"
+            expected: "open"
           amount_recognized:
             type: "value"
             expected: 4000.0
@@ -631,11 +644,16 @@ scenarios:
           amount:
             type: "value"
             expected: 150000.0
-      - step: "Assert the usage's own Amount Deferred reached zero"
+      - step:
+          "Assert the usage's own Amount Deferred reached zero and it moved itself to
+          Done"
         action: "assert"
         target: "usage3"
         refresh: true
         asserts:
+          state:
+            type: "value"
+            expected: "done"
           amount_recognized:
             type: "value"
             expected: 500000.0
@@ -781,7 +799,8 @@ scenarios:
             expected: "open"
       - step:
           "Assert only the referrer side is waiting to be recognized -- Recognition
-          State still reads the voucher user's own method, which is Immediate"
+          State reads Pending from the amounts, not Not Applicable from the voucher
+          user's own Immediate method"
         action: "assert"
         target: "usage_mixed"
         asserts:
@@ -793,7 +812,7 @@ scenarios:
             expected: 90000.0
           recognition_state:
             type: "value"
-            expected: "not_applicable"
+            expected: "pending"
       - step: "Create the full recognition of the referrer side"
         action: "create"
         model: "promotion_code_usage_recognition"
@@ -865,11 +884,16 @@ scenarios:
           debit_account_id.code:
             type: "value"
             expected: "PCUR-INC4"
-      - step: "Assert the usage's own Amount Deferred reached zero"
+      - step:
+          "Assert the usage's own Amount Deferred reached zero and it moved itself to
+          Done"
         action: "assert"
         target: "usage_mixed"
         refresh: true
         asserts:
+          state:
+            type: "value"
+            expected: "done"
           amount_recognized:
             type: "value"
             expected: 90000.0
