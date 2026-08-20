@@ -335,6 +335,21 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
         )
         cls._run_workflow(recognition_finish)
         cls.usage_finish.invalidate_cache()
+        # Verify the fixture's own Pre-Condition out loud instead of
+        # silently relying on the tour to notice it went wrong (issue
+        # open-synergy/ssi-promotion#72 ronde-3): reading 'state' here
+        # forces the pending 'recognition_completed'/'state' recompute
+        # -- and the base.automation it can trigger -- to settle in
+        # this fixture's own controlled context, the same rhythm the
+        # passing YAML scenario gets for free from its own explicit
+        # `refresh: true` reads between steps.
+        assert cls.usage_finish.state == "done", (
+            "Fixture invariant violated: TOUR-PCU-FINISH should have "
+            "moved itself to Done via the "
+            "promotion_code_usage_open_2_done base.automation once "
+            "its only recognition finished, but its own state still "
+            "reads %r." % cls.usage_finish.state
+        )
 
         # IK Pre-Condition of 17-reopen: Status is Done, Recognition
         # State is Recognized -- reached the same way as usage_finish
@@ -361,6 +376,18 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             }
         )
         cls._run_workflow(recognition_reopen)
+        cls.usage_reopen.invalidate_cache()
+        # Same rationale as usage_finish's own assert above -- and it
+        # also proves the tour below is testing something real: without
+        # it, "Status is Open" after the wizard is equally true whether
+        # the automation ever fired at all (issue #72 ronde-3 note).
+        assert cls.usage_reopen.state == "done", (
+            "Fixture invariant violated: TOUR-PCU-REOPEN should have "
+            "moved itself to Done via the "
+            "promotion_code_usage_open_2_done base.automation once "
+            "its only recognition finished, but its own state still "
+            "reads %r." % cls.usage_reopen.state
+        )
         recognition_reopen_cancel_reason = cls.env["base.cancel_reason"].create(
             {
                 "name": "TOUR PCU Recognition Cancel Reason",
@@ -372,6 +399,13 @@ class TestUiPromotionCodeUsage(HttpSavepointCase):
             cancel_reason=recognition_reopen_cancel_reason
         )
         cls.usage_reopen.invalidate_cache()
+        assert cls.usage_reopen.state == "open", (
+            "Fixture invariant violated: TOUR-PCU-REOPEN should have "
+            "moved itself back to Open via the "
+            "promotion_code_usage_done_2_open base.automation once "
+            "its Done recognition was cancelled, but its own state "
+            "still reads %r." % cls.usage_reopen.state
+        )
 
         # IK Pre-Condition of 10-cancel: Status is Draft (cancel_ok
         # also allows Waiting for Approval and Open, but Draft is the
