@@ -11,18 +11,44 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             trigger: '.o_app[data-menu-xmlid="ssi_promotion.menu_root_promotion"]',
         },
         {
+            // "Codes" is the first child (lowest sequence) of the
+            // Promotion app root (menu_root_promotion), so it is the
+            // app's own landing action: opening the app already loaded
+            // it once, and this click reloads the IDENTICAL action a
+            // second time. Every content-based gate after it (active
+            // breadcrumb, data row present) is therefore tautological
+            // -- already true from the first render, never able to go
+            // false -- so a synthetic marker is planted here instead
+            // (odoo-development-ui-test, patterns-advanced-gotchas.md
+            // §T, stale-marker gate; verified to source 14.0
+            // 2026-08-20: each controller mounts its own ControlPanel
+            // ComponentWrapper as its first child,
+            // abstract_controller.js:92-94, and ActionManager destroys
+            // the old controller on reload, action_manager.js:691-807
+            // -- so the reload always yields a fresh, unmarked
+            // .o_control_panel).
             content: "Open the Codes menu",
             trigger:
                 '.o_menu_sections [data-menu-xmlid="ssi_promotion.promotion_code_menu"]',
+            run: function (actions) {
+                // Instrumentation-only marker; dies with the old
+                // controller. Planted atomically with the click itself
+                // to avoid a race between marking and clicking.
+                $(".o_control_panel").addClass("oe_tour_stale");
+                actions.click();
+            },
         },
         {
-            // Gerbang: tunggu action TUJUAN benar-benar terpasang (nama
-            // action, bukan nama menuitem -- keduanya berbeda di sini:
-            // menuitem "Codes", action "Promotion Codes").
-            content: "Codes list is displayed",
-            trigger:
-                ".o_control_panel .breadcrumb-item.active:contains(Promotion Codes)",
-            extra_trigger: ".o_list_view",
+            // Gerbang jujur: a control panel WITHOUT the marker only
+            // exists once the reload has finished mounting the new
+            // controller (the old, marked one is detached from the
+            // document, so the selector cannot match it). The row
+            // check proves the new controller's data has loaded too --
+            // TOUR-PC-EDIT is a Draft fixture, shown under the default
+            // dom_draft/confirm/open filter.
+            content: "Codes action is remounted",
+            trigger: ".o_control_panel:not(.oe_tour_stale)",
+            extra_trigger: ".o_data_row:contains(TOUR-PC-EDIT)",
             run: function () {
                 // Assertion only; do not trigger the default click action.
             },
@@ -553,16 +579,14 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // confirm/open on promotion_code_action) only shows Draft,
             // Waiting for Approval, and In Progress documents -- a
             // Cancelled document like this tour's fixture stays hidden
-            // until that facet is removed. Removing the facet (instead
-            // of opening the Filters dropdown to toggle a Cancel
-            // filter) avoids the Owl FilterMenu dropdown, whose open
-            // state is not reliably set by a synthetic click in 14.0
-            // (odoo-development-ui-test, patterns.md §I/§J). Here it is
-            // the very first interaction after navigating in, so
-            // explicitly wait for one of the default-filtered rows
-            // (TOUR-PC-EDIT, a Draft fixture) before touching the
-            // facet, to rule out clicking a transient pre-settle
-            // render of the search bar.
+            // until that facet is removed. Here it is the very first
+            // interaction after navigating in, so explicitly wait for
+            // one of the default-filtered rows (TOUR-PC-EDIT, a Draft
+            // fixture) before touching anything in the search bar --
+            // this is now redundant with the stale-marker remount gate
+            // in openCodesMenuSteps above (both key on the same row),
+            // kept as an explicit, self-documenting checkpoint for this
+            // Flow step rather than removed.
             {
                 content: "Default-filtered list has settled",
                 trigger: ".o_data_row:contains(TOUR-PC-EDIT)",
