@@ -509,16 +509,57 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                     // Assertion only.
                 },
             },
+            //
+            // Idiom B (toggle each active filter off through the
+            // Filters dropdown) instead of idiom A (click the facet's
+            // remove icon), per odoo-development-ui-test's patterns-
+            // advanced-gotchas.md §S -- see the fuller root-cause note
+            // on the same swap in promotion_code_tour.js's 12-restart
+            // tour (issue #78: candidate-1, a fresh `$(selector)`
+            // lookup via `actions.click()`, still failed the gate
+            // below 4 of 5 local runs because a `search_default_dom_*`
+            // facet has no "operation settled" signal to gate the
+            // facet-remove click on). Idiom B has zero recorded
+            // failures across 63 files / 18 repos.
             {
-                content:
-                    "Remove the default state filter to reveal " + "Done documents",
-                trigger: ".o_searchview_facet .o_facet_remove",
-                run: "click",
+                content: "Open the Filters menu",
+                trigger: ".o_search_options .o_filter_menu button",
             },
             {
-                // Gerbang: don't just assume the click "took" -- wait
+                // Label = the filter's `string` in
+                // ssi_transaction_mixin's mixin_transaction_views.xml
+                // (dom_draft).
+                content: "Toggle off the Draft filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(Draft)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_confirm_mixin's
+                // mixin_transaction_confirm_templates.xml (dom_confirm).
+                content: "Toggle off the Waiting for Approval filter",
+                trigger:
+                    ".o_filter_menu .dropdown-item:contains(" + "Waiting for Approval)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_open_mixin's
+                // mixin_transaction_open_templates.xml (dom_open).
+                content: "Toggle off the In Progress filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(In Progress)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Gerbang: don't just assume the clicks "took" -- wait
                 // for the facet chip to actually be gone before relying
-                // on the list containing every state.
+                // on the list containing every state. Kept unchanged
+                // from candidate-1 -- this gate works correctly and is
+                // mandatory (odoo-development-ui-test, patterns.md §S).
                 content: "Default state filter is removed",
                 trigger: "body:not(:has(.o_searchview_facet))",
                 run: function () {
@@ -764,11 +805,8 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
             // of opening the Filters dropdown to toggle a Cancel
             // filter) avoids the Owl FilterMenu dropdown, whose open
             // state is not reliably set by a synthetic click in 14.0
-            // (odoo-development-ui-test, patterns.md §I/§J); the facet
-            // chip's remove icon is a plain DOM element with no such
-            // hazard, and this exact idiom is already proven by
-            // promotion_code_tour.js's own 12-restart tour. Here it is
-            // the very first interaction after navigating in, so
+            // (odoo-development-ui-test, patterns.md §I/§J). Here it
+            // is the very first interaction after navigating in, so
             // explicitly wait for one of the default-filtered rows
             // (TOUR-PCU-EDIT, a Draft fixture) before touching the
             // facet, to rule out clicking a transient pre-settle
@@ -781,17 +819,57 @@ odoo.define("ssi_promotion.promotion_code_usage_tour", function (require) {
                     // Assertion only.
                 },
             },
+            //
+            // Idiom B (toggle each active filter off through the
+            // Filters dropdown) instead of idiom A (click the facet's
+            // remove icon), per odoo-development-ui-test's patterns-
+            // advanced-gotchas.md §S -- see the fuller root-cause note
+            // on the same swap in promotion_code_tour.js's 12-restart
+            // tour (issue #78: candidate-1, a fresh `$(selector)`
+            // lookup via `actions.click()`, still failed the gate
+            // below 4 of 5 local runs because a `search_default_dom_*`
+            // facet has no "operation settled" signal to gate the
+            // facet-remove click on). Idiom B has zero recorded
+            // failures across 63 files / 18 repos.
             {
-                content:
-                    "Remove the default state filter to reveal " +
-                    "Cancelled documents",
-                trigger: ".o_searchview_facet .o_facet_remove",
-                run: "click",
+                content: "Open the Filters menu",
+                trigger: ".o_search_options .o_filter_menu button",
             },
             {
-                // Gerbang: don't just assume the click "took" -- wait
+                // Label = the filter's `string` in
+                // ssi_transaction_mixin's mixin_transaction_views.xml
+                // (dom_draft).
+                content: "Toggle off the Draft filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(Draft)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_confirm_mixin's
+                // mixin_transaction_confirm_templates.xml (dom_confirm).
+                content: "Toggle off the Waiting for Approval filter",
+                trigger:
+                    ".o_filter_menu .dropdown-item:contains(" + "Waiting for Approval)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Label = ssi_transaction_open_mixin's
+                // mixin_transaction_open_templates.xml (dom_open).
+                content: "Toggle off the In Progress filter",
+                trigger: ".o_filter_menu .dropdown-item:contains(In Progress)",
+                run: function () {
+                    this.$anchor[0].click();
+                },
+            },
+            {
+                // Gerbang: don't just assume the clicks "took" -- wait
                 // for the facet chip to actually be gone before relying
-                // on the list containing every state.
+                // on the list containing every state. Kept unchanged
+                // from candidate-1 -- this gate works correctly and is
+                // mandatory (odoo-development-ui-test, patterns.md §S).
                 content: "Default state filter is removed",
                 trigger: "body:not(:has(.o_searchview_facet))",
                 run: function () {
