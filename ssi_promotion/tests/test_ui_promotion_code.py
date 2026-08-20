@@ -48,18 +48,18 @@ class TestUiPromotionCode(HttpSavepointCase):
         # document number is still "/" (see docs/promotion_code/
         # 03-delete.md) -- ``unlink()`` refuses any other value
         # (``_check_document_number_unlink``). ``_create_code`` below
-        # always sets ``name`` explicitly, so this one fixture is
-        # built inline instead, keeping the search text the tour
-        # looks for on the now-otherwise-unused ``voucher_code``
-        # field. EXCLUDED from the voucher_code -> name migration
-        # (open-synergy/ssi-promotion#70) for this reason; lifted
-        # once ``voucher_code`` itself is removed and the delete tour
-        # is revised to match (open-synergy/ssi-promotion#67).
+        # always sets ``name`` explicitly, so this fixture is built
+        # inline instead, with a dedicated Referrer partner whose name
+        # is the text the tour searches for -- the document number
+        # itself cannot be used to locate the row: it stays "/" and
+        # ``name_get()`` renders it "*<id>" (mixin.transaction), never
+        # the literal "/".
+        cls.delete_referrer = cls.env["res.partner"].create({"name": "TOUR-PC-DELETE"})
         cls.code_delete = cls.env["promotion_code"].create(
             {
-                "voucher_code": "TOUR-PC-DELETE",
                 "type_id": cls.promotion_type.id,
                 "user_id": cls.admin.id,
+                "partner_id": cls.delete_referrer.id,
             }
         )
         cls.code_confirm = cls._create_code("TOUR-PC-CONFIRM")

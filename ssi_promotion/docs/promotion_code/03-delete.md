@@ -14,12 +14,14 @@
 
 - **Record:** Status is **Draft**.
 - **Record:** Document number is still **/** (not yet generated).
+- **Record:** Referrer is set, so the record can be located in the list while its
+  document number is still **/**.
 - **Access:** User is in group _Codes — User_.
 
 ## Flow
 
 1. Open the **Promotion ‣ Codes** menu.
-2. Open the record to delete.
+2. Find the record by its **Referrer**, then open it.
 3. Click **Action** > **Delete**.
 4. Click **OK** on the confirmation dialog.
 
