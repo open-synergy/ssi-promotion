@@ -212,9 +212,16 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // After delete, 14.0 can display the NEXT record in the
             // list instead of returning to the list itself. Click the
             // breadcrumb explicitly before asserting the list.
+            //
+            // Gerbang modal-tertutup (odoo-development-ui-test,
+            // patterns.md §K): this is the first step polled after the
+            // confirmation dialog closes, so it is exposed to the same
+            // FieldWrapper re-render race as a bare Post-Condition
+            // assertion would be.
             {
                 content: "Click the Promotion Codes breadcrumb",
                 trigger: ".breadcrumb-item.o_back_button a:contains(Promotion Codes)",
+                extra_trigger: "body:not(:has(.modal))",
             },
 
             // Post-Condition — Back on the list, without the record.
@@ -265,10 +272,19 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             },
 
             // Post-Condition — Status changes to Waiting for Approval.
+            //
+            // Gerbang modal-tertutup (odoo-development-ui-test,
+            // patterns.md §K): without this, the tour engine starts
+            // polling the statusbar the instant the modal leaves the
+            // DOM, while the form (including the statusbar
+            // FieldWrapper) is still mid-re-render from the RPC
+            // response -- see structure-and-runner.md's
+            // "Cannot set properties of null (setting 'props')" entry.
             {
                 content: "Status is Waiting for Approval",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='confirm'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -315,10 +331,13 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // Post-Condition — Sole approval level fulfilled: this
             // document is automatically opened, status jumps straight
             // to Open.
+            // Gerbang modal-tertutup (patterns.md §K) -- same
+            // FieldWrapper re-render race as the confirm tour above.
             {
                 content: "Status is Open",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='open'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -363,10 +382,14 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             },
 
             // Post-Condition — Status changes to Rejected.
+            //
+            // Gerbang modal-tertutup (patterns.md §K) -- same
+            // FieldWrapper re-render race as the confirm tour above.
             {
                 content: "Status is Rejected",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='reject'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -411,10 +434,14 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             },
 
             // Post-Condition — Status changes to Done.
+            //
+            // Gerbang modal-tertutup (patterns.md §K) -- same
+            // FieldWrapper re-render race as the confirm tour above.
             {
                 content: "Status is Done",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='done'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -495,10 +522,17 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             },
 
             // Post-Condition — Status changes to Cancelled.
+            //
+            // Gerbang modal-tertutup (patterns.md §K), placed on this
+            // FINAL assertion only -- after both stacked modals (the
+            // reason wizard, then its own confirmation dialog) have
+            // closed -- same FieldWrapper re-render race as the
+            // confirm tour above.
             {
                 content: "Status is Cancelled",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='cancel'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -588,10 +622,14 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             },
 
             // Post-Condition — Status returns to Draft.
+            //
+            // Gerbang modal-tertutup (patterns.md §K) -- same
+            // FieldWrapper re-render race as the confirm tour above.
             {
                 content: "Status is Draft",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='draft'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -645,9 +683,15 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
             // string could not have matched before the reset ran,
             // since the record showed its manual number instead
             // (patterns.md §P).
+            //
+            // Gerbang modal-tertutup (patterns.md §K) -- same
+            // FieldWrapper re-render race as the confirm tour above;
+            // display_name is itself a field widget re-rendered by
+            // the reset RPC's response.
             {
                 content: "Document number returns to /",
                 trigger: ".oe_title .o_field_widget[name='display_name']:contains(*)",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -703,9 +747,17 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
                 trigger: ".o_notebook .nav-link:contains(Approvals)",
                 extra_trigger: "body:not(:has(.modal))",
             },
+            // Gerbang modal-tertutup (patterns.md §K) on both remaining
+            // assertions too: this tour was an observed victim of the
+            // same intermittent FieldWrapper race (see #77) even
+            // though the tab click above already carries the gate --
+            // the modal-close race window can still be open by the
+            // time these two widgets (approval_ids, statusbar) finish
+            // their own re-render from the reload RPC.
             {
                 content: "The approval process has been rebuilt",
                 trigger: ".o_field_widget[name='approval_ids'] .o_data_row",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
@@ -714,6 +766,7 @@ odoo.define("ssi_promotion.promotion_code_tour", function (require) {
                 content: "Status is still Waiting for Approval",
                 trigger:
                     ".o_statusbar_status .o_arrow_button[data-value='confirm'].btn-primary",
+                extra_trigger: "body:not(:has(.modal))",
                 run: function () {
                     // Assertion only.
                 },
